@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import requests
+from requests import Response
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,7 @@ class SwitchBotClient:
         self._base_url = (base_url or "https://api.switch-bot.com").rstrip("/")
         self._retry_attempts = max(int(retry_attempts), 1)
         self._retry_delay_seconds = max(int(retry_delay_seconds), 0)
+        self._last_quota: dict[str, int] | None = None
 
     def _build_headers(self) -> dict[str, str]:
         if not self._token or not self._secret:
@@ -94,6 +96,8 @@ class SwitchBotClient:
                     f"Invalid JSON response from SwitchBot ({response.status_code})."
                 ) from exc
 
+            self._capture_quota_metadata(response)
+
             if response.status_code >= 400:
                 raise SwitchBotApiError(
                     f"SwitchBot HTTP {response.status_code}: {data!r}"
@@ -145,3 +149,42 @@ class SwitchBotClient:
             "commandType": command_type,
         }
         return self._request("POST", f"/v1.1/devices/{device_id}/commands", json_body=body)
+
+    def _capture_quota_metadata(self, response: Response) -> None:
+        header_map = {key.lower(): value for key, value in response.headers.items()}
+        limit_raw = (
+            header_map.get("x-ratelimit-limit")
+            or header_map.get("x-rate-limit-limit")
+            or header_map.get("ratelimit-limit")
+        )
+        remaining_raw = (
+            header_map.get("x-ratelimit-remaining")
+            or header_map.get("x-rate-limit-remaining")
+            or header_map.get("ratelimit-remaining")
+        )
+
+        limit = self._safe_int(limit_raw)
+        remaining = self._safe_int(remaining_raw)
+
+        if limit is None and remaining is None:
+            return
+
+        self._last_quota = {}
+        if limit is not None:
+            self._last_quota["limit"] = limit
+        if remaining is not None:
+            self._last_quota["remaining"] = remaining
+
+    @staticmethod
+    def _safe_int(value: str | None) -> int | None:
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    def get_last_quota_snapshot(self) -> dict[str, int] | None:
+        if self._last_quota is None:
+            return None
+        return dict(self._last_quota)

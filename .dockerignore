@@ -9,9 +9,9 @@ env/
 venv/
 .env
 .env.*
-config/settings.json
-config/state.json
-memory-bank/
+# config/settings.json
+# config/state.json
+# memory-bank/
 docs/README-old.md
 switchbot_dashboard/__pycache__/
 switchbot_dashboard/static/css/*.map

@@ -1,0 +1,31 @@
+{
+  "automation_enabled": false,
+  "mode": "winter",
+  "poll_interval_seconds": 15,
+  "hysteresis_celsius": 0.3,
+  "command_cooldown_seconds": 30,
+  "turn_off_outside_windows": true,
+  "meter_device_id": "FCE61F1FD04C",
+  "aircon_device_id": "01-202401301615-24010246",
+  "winter": {
+    "min_temp": 24.0,
+    "max_temp": 27.0,
+    "target_temp": 26.0,
+    "fan_speed": 3,
+    "ac_mode": 5
+  },
+  "summer": {
+    "min_temp": 23.0,
+    "max_temp": 26.0,
+    "target_temp": 24.0,
+    "fan_speed": 3,
+    "ac_mode": 2
+  },
+  "time_windows": [
+    {
+      "days": [0, 1, 2, 3, 4, 5, 6],
+      "start": "10:00",
+      "end": "01:00"
+    }
+  ]
+}

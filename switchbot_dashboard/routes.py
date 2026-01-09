@@ -149,6 +149,8 @@ def index() -> str:
     state = state_store.read()
 
     time_window_form = _get_time_window_form(settings)
+    api_requests_remaining = state.get("api_requests_remaining")
+    api_requests_total = state.get("api_requests_total")
 
     return render_template(
         "index.html",
@@ -160,6 +162,8 @@ def index() -> str:
         temp_choices=TEMP_CHOICES,
         fan_speed_choices=FAN_SPEED_CHOICES,
         ac_mode_choices=AC_MODE_CHOICES,
+        api_requests_remaining=api_requests_remaining,
+        api_requests_total=api_requests_total,
     )
 
 

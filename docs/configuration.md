@@ -11,9 +11,21 @@ SWITCHBOT_TOKEN=votre_token_ici
 SWITCHBOT_SECRET=votre_secret_ici
 SWITCHBOT_RETRY_ATTEMPTS=2
 SWITCHBOT_RETRY_DELAY_SECONDS=10
+SWITCHBOT_POLL_INTERVAL_SECONDS=60
+FLASK_SECRET_KEY=change_me
 ```
 
 > ⚠️ **Sécurité** : Ne jamais commiter `.env`. Utiliser `.env.example` comme modèle.
+
+#### Override du poll interval
+
+- Lorsqu'une valeur `SWITCHBOT_POLL_INTERVAL_SECONDS` est définie, `create_app()` force l'écriture immédiate de cette valeur (minimum 15 s) dans `config/settings.json` au démarrage pour garantir la cohérence des ticks scheduler.  
+- Mettre à jour `.env` suffit donc pour overrider durablement le poll interval, même si l'UI affiche encore l'ancienne valeur avant rafraîchissement.
+
+#### Valeurs par défaut et clés Flask
+
+- `SWITCHBOT_RETRY_ATTEMPTS` et `SWITCHBOT_RETRY_DELAY_SECONDS` retombent respectivement sur `2` et `10` secondes si la valeur fournie n'est pas un entier valide.  
+- Définir `FLASK_SECRET_KEY` dans `.env` est indispensable : en production, cela évite le fallback `"dev"` utilisé uniquement pour le développement et protège les sessions/flash messages.
 
 ### 2. Paramètres applicatifs (`config/settings.json`)
 
@@ -115,6 +127,13 @@ Ce fichier journalise l'état courant pour l'affichage UI :
 - **Accès atomique** : `JsonStore` utilise `threading.Lock` et écriture via fichier temporaire
 - **Validation systématique** : jamais de consommation directe de `request.form`
 - **Logs sécurisés** : jamais de secrets dans les logs, utilisation de `current_app.logger`
+
+## Quotas & limites API
+
+- L'API SwitchBot applique une limite de 10 000 requêtes par jour et par compte (référence doc officielle).  
+- Les réponses importantes exposent des headers de quotas. Lorsque disponibles, `AutomationService` persiste `api_requests_remaining` et `api_requests_total` dans `config/state.json` afin de rendre l'information visible dans l'en-tête de `index.html`.  
+- La vignette "Quota API quotidien" affiche ces deux valeurs et indique `N/A` si l'information n'a pas encore été remontée.  
+- Surveiller ce compteur avant d'exécuter des rafales d'actions manuelles ou de réduire trop le poll interval : en dessous d'un reste de 200 appels, désactiver l'automatisation ou espacer les requêtes pour éviter d'atteindre le plafond quotidien.
 
 ---
 

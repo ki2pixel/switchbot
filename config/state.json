@@ -1,0 +1,11 @@
+{
+  "last_temperature": 24.3,
+  "last_humidity": 38,
+  "last_read_at": "2026-01-09T16:42:37.761849+00:00",
+  "assumed_aircon_power": "unknown",
+  "assumed_aircon_mode": null,
+  "assumed_aircon_parameter": null,
+  "last_action": null,
+  "last_action_at": null,
+  "last_error": null
+}

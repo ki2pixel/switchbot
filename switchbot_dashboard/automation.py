@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import logging
 from typing import Any
 
 from .config_store import JsonStore
@@ -53,6 +54,9 @@ def _utc_now_iso() -> str:
     return dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc).isoformat()
 
 
+logger = logging.getLogger(__name__)
+
+
 class AutomationService:
     def __init__(
         self,
@@ -69,6 +73,32 @@ class AutomationService:
         state.update(updates)
         self._state_store.write(state)
 
+    def _record_quota_snapshot(self) -> None:
+        snapshot = self._client.get_last_quota_snapshot()
+        if not snapshot:
+            return
+
+        limit = snapshot.get("limit")
+        remaining = snapshot.get("remaining")
+
+        used: int | None = None
+        if limit is not None and remaining is not None:
+            used = max(limit - remaining, 0)
+
+        updates: dict[str, Any] = {}
+        if remaining is not None:
+            updates["api_requests_remaining"] = remaining
+        if used is not None:
+            updates["api_requests_total"] = used
+        elif limit is not None:
+            updates["api_requests_total"] = limit
+
+        if not updates:
+            return
+
+        self._update_state(**updates)
+        logger.info("Recorded SwitchBot quota snapshot: %s", updates)
+
     def poll_meter(self) -> dict[str, Any] | None:
         settings = self._settings_store.read()
         meter_id = str(settings.get("meter_device_id", "")).strip()
@@ -78,6 +108,7 @@ class AutomationService:
 
         try:
             response = self._client.get_device_status(meter_id)
+            self._record_quota_snapshot()
         except SwitchBotApiError as exc:
             self._update_state(last_error=str(exc), last_read_at=_utc_now_iso())
             return None
@@ -121,6 +152,7 @@ class AutomationService:
             return
 
         self._client.send_command(aircon_device_id, command="turnOff", parameter="default")
+        self._record_quota_snapshot()
         self._update_state(
             assumed_aircon_power="off",
             last_action="turnOff",
@@ -151,6 +183,7 @@ class AutomationService:
             parameter=parameter,
             command_type="command",
         )
+        self._record_quota_snapshot()
         self._update_state(
             assumed_aircon_power=power_state,
             assumed_aircon_mode=mode,

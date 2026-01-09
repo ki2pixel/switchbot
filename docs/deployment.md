@@ -42,6 +42,7 @@ Le fichier `Dockerfile` à la racine :
 5. Trigger Render :
    - POST sur `RENDER_DEPLOY_WEBHOOK_URL` (payload JSON avec `sha` et `image`).
    - Si code HTTP non 2xx → fallback API `POST https://api.render.com/v1/services/{SERVICE_ID}/deploys` avec `Authorization: Bearer RENDER_API_KEY`.
+   - ⚠️ Le job GitHub échoue immédiatement si le webhook n'est pas défini **ou** si `RENDER_API_KEY` / `RENDER_SERVICE_ID` sont absents (le fallback exige ces deux secrets simultanément).
 
 ### Secrets GitHub requis
 - `RENDER_DEPLOY_WEBHOOK_URL`
@@ -92,9 +93,9 @@ Le fichier `Dockerfile` à la racine :
 
 | Emplacement | Secret | Description |
 |-------------|--------|-------------|
-| GitHub → Settings → Secrets → Actions | `RENDER_DEPLOY_WEBHOOK_URL` | URL pour déclencher un deploy Render |
-| GitHub → Settings → Secrets → Actions | `RENDER_API_KEY` | Clé API Render pour fallback |
-| GitHub → Settings → Secrets → Actions | `RENDER_SERVICE_ID` | Identifiant du service Render |
+| GitHub → Settings → Secrets → Actions | `RENDER_DEPLOY_WEBHOOK_URL` | URL pour déclencher un deploy Render (obligatoire même si l'API fallback est utilisée) |
+| GitHub → Settings → Secrets → Actions | `RENDER_API_KEY` | Clé API Render pour fallback (doit être présente avec `RENDER_SERVICE_ID`) |
+| GitHub → Settings → Secrets → Actions | `RENDER_SERVICE_ID` | Identifiant du service Render (nécessaire avec `RENDER_API_KEY` pour le fallback) |
 | Render → Environment | `SWITCHBOT_TOKEN` | Token SwitchBot API |
 | Render → Environment | `SWITCHBOT_SECRET` | Secret SwitchBot API |
 | Render → Environment | `FLASK_SECRET_KEY` | Secret Flask |
