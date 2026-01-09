@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SwitchBot Dashboard</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}" />
+  </head>
+  <body class="sb-dark">
+    <div class="container py-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">SwitchBot Dashboard</h1>
+        <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.devices') }}">Devices</a>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mb-3">
+            {% for category, message in messages %}
+              {% if category == 'error' %}
+                <div class="alert alert-danger">{{ message }}</div>
+              {% else %}
+                <div class="alert alert-success">{{ message }}</div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="row g-3">
+        <div class="col-12 col-lg-6">
+          <div class="card">
+            <div class="card-header">Current status</div>
+            <div class="card-body">
+              <dl class="row mb-0">
+                <dt class="col-5">Temperature</dt>
+                <dd class="col-7">{{ state.get('last_temperature') }}</dd>
+
+                <dt class="col-5">Humidity</dt>
+                <dd class="col-7">{{ state.get('last_humidity') }}</dd>
+
+                <dt class="col-5">Last read</dt>
+                <dd class="col-7">{{ state.get('last_read_at') }}</dd>
+
+                <dt class="col-5">Aircon (assumed)</dt>
+                <dd class="col-7">{{ state.get('assumed_aircon_power') }}</dd>
+
+                <dt class="col-5">Last action</dt>
+                <dd class="col-7">{{ state.get('last_action') }}</dd>
+
+                <dt class="col-5">Last error</dt>
+                <dd class="col-7">{{ state.get('last_error') }}</dd>
+              </dl>
+
+              <div class="d-flex gap-2 mt-3">
+                <form method="post" action="{{ url_for('dashboard.run_once') }}">
+                  <button class="btn btn-primary" type="submit">Run once</button>
+                </form>
+                <form method="post" action="{{ url_for('dashboard.quick_winter') }}">
+                  <button class="btn btn-warning" type="submit">Chauffage (Hiver)</button>
+                </form>
+                <form method="post" action="{{ url_for('dashboard.quick_summer') }}">
+                  <button class="btn btn-info" type="submit">Clim (Été)</button>
+                </form>
+                <form method="post" action="{{ url_for('dashboard.quick_off') }}">
+                  <button class="btn btn-secondary" type="submit">Off</button>
+                </form>
+                <form method="post" action="{{ url_for('dashboard.aircon_on') }}">
+                  <button class="btn btn-outline-success" type="submit">Aircon ON (setAll)</button>
+                </form>
+                <form method="post" action="{{ url_for('dashboard.aircon_off') }}">
+                  <button class="btn btn-outline-danger" type="submit">Aircon OFF</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <div class="card">
+            <div class="card-header">Settings</div>
+            <div class="card-body">
+              <form method="post" action="{{ url_for('dashboard.update_settings') }}" class="settings-form">
+                <div class="form-check form-switch mb-3">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    id="automation_enabled"
+                    name="automation_enabled"
+                    {% if settings.get('automation_enabled') %}checked{% endif %}
+                  />
+                  <label class="form-check-label" for="automation_enabled">Automation enabled</label>
+                </div>
+
+                <div class="row g-3">
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="mode">Mode</label>
+                    <select class="form-select" id="mode" name="mode">
+                      <option value="winter" {% if settings.get('mode') == 'winter' %}selected{% endif %}>winter</option>
+                      <option value="summer" {% if settings.get('mode') == 'summer' %}selected{% endif %}>summer</option>
+                    </select>
+                  </div>
+
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="poll_interval_seconds">Poll interval (s)</label>
+                    <input
+                      class="form-control"
+                      id="poll_interval_seconds"
+                      name="poll_interval_seconds"
+                      value="{{ settings.get('poll_interval_seconds') }}"
+                      inputmode="numeric"
+                    />
+                  </div>
+
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="hysteresis_celsius">Hysteresis (°C)</label>
+                    <input
+                      class="form-control"
+                      id="hysteresis_celsius"
+                      name="hysteresis_celsius"
+                      value="{{ settings.get('hysteresis_celsius') }}"
+                    />
+                  </div>
+
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="command_cooldown_seconds">Command cooldown (s)</label>
+                    <input
+                      class="form-control"
+                      id="command_cooldown_seconds"
+                      name="command_cooldown_seconds"
+                      value="{{ settings.get('command_cooldown_seconds') }}"
+                      inputmode="numeric"
+                    />
+                  </div>
+
+                  <div class="col-12">
+                    <div class="form-check mb-2">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="turn_off_outside_windows"
+                        name="turn_off_outside_windows"
+                        {% if settings.get('turn_off_outside_windows') %}checked{% endif %}
+                      />
+                      <label class="form-check-label" for="turn_off_outside_windows">Turn off outside time windows</label>
+                    </div>
+                  </div>
+
+                  <div class="col-12">
+                    <label class="form-label" for="meter_device_id">Meter device ID</label>
+                    <input class="form-control" id="meter_device_id" name="meter_device_id" value="{{ settings.get('meter_device_id') }}" />
+                  </div>
+
+                  <div class="col-12">
+                    <label class="form-label" for="aircon_device_id">Aircon (IR remote) device ID</label>
+                    <input class="form-control" id="aircon_device_id" name="aircon_device_id" value="{{ settings.get('aircon_device_id') }}" />
+                    <div class="form-text">This is the virtual infrared remote device id (remoteType: Air Conditioner).</div>
+                  </div>
+
+                  <div class="col-12">
+                    <div class="d-flex align-items-center justify-content-between">
+                      <label class="form-label mb-0">Time window</label>
+                      <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis">mobile friendly</span>
+                    </div>
+                    <div class="small text-muted mb-2">Select days and choose start/end in 24h format.</div>
+                    <div class="border rounded-3 p-3 mb-2 time-window-card">
+                      <div class="row g-3">
+                        <div class="col-12">
+                          <label class="form-label d-block">Days</label>
+                          <div class="d-flex flex-wrap gap-2">
+                            {% for day in day_choices %}
+                              <div class="form-check form-check-inline day-chip">
+                                <input
+                                  class="btn-check"
+                                  type="checkbox"
+                                  id="day_{{ day.value }}"
+                                  name="time_window_days"
+                                  value="{{ day.value }}"
+                                  {% if day.value in time_window_form['days'] %}checked{% endif %}
+                                />
+                                <label class="btn btn-outline-primary btn-sm" for="day_{{ day.value }}">{{ day.label }}</label>
+                              </div>
+                            {% endfor %}
+                          </div>
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label" for="time_window_start">Start</label>
+                          <select class="form-select" id="time_window_start" name="time_window_start">
+                            <option value="">Select…</option>
+                            {% for choice in time_choices %}
+                              <option value="{{ choice }}" {% if time_window_form['start'] == choice %}selected{% endif %}>{{ choice }}</option>
+                            {% endfor %}
+                          </select>
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label" for="time_window_end">End</label>
+                          <select class="form-select" id="time_window_end" name="time_window_end">
+                            <option value="">Select…</option>
+                            {% for choice in time_choices %}
+                              <option value="{{ choice }}" {% if time_window_form['end'] == choice %}selected{% endif %}>{{ choice }}</option>
+                            {% endfor %}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <hr />
+
+                {% set winter_profile = settings.get('winter', {}) %}
+                <h2 class="h6">Winter profile</h2>
+                <div class="row g-2">
+                  <div class="col-4">
+                    <label class="form-label" for="winter_min_temp">Min</label>
+                    <select class="form-select" id="winter_min_temp" name="winter_min_temp">
+                      {% for choice in temp_choices %}
+                        <option value="{{ choice.value }}" {% if (winter_profile.get('min_temp') | float) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}°C
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label" for="winter_max_temp">Max</label>
+                    <select class="form-select" id="winter_max_temp" name="winter_max_temp">
+                      {% for choice in temp_choices %}
+                        <option value="{{ choice.value }}" {% if (winter_profile.get('max_temp') | float) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}°C
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label" for="winter_target_temp">Target</label>
+                    <select class="form-select" id="winter_target_temp" name="winter_target_temp">
+                      {% for choice in temp_choices %}
+                        <option value="{{ choice.value }}" {% if (winter_profile.get('target_temp') | float) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}°C
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="winter_ac_mode">AC mode</label>
+                    <select class="form-select" id="winter_ac_mode" name="winter_ac_mode">
+                      {% for choice in ac_mode_choices %}
+                        <option value="{{ choice.value }}" {% if (winter_profile.get('ac_mode') | int) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="winter_fan_speed">Fan speed</label>
+                    <select class="form-select" id="winter_fan_speed" name="winter_fan_speed">
+                      {% for choice in fan_speed_choices %}
+                        <option value="{{ choice.value }}" {% if (winter_profile.get('fan_speed') | int) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                <hr />
+
+                {% set summer_profile = settings.get('summer', {}) %}
+                <h2 class="h6">Summer profile</h2>
+                <div class="row g-2">
+                  <div class="col-4">
+                    <label class="form-label" for="summer_min_temp">Min</label>
+                    <select class="form-select" id="summer_min_temp" name="summer_min_temp">
+                      {% for choice in temp_choices %}
+                        <option value="{{ choice.value }}" {% if (summer_profile.get('min_temp') | float) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}°C
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label" for="summer_max_temp">Max</label>
+                    <select class="form-select" id="summer_max_temp" name="summer_max_temp">
+                      {% for choice in temp_choices %}
+                        <option value="{{ choice.value }}" {% if (summer_profile.get('max_temp') | float) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}°C
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label" for="summer_target_temp">Target</label>
+                    <select class="form-select" id="summer_target_temp" name="summer_target_temp">
+                      {% for choice in temp_choices %}
+                        <option value="{{ choice.value }}" {% if (summer_profile.get('target_temp') | float) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}°C
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="summer_ac_mode">AC mode</label>
+                    <select class="form-select" id="summer_ac_mode" name="summer_ac_mode">
+                      {% for choice in ac_mode_choices %}
+                        <option value="{{ choice.value }}" {% if (summer_profile.get('ac_mode') | int) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="summer_fan_speed">Fan speed</label>
+                    <select class="form-select" id="summer_fan_speed" name="summer_fan_speed">
+                      {% for choice in fan_speed_choices %}
+                        <option value="{{ choice.value }}" {% if (summer_profile.get('fan_speed') | int) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <button class="btn btn-primary w-100 w-md-auto" type="submit">Save</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

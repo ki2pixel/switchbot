@@ -1,0 +1,42 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments / tools
+env/
+venv/
+.venv/
+.mypy_cache/
+.pytest_cache/
+
+# Editors / IDE
+.idea/
+.vscode/
+.DS_Store
+
+# Environment & secrets
+.env
+.env.*
+*.secret
+
+# Local config/state artifacts
+config/settings.json
+config/state.json
+memory-bank/
+
+# Logs / runtime
+*.log
+instance/
+
+# Build / packaging
+*.egg-info/
+dist/
+build/
+
+# Node / frontend (if any)
+node_modules/
+*.map
+
+# Docker / compose overrides (generated)
+**/.docker-compose.override.yml
