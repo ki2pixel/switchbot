@@ -86,7 +86,8 @@ Affiche en temps réel :
 
 #### Scènes SwitchBot
 
-Les scènes permettent d'exécuter des configurations complexes prédéfinies dans l'application SwitchBot officielle :
+Les scènes permettent d'exécuter des configurations complexes prédéfinies dans l'application SwitchBot officielle.  
+Chaque bouton de scène affiche désormais une icône évocatrice (soleil, flocon, ventilateur, veille) pour gagner en lisibilité visuelle sans afficher les UUID :
 
 - **`Hiver`** : Active la scène d'hiver configurée (par exemple : chauffage à 20°C)
 - **`Été`** : Active la scène d'été configurée (par exemple : climatisation à 24°C)
@@ -94,7 +95,7 @@ Les scènes permettent d'exécuter des configurations complexes prédéfinies da
 - **`Arrêt`** : Éteint le climatiseur (utilisée par l'automatisation avec l'option *turn_off_outside_windows*)
 
 **Indicateurs visuels :**
-- Bouton vert : scène correctement configurée et prête à l'emploi
+- Icône de couleur + titre : scène correctement configurée et prête à l'emploi
 - Bouton rouge avec icône ⚠️ : scène non configurée (cliquer pour configurer)
 - Bouton grisé : scène désactivée (configuration manquante ou erreur de chargement)
 - Animation : scène en cours d'exécution
@@ -217,7 +218,10 @@ Chaque appareil est représenté par une carte interactive :
 
 ### Messages utilisateur
 
-- **Flash messages** : Succès (fond vert foncé), avertissements (fond orange foncé), erreurs (fond rouge foncé) avec texte blanc à fort contraste. Ils se ferment automatiquement après ~6 secondes pour éviter d'encombrer l'interface, tout en laissant le temps de lire le message.
+Le tableau de bord utilise des messages flash pour informer l'utilisateur du résultat des actions. Ces messages s'affichent en haut de la page et se ferment automatiquement après 6 secondes.
+
+> **Note technique** : L'auto-fermeture des messages est gérée par le script `static/js/alerts.js` qui ajoute une animation de fondu et supprime le message du DOM après un délai de 600ms, pour éviter d'encombrer l'interface tout en laissant le temps de lire le message.
+
 - **Badges d'état** : Information contextuelle sur les devices
 - **Retours clipboard** : Confirmation visuelle temporaire
 

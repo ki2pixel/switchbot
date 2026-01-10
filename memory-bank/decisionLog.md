@@ -105,3 +105,8 @@
   - Mise à jour du template `index.html` pour afficher ces informations de manière claire et concise
   - Ajout de styles CSS pour une intégration visuelle harmonieuse
   - Tests d'intégration pour vérifier l'affichage correct des informations
+
+[2026-01-10 20:30:00] - Amélioration des flash messages avec auto-dismiss et contraste renforcé
+- Décision : Implémenter l'auto-fermeture automatique des flash messages après 6 secondes via un script JS dédié, et renforcer le contraste en utilisant des fonds sombres avec texte blanc (respect WCAG AA).
+- Motivation : Les alertes "Automation tick executed." ne disparaissaient pas automatiquement, encombrant l'interface ; le contraste (blanc sur vert clair) était insuffisant pour la lisibilité.
+- Implication : Création de `static/js/alerts.js` pour gérer les transitions ; mises à jour de `theme.css` avec nouvelles variables et styles `.alert` ; modification des templates `index.html` et `quota.html` pour ARIA et auto-dismiss ; documentation dans `ui-guide.md` ; tests Pytest validés sans régression.

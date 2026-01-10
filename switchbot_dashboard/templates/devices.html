@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Devices - SwitchBot Dashboard</title>
+    <title>Appareils - SwitchBot Dashboard</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -16,8 +16,8 @@
   <body class="sb-dark">
     <div class="container py-4">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 mb-0">Devices</h1>
-        <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.index') }}">Back</a>
+        <h1 class="h3 mb-0">Appareils</h1>
+        <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.index') }}">Retour</a>
       </div>
 
       {% if error %}
@@ -32,8 +32,8 @@
         <div class="card highlight-card mb-4" aria-live="polite">
           <div class="card-body d-flex flex-column flex-lg-row align-items-lg-center gap-3">
             <div>
-              <p class="text-uppercase small text-muted fw-semibold mb-1">Inventory snapshot</p>
-              <h2 class="h4 mb-0">{{ device_list | length }} physical · {{ remote_list | length }} infrared</h2>
+              <p class="text-uppercase small text-muted fw-semibold mb-1">Instantané d'inventaire</p>
+              <h2 class="h4 mb-0">{{ device_list | length }} physiques · {{ remote_list | length }} infrarouges</h2>
             </div>
             <div class="ms-lg-auto">
               <p class="mb-0 text-muted">
@@ -47,25 +47,25 @@
         <section aria-labelledby="devices-heading" class="mb-5">
           <div class="section-title">
             <div>
-              <p class="text-uppercase small text-muted fw-semibold mb-1">Physical devices</p>
-              <h2 id="devices-heading" class="h4 mb-0">deviceList</h2>
+              <p class="text-uppercase small text-muted fw-semibold mb-1">Appareils physiques</p>
+              <h2 id="devices-heading" class="h4 mb-0">Liste des appareils</h2>
             </div>
             {% if device_list %}
-              <span class="badge rounded-pill bg-glass">{{ device_list | length }} found</span>
+              <span class="badge rounded-pill bg-glass">{{ device_list | length }} trouvés</span>
             {% endif %}
           </div>
 
           {% if device_list %}
             <div class="device-grid">
               {% for device in device_list %}
-                <article class="device-card" aria-label="{{ device.get('deviceName') or 'SwitchBot device' }}">
+                <article class="device-card" aria-label="{{ device.get('deviceName') or 'Appareil SwitchBot' }}">
                   <div class="device-card__header">
                     <div>
-                      <h3 class="device-name">{{ device.get("deviceName") or "Unnamed device" }}</h3>
-                      <p class="device-type text-muted mb-0">{{ device.get("deviceType") or "Unknown type" }}</p>
+                      <h3 class="device-name">{{ device.get("deviceName") or "Appareil sans nom" }}</h3>
+                      <p class="device-type text-muted mb-0">{{ device.get("deviceType") or "Type inconnu" }}</p>
                     </div>
                     <span class="badge rounded-pill bg-accent">
-                      {{ "Hub" if device.get("hubDeviceId") else "Standalone" }}
+                      {{ "Hub" if device.get("hubDeviceId") else "Autonome" }}
                     </span>
                   </div>
 
@@ -76,24 +76,24 @@
                     </div>
                     <div>
                       <dt>Hub</dt>
-                      <dd>{{ device.get("hubDeviceId") or "None" }}</dd>
+                      <dd>{{ device.get("hubDeviceId") or "Aucun" }}</dd>
                     </div>
                     <div>
                       <dt>Firmware</dt>
-                      <dd>{{ device.get("firmwareVersion") or "Unknown" }}</dd>
+                      <dd>{{ device.get("firmwareVersion") or "Inconnu" }}</dd>
                     </div>
                     <div>
                       <dt>Cloud</dt>
-                      <dd>{{ "Enabled" if device.get("enableCloudService") else "Disabled" }}</dd>
+                      <dd>{{ "Activé" if device.get("enableCloudService") else "Désactivé" }}</dd>
                     </div>
                     <div>
-                      <dt>Status</dt>
+                      <dt>Statut</dt>
                       <dd class="{{ 'text-success' if device.get('status') == 'online' else 'text-warning' }}">
-                        {{ device.get("status") or "n/a" }}
+                        {{ device.get("status") or "n/d" }}
                       </dd>
                     </div>
                     <div>
-                      <dt>Battery</dt>
+                      <dt>Batterie</dt>
                       <dd>{{ device.get("battery") or "—" }}</dd>
                     </div>
                   </dl>
@@ -115,7 +115,7 @@
               {% endfor %}
             </div>
           {% else %}
-            <p class="text-muted fst-italic">Aucun device physique n'a été renvoyé.</p>
+            <p class="text-muted fst-italic">Aucun appareil physique n'a été renvoyé.</p>
           {% endif %}
 
           <!-- Collapsible raw JSON retained for troubleshooting without overwhelming the main UI -->
@@ -128,25 +128,25 @@
         <section aria-labelledby="remotes-heading">
           <div class="section-title">
             <div>
-              <p class="text-uppercase small text-muted fw-semibold mb-1">Infrared remotes</p>
-              <h2 id="remotes-heading" class="h4 mb-0">infraredRemoteList</h2>
+              <p class="text-uppercase small text-muted fw-semibold mb-1">Télécommandes infrarouges</p>
+              <h2 id="remotes-heading" class="h4 mb-0">Liste des télécommandes</h2>
             </div>
             {% if remote_list %}
-              <span class="badge rounded-pill bg-glass">{{ remote_list | length }} found</span>
+              <span class="badge rounded-pill bg-glass">{{ remote_list | length }} trouvées</span>
             {% endif %}
           </div>
 
           {% if remote_list %}
             <div class="device-grid">
               {% for remote in remote_list %}
-                <article class="device-card" aria-label="{{ remote.get('remoteName') or 'Infrared remote' }}">
+                <article class="device-card" aria-label="{{ remote.get('remoteName') or 'Télécommande infrarouge' }}">
                   <div class="device-card__header">
                     <div>
-                      <h3 class="device-name">{{ remote.get("remoteName") or "Unnamed remote" }}</h3>
-                      <p class="device-type text-muted mb-0">{{ remote.get("remoteType") or "Unknown type" }}</p>
+                      <h3 class="device-name">{{ remote.get("remoteName") or "Télécommande sans nom" }}</h3>
+                      <p class="device-type text-muted mb-0">{{ remote.get("remoteType") or "Type inconnu" }}</p>
                     </div>
                     <span class="badge rounded-pill bg-accent">
-                      {{ remote.get("hubDeviceId") or "Hub n/a" }}
+                      {{ remote.get("hubDeviceId") or "Hub n/d" }}
                     </span>
                   </div>
 
@@ -156,20 +156,20 @@
                       <dd class="device-id">{{ remote.get("deviceId") or "—" }}</dd>
                     </div>
                     <div>
-                      <dt>Brand</dt>
-                      <dd>{{ remote.get("remoteBrand") or "Unknown" }}</dd>
+                      <dt>Marque</dt>
+                      <dd>{{ remote.get("remoteBrand") or "Inconnue" }}</dd>
                     </div>
                     <div>
-                      <dt>Model</dt>
-                      <dd>{{ remote.get("remoteModel") or "Unknown" }}</dd>
+                      <dt>Modèle</dt>
+                      <dd>{{ remote.get("remoteModel") or "Inconnu" }}</dd>
                     </div>
                     <div>
-                      <dt>Category</dt>
-                      <dd>{{ remote.get("remoteDeviceType") or "n/a" }}</dd>
+                      <dt>Catégorie</dt>
+                      <dd>{{ remote.get("remoteDeviceType") or "n/d" }}</dd>
                     </div>
                     <div>
                       <dt>Cloud</dt>
-                      <dd>{{ "Enabled" if remote.get("enableCloudService") else "Disabled" }}</dd>
+                      <dd>{{ "Activé" if remote.get("enableCloudService") else "Désactivé" }}</dd>
                     </div>
                   </dl>
 
@@ -199,7 +199,7 @@
           </details>
         </section>
       {% else %}
-        <div class="alert alert-warning">No data.</div>
+        <div class="alert alert-warning">Aucune donnée.</div>
       {% endif %}
     </div>
     <script>

@@ -104,6 +104,10 @@
 - Mise à jour de la documentation dans `configuration.md` avec les bonnes pratiques de gestion des quotas
 - Styles CSS ajoutés pour une intégration visuelle harmonieuse
 - Tous les tests passent avec succès après les modifications
+- Amélioration des flash messages avec auto-dismiss (6s) et contraste renforcé (fonds sombres, texte blanc) pour tous les types d'alertes (succès, erreur, info, warning)
+- Création de `static/js/alerts.js` pour gérer l'auto-fermeture progressive des alertes
+- Mise à jour des templates `index.html` et `quota.html` pour ARIA et auto-dismiss
+- Renforcement du contraste dans `theme.css` avec nouvelles variables et styles `.alert`
 
 ## Terminé
 [2026-01-09 16:47:00] - Implémentation du thème sombre par défaut sur les templates index.html et devices.html.
@@ -119,6 +123,7 @@
   - Documentation des décisions techniques dans la Memory Bank
 [2026-01-10 13:35:00] - Aircon presets configurables et tests associés
 [2026-01-10 16:40:00] - Scène OFF SwitchBot + documentation/tests
+[2026-01-10 20:30:00] - Amélioration des flash messages (auto-dismiss et contraste)
 
 ## En cours
 - Aucune tâche active.
