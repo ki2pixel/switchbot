@@ -83,19 +83,67 @@ Le fichier `Dockerfile` à la racine :
 ### Local
 - `docker build -t switchbot:local .`
 - `docker run -it --rm -p 8000:8000 --env-file=.env switchbot:local`
-- Ouvrir `http://localhost:8000` pour vérifier l'UI.
+- Vérifier l'interface utilisateur : `http://localhost:8000`
+- Tester l'endpoint de santé : `curl http://localhost:8000/healthz`
+- Vérifier les logs pour les erreurs potentielles : `docker logs <container_id>`
 
 ### GitHub Actions
 - Lancer `workflow_dispatch` en fournissant la branche.
 - Vérifier que l'image apparaît dans `https://github.com/ki2pixel/switchbot/pkgs/container/switchbot`.
 
 ### Render
-- Après déclenchement, vérifier :
-  - Logs déploiement dans Render (pas d'erreurs Gunicorn/APScheduler).
-  - Page `/` fonctionne, scheduler actif.
-  - Endpoint `https://<service>.onrender.com/healthz` renvoie `{"status": "ok", ...}` avec `scheduler_running`, `automation_enabled`, `last_tick` et `timestamp_utc`. Render peut l’utiliser pour ses **Health Checks**, et des services externes comme UpTimeRobot peuvent également s’y brancher (HTTP 200 attendu, 503 en cas de store indisponible).
+- Après le déploiement, effectuer les vérifications suivantes :
+  - **Logs** : Vérifier les logs de déploiement pour les erreurs Gunicorn/APScheduler
+  - **Interface utilisateur** : S'assurer que la page `/` se charge correctement
+  - **Scènes SwitchBot** : Vérifier que les scènes sont correctement configurées et accessibles
+  - **Endpoint de santé** : Tester `https://<service>.onrender.com/healthz` :
+    ```json
+    {
+      "status": "ok",
+      "scheduler_running": true,
+      "automation_enabled": true,
+      "last_tick": "2024-01-10T15:30:00Z",
+      "api_requests_total": 0,
+      "api_requests_remaining": 1000,
+      "api_quota_day": "2024-01-10",
+      "version": "1.0.0"
+    }
+    ```
+  - **Surveillance** : Configurer des vérifications de santé externes (comme UpTimeRobot) pour surveiller l'endpoint `/healthz`
+  - **Alertes** : Configurer des alertes pour les problèmes détectés via l'endpoint de santé
 
-## 7. Checklist de secrets
+## 7. Configuration des scènes en production
+
+### Configuration recommandée
+
+1. **Créer les scènes dans l'application SwitchBot** :
+   - Hiver : Configuration de chauffage (ex: 20°C, mode chauffage)
+   - Été : Configuration de climatisation (ex: 24°C, mode froid)
+   - Ventilation : Mode ventilateur uniquement
+   - Arrêt : Éteindre le climatiseur
+
+2. **Récupérer les UUID** :
+   - Via l'API SwitchBot (`GET /v1.1/scenes`)
+   - Ou depuis l'application mobile (Paramètres > Aide > À propos > Détails de l'API)
+
+3. **Configurer dans Render** :
+   - Ajouter les variables d'environnement suivantes :
+     ```
+     AIRCON_SCENES_WINTER=scene_winter_uuid
+     AIRCON_SCENES_SUMMER=scene_summer_uuid
+     AIRCON_SCENES_FAN=scene_fan_uuid
+     AIRCON_SCENES_OFF=scene_off_uuid
+     TURN_OFF_OUTSIDE_WINDOWS=true
+     ```
+   - Redémarrer le service après configuration
+
+4. **Vérification** :
+   - Accéder à l'interface d'administration
+   - Vérifier que les boutons de scène sont actifs (verts)
+   - Tester chaque scène manuellement
+   - Vérifier les logs pour les erreurs potentielles
+
+## 8. Checklist de secrets
 
 | Emplacement | Secret | Description |
 |-------------|--------|-------------|

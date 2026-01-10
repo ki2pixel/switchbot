@@ -25,10 +25,11 @@ Le dashboard propose une interface mobile-first avec thème sombre immersif, org
 Configuration complète orientée mobile avec :
 
 - **Automatisation & mode** : interrupteur principal et menu `winter/summer`
-- **Fenêtre horaire** : cases à cocher par jour + dropdowns 24 h
-- **Profils Winter/Summer** : dropdowns bornés pour températures, mode AC, ventilation
+- **Fenêtre horaire** : cases à cocher par jour + sélecteurs horaires 24h
+- **Profils Winter/Summer** : paramètres de température, mode AC et ventilation
+- **Scènes SwitchBot** : configuration des scènes favorites pour le contrôle rapide
 
-> 📝 **Décision** : Cette approche mobile-first avec thème sombre a été implémentée le 2026-01-09 16:47 (voir `memory-bank/decisionLog.md`).
+> ℹ️ **Astuce** : Les scènes permettent de définir des configurations complexes directement dans l'application SwitchBot officielle, offrant plus de flexibilité que les paramètres basiques.
 
 ### Carte Current Status
 
@@ -39,45 +40,113 @@ Affiche en temps réel :
 - Dernière action et horodatage
 - Messages d'erreur éventuels
 
-### Actions rapides
+### Contrôle manuel
 
-Boutons pour contrôle manuel :
+#### Actions rapides
 
-- `Run once` : Déclenche manuellement `AutomationService.run_once`
-- `Chauffage (Hiver)` / `Clim (Été)` / `Off` : Change le mode et exécute immédiatement
-- `Aircon ON – Hiver (scène)` / `Aircon ON – Été (scène)` / `Aircon ON – Mode neutre` : exécutent directement les scènes favorites définies côté SwitchBot. Les boutons sont automatiquement désactivés si l’ID correspondant n’est pas configuré dans la section “Scènes favorites”.
-- `Aircon OFF` : Commande directe hors automatisation
+- **`Run once`** : Exécute immédiatement un cycle d'automatisation
+- **`Quick off`** : Éteint le climatiseur en utilisant la scène OFF configurée (ou la commande `turnOff` en cas de scène non configurée)
 
-> 📝 Chaque action met à jour `state.json` (puissance supposée, dernière action, erreur éventuelle) afin de garder l’interface synchronisée.
+#### Scènes SwitchBot
 
-#### Carte “Scènes favorites SwitchBot”
+Les scènes permettent d'exécuter des configurations complexes prédéfinies dans l'application SwitchBot officielle :
 
-- Quatre boutons rapides sont disponibles : “Aircon ON – Hiver (scène)”, “Aircon ON – Été (scène)”, “Aircon ON – Mode neutre” et “Aircon OFF (scène)”.
-- Chaque bouton déclenche l’exécution d’une scène favorite SwitchBot (IDs récupérés via `GET /v1.1/scenes`). Le bouton “Aircon OFF (scène)” permet de déclencher une scène dédiée à l’arrêt complet (utilisée également par les routes `/actions/aircon_off` et `/actions/quick_off` lorsqu’elle est configurée).
-- Si l’ID de scène est absent, le bouton correspondant est désactivé et une mention “Scene ID manquant” apparaît pour éviter les clics inutiles.
-- La carte “Scènes favorites SwitchBot” dans la section Settings permet de renseigner/mettre à jour chacune des quatre scènes. L’état (“non configuré” vs “prêt”) s’affiche automatiquement pour aider à la configuration.
+- **`Aircon ON – Hiver`** : Active la scène d'hiver configurée (par exemple : chauffage à 20°C)
+- **`Aircon ON – Été`** : Active la scène d'été configurée (par exemple : climatisation à 24°C)
+- **`Aircon ON – Mode neutre`** : Active le mode ventilation (ventilateur sans chauffage/rafraîchissement)
+- **`Aircon OFF`** : Éteint le climatiseur (utilisée par l'automatisation avec l'option *turn_off_outside_windows*)
 
-## Page Devices (`/devices`)
+#### Indicateurs visuels
 
-### Inventory Snapshot
+- **Bouton vert** : Scène configurée et prête à l'emploi
+- **Bouton rouge** : Scène non configurée (cliquer pour configurer)
+- **Animation** : Scène en cours d'exécution
+- **Icône ⚠️** : Avertissement de configuration manquante
 
-Carte de synthèse montrant :
+> ℹ️ **Fonctionnement de l'automatisation** :
+> - L'automatisation utilise d'abord les scènes configurées (`winter`/`summer`/`off`)
+> - Si une scène n'est pas configurée, elle utilise les commandes `setAll`/`turnOff` (nécessite `aircon_device_id`)
+> - Vérifiez les messages d'état pour les erreurs de configuration
 
-- Compteur de devices physiques (`deviceList`)
-- Compteur de télécommandes IR (`infraredRemoteList`)
-- Confirmation de synchronisation du compte
+### Configuration des scènes
 
-### Cartes individuelles
+1. **Créer des scènes** dans l'application SwitchBot :
+   - Hiver : Configuration de chauffage
+   - Été : Configuration de climatisation
+   - Ventilation : Mode ventilateur uniquement
+   - Arrêt : Éteindre le climatiseur
 
-Pour chaque device/remote :
+2. **Récupérer les UUID** :
+   - Via l'API SwitchBot (`GET /v1.1/scenes`)
+   - Ou depuis l'application mobile (Paramètres > Aide > À propos > Détails de l'API)
 
-- **Nom et type** avec icône appropriée
-- **Badge Hub/Standalone** pour la topologie
-- **Métadonnées** : firmware, statut cloud, batterie
-- **Bouton "Copier l'ID"** avec retour visuel "Copié ✓"
-- **Accordéon JSON** pour debug (payload brut)
+3. **Configurer les scènes** :
+   - Cliquez sur un bouton rouge pour configurer
+   - Collez l'UUID de la scène correspondante
+   - Sauvegardez les paramètres
 
-> 💡 Le retour clipboard s'affiche 1,8 s puis revient à l'état normal. Décision du 2026-01-09 17:00 dans `memory-bank/decisionLog.md`.
+4. **Vérification** :
+   - Les boutons passent au vert une fois configurés
+   - Les scènes sont testables directement depuis l'interface
+
+> 💡 **Bonnes pratiques** :
+> - Configurez toujours la scène `off` pour un arrêt propre
+> - Testez chaque scène après configuration
+> - Consultez les logs en cas d'erreur avec `LOG_LEVEL=debug`
+> - Les scènes offrent plus de fiabilité que les commandes IR individuelles
+
+## Surveillance de l'état
+
+### Carte Current Status
+
+Affiche en temps réel :
+
+- **Dernière lecture** : Température et humidité actuelles
+- **État du climatiseur** : Allumé/éteint (basé sur `assumed_aircon_power`)
+- **Dernière action** : Détail de la dernière commande envoyée
+- **Quota API** : Nombre de requêtes restantes (limite quotidienne)
+- **Messages d'état** : Erreurs ou avertissements importants
+
+> ℹ️ **Note** : L'état affiché est une estimation basée sur la dernière commande envoyée. Pour une mise à jour en temps réel, utilisez le bouton "Run once".
+
+## Gestion des appareils (`/devices`)
+
+### Vue d'ensemble
+
+La page des appareils fournit une vue complète de votre écosystème SwitchBot :
+
+- **Appareils physiques** : Compteur et détails des appareils connectés
+- **Télécommandes IR** : Gestion des appareils infrarouges contrôlés
+- **État de synchronisation** : Dernière mise à jour et statut du compte
+
+### Inventaire
+
+- **Dernière mise à jour** : Horodatage de la dernière synchronisation
+- **Appareils** : Nombre total d'appareils physiques détectés
+- **Télécommandes** : Nombre de périphériques infrarouges configurés
+
+### Fiche appareil
+
+Chaque appareil est représenté par une carte interactive :
+
+#### En-tête
+- **Icône** : Représentation visuelle du type d'appareil
+- **Nom** : Identifiant personnalisable
+- **Badge** : Type de connexion (Hub, Bluetooth, etc.)
+
+#### Détails techniques
+- **Modèle** : Référence du matériel
+- **Version** : Numéro de firmware
+- **Batterie** : Niveau actuel (si applicable)
+- **Statut** : Connecté/déconnecté
+- **Dernière activité** : Horodatage de la dernière interaction
+
+#### Actions
+- **Copier l'ID** : Copie l'identifiant unique de l'appareil
+- **Voir les détails** : Affiche les métadonnées techniques complètes
+- **Rafraîchir** : Met à jour les informations de l'appareil
+
+> 💡 **Astuce** : Maintenez la touche `Maj` enfoncée lors du clic sur "Copier l'ID" pour ouvrir un menu contextuel avec plus d'options.
 
 ### Workflow de configuration
 
@@ -128,6 +197,25 @@ Pour chaque device/remote :
 - `Tab` : Navigation entre éléments interactifs
 - `Enter/Space` : Validation des boutons/switchs
 - `Escape` : Fermeture des modales (si présentes)
+- `F5` : Rafraîchir la page (met à jour l'état des appareils)
+- `Ctrl+Enter` : Soumettre le formulaire actif
+
+## Dépannage courant
+
+### Scènes non détectées
+1. Vérifiez que les scènes sont bien créées dans l'application SwitchBot
+2. Vérifiez que l'UUID est correctement copié (sans espaces avant/après)
+3. Vérifiez les logs pour les erreurs d'authentification
+
+### Problèmes d'automatisation
+1. Vérifiez que `automation_enabled` est activé
+2. Vérifiez que les plages horaires sont correctement configurées
+3. Vérifiez les seuils de température dans les profils hiver/été
+
+### Problèmes de connexion
+1. Vérifiez que le token API est valide
+2. Vérifiez que les appareils sont en ligne dans l'application SwitchBot
+3. Vérifiez les logs pour les erreurs de connexion
 
 ---
 

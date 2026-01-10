@@ -62,47 +62,166 @@ Ce fichier contient les réglages métier persistés :
     "target_temp": 24.0,
     "ac_mode": 2,
     "fan_speed": 2
-  }
+  },
+  "aircon_scenes": {
+    "winter": "SCENE_WINTER_UUID",
+    "summer": "SCENE_SUMMER_UUID",
+    "fan": "SCENE_FAN_UUID",
+    "off": "SCENE_OFF_UUID"
+  },
+  "turn_off_outside_windows": true
 }
 ```
 
 > ℹ️ **Production et conteneurs Render** : lorsque `STORE_BACKEND=redis` est activé, les fichiers `config/settings.json` et `config/state.json` empaquetés dans l'image Docker ne servent qu'à fournir des valeurs initiales. Toutes les modifications effectuées via l'interface sont écrites dans Redis et survivent aux redeploy/scale. Ne modifiez les fichiers locaux que pour préparer un premier déploiement ou dépanner hors ligne.
 
-#### Aircon scenes (boutons rapides)
+#### Scènes SwitchBot (automatisation + boutons rapides)
 
-- La clé `aircon_scenes` contient désormais quatre entrées : `winter`, `summer`, `fan` et `off`.  
-- Chaque entrée correspond à un **sceneId SwitchBot** (copié via l’API `GET /v1.1/scenes`).  
-- Les boutons rapides “Aircon ON – Hiver/Été”, “Aircon ON – Mode neutre (ventilateur)” et “Aircon OFF (scène)” déclenchent exclusivement ces scènes.  
-- La scène `off` est également utilisée par le bouton “Quick off” pour couper le climatiseur proprement tout en laissant SwitchBot orchestrer d’éventuelles étapes supplémentaires (ventilation, délais, etc.).  
-- L’UI (section “Scènes favorites SwitchBot”) affiche l’état de chaque ID : badge vert “Prêt” lorsque l’ID est renseigné, avertissement sinon (bouton désactivé).  
-- Les scènes restent côté SwitchBot : profitez-en pour encapsuler des séquences plus riches qu’un simple `setAll` (ex : délai, combinaison multi-devices).  
-- ⚠️ **Pré-requis** : un `aircon_device_id` valide reste nécessaire pour les autres actions (`Aircon OFF`, quick winter/summer). Sans cela, les routes concernées flashent “Missing aircon_device_id”.
-- ℹ️ **2026-01-10** : La logique historique `aircon_presets` a été supprimée (voir `memory-bank/decisionLog.md`). Toute personnalisation passe désormais par des scènes SwitchBot configurées dans l’application officielle.
+La configuration des scènes permet de déclencher des actions complexes pré-configurées dans l'application SwitchBot officielle. Chaque scène est identifiée par un UUID unique.
 
-### 3. Backend de stockage (filesystem vs Redis)
+**Configuration des scènes :**
+
+- **Scènes disponibles :**
+  - `winter` : Mode chauffage (scène personnalisable dans l'application SwitchBot)
+  - `summer` : Mode climatisation (scène personnalisable)
+  - `fan` : Mode ventilation (scène personnalisable)
+  - `off` : Arrêt du climatiseur (scène personnalisable)
+
+- **Comportement :**
+  - Les boutons de l'interface déclenchent directement les scènes correspondantes
+  - **L'Automation utilise ces scènes en priorité** : 
+    - Lorsque la température franchit les seuils définis, `AutomationService` tente d'exécuter les scènes `winter`/`summer`
+    - Si `turn_off_outside_windows` est activé, la scène `off` est utilisée en dehors des plages horaires configurées
+  - **Fallback aux commandes bas niveau :**
+    - Si une scène n'est pas configurée, le système utilise automatiquement les commandes `setAll`/`turnOff`
+    - Un `aircon_device_id` valide est nécessaire pour ce mode de secours
+    - L'interface affiche un avertissement si des scènes obligatoires sont manquantes
+  - **Gestion de l'état :**
+    - La scène `off` est utilisée par le bouton "Quick off" pour un arrêt contrôlé
+    - L'état de l'appareil est suivi via `assumed_aircon_power` dans l'état de l'application
+    - L'interface affiche des indicateurs visuels pour chaque scène (configurée/manquante)
+
+**Configuration recommandée :**
+1. Créez les scènes dans l'application SwitchBot officielle
+2. Récupérez les UUID via l'API (`GET /v1.1/scenes`)
+3. Saisissez les UUID dans l'interface d'administration ou directement dans `settings.json`
+4. Activez `turn_off_outside_windows` pour une gestion automatique de l'arrêt en dehors des plages horaires
+
+### Dépannage des scènes
+
+Si une scène ne fonctionne pas comme prévu :
+1. Vérifiez que l'UUID est correct dans les paramètres
+2. Testez la scène directement depuis l'application SwitchBot
+3. Consultez les logs de l'application pour les erreurs d'exécution
+4. Si nécessaire, activez le mode debug avec `LOG_LEVEL=debug` pour plus de détails
+
+> ⚠️ **Remarque :** Un `aircon_device_id` valide reste nécessaire pour le mode de secours (fallback) des commandes `setAll`/`turnOff` lorsque les scènes ne sont pas configurées. Sans configuration, un message d'avertissement s'affiche dans l'interface.
+
+> ℹ️ **Historique :** La logique `aircon_presets` a été remplacée par ce système de scènes plus flexible. Voir `memory-bank/decisionLog.md` pour plus de détails.
+
+## Endpoint de santé (`/healthz`)
+
+Le tableau de bord expose un endpoint de santé qui renvoie des métriques essentielles pour le monitoring :
+
+```json
+{
+  "status": "ok",
+  "scheduler_running": true,
+  "automation_enabled": true,
+  "last_tick": "2024-01-10T14:30:00Z",
+  "api_requests_total": 42,
+  "api_requests_remaining": 958,
+  "api_quota_day": "2024-01-10",
+  "version": "1.0.0"
+}
+```
+
+### Champs de réponse
+
+- `scheduler_running` (booléen) : Indique si le planificateur d'automatisation est actif
+- `automation_enabled` (booléen) : Reflète le paramètre `automation_enabled` des paramètres
+- `last_tick` (ISO 8601) : Horodatage de la dernière exécution de l'automatisation
+- `api_requests_total` (nombre) : Nombre total de requêtes API effectuées aujourd'hui
+- `api_requests_remaining` (nombre) : Estimation des requêtes API restantes (basée sur la limite quotidienne de 1000 requêtes)
+- `api_quota_day` (date) : Jour de référence pour le quota actuel (réinitialisé à minuit UTC)
+- `version` (chaîne) : Version de l'application
+
+### Utilisation recommandée
+
+1. **Monitoring de base** : Vérifier que `status` est `"ok"`
+2. **Surveillance des quotas** : Alerter si `api_requests_remaining` est bas
+3. **Détection des blocages** : Vérifier que `last_tick` est récent (dans les 5 dernières minutes en fonctionnement normal)
+4. **Intégration** : Configurer des vérifications périodiques (ex: toutes les 5 minutes) avec un timeout court (ex: 2 secondes)
+
+### Exemple de vérification
+
+```bash
+curl -s https://votre-instance-render.com/healthz | jq '.status == "ok" and .scheduler_running == true and .automation_enabled == true'
+```
+
+> 💡 **Astuce** : En production, configurez votre outil de monitoring (Prometheus, Datadog, etc.) pour interroger cet endpoint et alerter en cas de problème.
+
+### 3. Stockage persistant (Redis ou fichiers)
+
+Le tableau de bord prend en charge deux modes de stockage pour les paramètres et l'état :
+
+#### Configuration du backend
 
 | Variable | Description |
-| --- | --- |
-| `STORE_BACKEND` | `filesystem` (défaut) ou `redis`. Contrôle le backend utilisé pour `settings` et `state`. |
-| `REDIS_URL` | URL complète (supporte `redis://` et `rediss://`). Inclure mot de passe Render. |
-| `REDIS_PREFIX` | Préfixe utilisé pour composer les clés (`<prefix>:settings`, `<prefix>:state`). |
-| `REDIS_TTL_SECONDS` | Optionnel. TTL appliqué aux clés Redis (laisser vide pour persistance illimitée). |
-| `SWITCHBOT_SETTINGS_PATH` / `SWITCHBOT_STATE_PATH` | Forcent les chemins JSON si vous restez en mode filesystem. |
+|----------|-------------|
+| `STORE_BACKEND` | `filesystem` (par défaut) ou `redis` |
+| `REDIS_URL` | URL complète Redis (`redis://` ou `rediss://` pour TLS) |
+| `REDIS_PREFIX` | Préfixe pour les clés (défaut : `switchbot_dashboard`) |
+| `REDIS_TTL_SECONDS` | Durée de vie des clés (optionnel) |
+| `SWITCHBOT_SETTINGS_PATH` | Chemin du fichier de configuration (mode filesystem) |
+| `SWITCHBOT_STATE_PATH` | Chemin du fichier d'état (mode filesystem) |
 
-**Procédure de migration** :
+#### Recommandations de déploiement
 
-1. Configurer et tester localement via le backend filesystem.
-2. Exporter `config/settings.json` et `config/state.json` si vous souhaitez pré-peupler Redis.
-3. Créer une instance Redis (Render → Redis) et récupérer l'URL sécurisée (`rediss://default:<password>@host:6379/0`).
-4. Définir `STORE_BACKEND=redis`, `REDIS_URL=<url>`, éventuellement `REDIS_PREFIX`.
-5. (Optionnel) Importer les fichiers via `redis-cli` : `SET switchbot_dashboard:settings "$(cat config/settings.json)"`.
-6. Redémarrer le service et vérifier depuis l'UI que les réglages persistent après un redeploy.
+**Pour les environnements conteneurisés (Docker, Render) :**
+- Utilisez Redis pour une persistance fiable entre les redémarrages
+- Configurez `STORE_BACKEND=redis` et `REDIS_URL`
+- Pour des raisons de sécurité, utilisez `rediss://` (TLS) en production
+
+**Pour le développement local :**
+- Le mode `filesystem` est suffisant
+- Les données sont stockées dans `config/settings.json` et `config/state.json`
+
+#### Migration vers Redis
+
+1. Sauvegardez vos fichiers de configuration actuels :
+   ```bash
+   cp config/settings.json config/settings.json.bak
+   cp config/state.json config/state.json.bak
+   ```
+
+2. Créez une instance Redis (par exemple via Render ou Upstash)
+
+3. Exportez les variables d'environnement :
+   ```bash
+   export STORE_BACKEND=redis
+   export REDIS_URL=rediss://default:password@host:port
+   export REDIS_PREFIX=switchbot_dashboard
+   ```
+
+4. (Optionnel) Importez les données existantes :
+   ```bash
+   redis-cli -u $REDIS_URL SET ${REDIS_PREFIX}:settings "$(cat config/settings.json)"
+   redis-cli -u $REDIS_URL SET ${REDIS_PREFIX}:state "$(cat config/state.json)"
+   ```
+
+5. Redémarrez le service et vérifiez que les paramètres sont chargés correctement
+
+#### Gestion des erreurs
+
+- En cas d'erreur de connexion à Redis, le système bascule automatiquement en mode `filesystem`
+- Les erreurs sont journalisées avec le niveau `ERROR`
+- Vérifiez les logs pour diagnostiquer les problèmes de connexion
 
 **Sécurité** :
 
 - Préférer `rediss://` (TLS) pour tous les environnements accessibles depuis Internet.
 - Utiliser un mot de passe unique par environnement et limiter les droits réseau (Render gère automatiquement les ACL internes).
-- Journaliser les erreurs Redis : l'application repasse automatiquement en filesystem si le backend est indisponible (logs visibles dans Render).
 
 ## Inventaire des devices (`/devices`)
 

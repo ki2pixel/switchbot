@@ -72,6 +72,29 @@
 - Documentation (`docs/configuration.md`) mise à jour, nouvelles assertions dans `tests/test_dashboard_routes.py` et nettoyage de `tests/test_aircon_presets.py`.
 - Exécution complète de la suite Pytest via `/mnt/venv_ext4/venv_switchbot/bin/python -m pytest`.
 
+[2026-01-10 17:30:00] - Implémentation du point de terminaison de santé (/healthz)
+- Ajout de la méthode `is_running()` à `SchedulerService` pour vérifier l'état du planificateur
+- Mise à jour de `AutomationService.run_once()` pour enregistrer l'horodatage du dernier tick
+- Implémentation du point de terminaison `/healthz` dans `routes.py` avec gestion robuste des erreurs
+- Ajout de tests unitaires complets dans `test_dashboard_routes.py`
+- Mise à jour de la documentation de déploiement pour inclure des informations sur le point de terminaison de santé
+- Tous les tests passent avec succès
+- Documentation mise à jour dans `docs/deployment.md`
+- Memory Bank synchronisée (decisionLog, progress, activeContext)
+
+[2026-01-10 17:56:00] - Automatisation pilotée par scènes SwitchBot + couverture de tests
+- `AutomationService` consomme désormais `aircon_scenes` (helper dédié, fallback `setAll`/`turnOff` si scènes ou `aircon_device_id` manquants).
+- Ajout de `tests/test_automation_service.py` pour valider l’utilisation des scènes, les replis et la mise à jour des quotas.
+- Documentation mise à jour (`docs/configuration.md`, `docs/ui-guide.md`) pour préciser la dépendance à ces scènes.
+- Memory Bank synchronisée (decisionLog, activeContext mis à jour).
+
+[2026-01-10 19:18:00] - Suppression des actions rapides quick_winter et quick_summer
+- Supprimé les actions rapides "Chauffage (Hiver)" et "Clim (Été)" du tableau de bord
+- Mis à jour l'interface utilisateur dans `index.html` pour une expérience plus propre
+- Mise à jour de la documentation dans `ui-guide.md` pour refléter les changements
+- Conservation de la fonctionnalité `quick_off` pour désactiver l'automatisation
+- Tous les tests unitaires passent avec succès après les modifications
+
 ## Terminé
 [2026-01-09 16:47:00] - Implémentation du thème sombre par défaut sur les templates index.html et devices.html.
 [2026-01-09 17:00:00] - Refonte de la page Devices : cartes lisibles, synthèse, copie d'ID et JSON repliables.

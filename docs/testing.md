@@ -65,6 +65,44 @@ test -f .env && grep -q "SWITCHBOT_TOKEN\|SWITCHBOT_SECRET" .env
 - Message "Invalid time window..."
 - Aucune écriture dans `settings.json`
 
+## Tests du point de terminaison de santé
+
+### 1. Endpoint `/healthz`
+
+**Scénarios de test** :
+- Accéder à `GET /healthz`
+- Vérifier que le statut est `200 OK`
+- Vérifier que le corps de la réponse contient :
+  ```json
+  {
+    "status": "ok",
+    "scheduler_running": true,
+    "automation_enabled": true,
+    "last_tick": "2024-01-10T14:30:00Z",
+    "api_requests_total": 42,
+    "api_requests_remaining": 958,
+    "api_quota_day": "2024-01-10",
+    "version": "1.0.0"
+  }
+  ```
+- Vérifier que `last_tick` est récent (moins de 5 minutes)
+- Vérifier que `api_requests_remaining` est cohérent avec le quota quotidien
+
+### 2. Surveillance continue
+
+**Configuration** :
+- Configurer un outil de monitoring pour interroger `/healthz` toutes les 5 minutes
+- Définir des alertes pour :
+  - `status != "ok"`
+  - `scheduler_running == false`
+  - `last_tick` trop ancien (> 10 minutes)
+  - `api_requests_remaining` < 100
+
+**Validation** :
+- Simuler une panne (arrêter le planificateur, couper l'accès à l'API SwitchBot)
+- Vérifier que les alertes se déclenchent correctement
+- Vérifier que les alertes se résolvent lorsque le problème est corrigé
+
 ## Tests de l'interface utilisateur
 
 ### 1. Page d'accueil responsive
@@ -95,17 +133,67 @@ test -f .env && grep -q "SWITCHBOT_TOKEN\|SWITCHBOT_SECRET" .env
 - Vérifier la sauvegarde dans `settings.json`
 - Tester les valeurs limites (min/max)
 
-### 3. Actions rapides
+### 3. Scènes SwitchBot et Automatisation
+
+#### Tests des scènes
+
+**1. Configuration et exécution**
+- Configurer chaque scène (hiver, été, ventilation, arrêt) avec des UUID valides
+- Vérifier que les boutons passent du rouge au vert après configuration
+- Tester chaque scène et vérifier l'exécution sur l'appareil cible
+- Vérifier que `state.json` est mis à jour avec `last_action` contenant `scene(<sceneId>)`
+
+**2. Fallback vers commandes bas niveau**
+- Désactiver la scène "off" en laissant le champ vide
+- Activer `turn_off_outside_windows`
+- Vérifier que l'automatisation utilise `turnOff` quand la scène n'est pas configurée
+- Vérifier que `assumed_aircon_power` est correctement mis à jour
+
+**3. Gestion des erreurs**
+- Configurer un UUID invalide pour une scène
+- Tester l'exécution et vérifier le message d'erreur
+- Vérifier que l'état reste cohérent malgré l'échec
+- Vérifier les logs pour les messages d'erreur détaillés
+
+**4. Tests automatisés**
+- Exécuter `pytest tests/test_automation_service.py -v`
+- Vérifier que tous les tests passent, en particulier :
+  - `test_run_once_prefers_winter_scene_and_records_quota`
+  - `test_run_once_falls_back_to_setall_when_scene_missing`
+  - `test_turn_off_outside_window_prefers_off_scene`
+  - `test_turn_off_falls_back_to_turnoff_command_when_scene_missing`
+
+### 4. Stockage Redis
+
+#### Configuration
+- Configurer l'application pour utiliser Redis (`STORE_BACKEND=redis`)
+- Vérifier que les données de configuration sont correctement chargées depuis Redis
+- Tester la persistance des modifications entre les redémarrages
+
+#### Scénarios de test
+
+**1. Basculer entre les backends**
+- Passer de `filesystem` à `redis` et inversement
+- Vérifier que les données sont correctement migrées
+- S'assurer qu'aucune donnée n'est perdue lors de la transition
+
+**2. Résilience**
+- Couper la connexion à Redis pendant le fonctionnement
+- Vérifier que l'application bascule correctement en mode `filesystem`
+- Rétablir la connexion et vérifier la reprise du service
+
+### 5. Actions rapides et boutons de scène
 
 **Boutons à tester** :
 - `Run once` : Vérifier exécution et mise à jour `state.json`
-- `Chauffage/Clim/Off` : Changement de mode et commande immédiate
-- `Aircon ON/OFF` : Commandes directes
+- Boutons de scène : Vérifier l'exécution de chaque scène configurée
+- `Quick off` : Vérifier qu'il utilise la scène OFF ou la commande `turnOff`
 
 **Validation** :
-- Cliquer chaque bouton
-- Vérifier `state.json` mis à jour
-- Confirmer comportement attendu
+- Vérifier que `state.json` est mis à jour avec la dernière action
+- Confirmer que `assumed_aircon_power` est correctement mis à jour
+- Vérifier les logs pour confirmer l'exécution des scènes
+- Tester avec `LOG_LEVEL=debug` pour des informations détaillées
 
 ## Tests page `/devices`
 

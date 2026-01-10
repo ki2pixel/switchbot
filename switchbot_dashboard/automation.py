@@ -5,6 +5,7 @@ import json
 import logging
 from typing import Any
 
+from .aircon import AIRCON_SCENE_LABELS, extract_aircon_scenes
 from .config_store import BaseStore
 from .switchbot_api import SwitchBotApiError, SwitchBotClient
 
@@ -226,6 +227,39 @@ class AutomationService:
             last_error=None,
         )
 
+    def _run_aircon_scene(
+        self,
+        scene_id: str,
+        *,
+        scene_key: str,
+        state_reason: str,
+        assumed_power: str,
+    ) -> bool:
+        friendly = AIRCON_SCENE_LABELS.get(scene_key, scene_key)
+        scene_id = str(scene_id or "").strip()
+        if not scene_id:
+            self._update_state(last_error=f"Missing scene id for {friendly}")
+            logger.warning("Skipping %s automation: no scene configured", scene_key)
+            return False
+
+        try:
+            self._client.run_scene(scene_id)
+            self._record_quota_snapshot()
+        except SwitchBotApiError as exc:
+            self._update_state(last_error=str(exc))
+            logger.error("Scene %s execution failed: %s", scene_key, exc)
+            return False
+
+        self._update_state(
+            assumed_aircon_power=assumed_power,
+            assumed_aircon_mode=None,
+            assumed_aircon_parameter=None,
+            last_action=f"scene({scene_id}) ({state_reason})",
+            last_action_at=_utc_now_iso(),
+            last_error=None,
+        )
+        return True
+
     def run_once(self) -> None:
         now = dt.datetime.now()
         self._update_state(last_tick=_utc_now_iso())
@@ -240,13 +274,30 @@ class AutomationService:
             time_windows = []
 
         in_window = _is_now_in_windows(time_windows, now)
+        scenes = extract_aircon_scenes(settings)
+        aircon_id = str(settings.get("aircon_device_id", "")).strip()
+
         if not in_window:
             self.poll_meter()
             if settings.get("turn_off_outside_windows", False):
-                aircon_id = str(settings.get("aircon_device_id", "")).strip()
-                if aircon_id and not self._cooldown_active(now):
+                if not self._cooldown_active(now):
                     try:
-                        self._send_aircon_off(aircon_id)
+                        off_scene_id = scenes.get("off", "")
+                        handled = False
+                        if off_scene_id:
+                            handled = self._run_aircon_scene(
+                                off_scene_id,
+                                scene_key="off",
+                                state_reason="automation_off_outside_window",
+                                assumed_power="off",
+                            )
+                        if not handled:
+                            if aircon_id:
+                                self._send_aircon_off(aircon_id)
+                            else:
+                                self._update_state(
+                                    last_error="Missing OFF scene and aircon_device_id"
+                                )
                     except SwitchBotApiError as exc:
                         self._update_state(last_error=str(exc))
             return
@@ -282,37 +333,92 @@ class AutomationService:
             self._update_state(last_error=f"Invalid thresholds: min_temp > max_temp ({mode})")
             return
 
-        aircon_id = str(settings.get("aircon_device_id", "")).strip()
-        if not aircon_id:
-            self._update_state(last_error="Missing aircon_device_id")
-            return
-
         if self._cooldown_active(now):
             return
 
         try:
             if mode == "winter":
                 if current_temp <= (min_temp - hysteresis):
-                    self._send_aircon_setall(
-                        aircon_id,
-                        temperature=target_temp,
-                        mode=ac_mode,
-                        fan_speed=fan_speed,
-                        power_state="on",
-                    )
+                    scene_id = scenes.get("winter", "")
+                    executed = False
+                    if scene_id:
+                        executed = self._run_aircon_scene(
+                            scene_id,
+                            scene_key="winter",
+                            state_reason="automation_winter_on",
+                            assumed_power="on",
+                        )
+                    if not executed:
+                        if aircon_id:
+                            self._send_aircon_setall(
+                                aircon_id,
+                                temperature=target_temp,
+                                mode=ac_mode,
+                                fan_speed=fan_speed,
+                                power_state="on",
+                            )
+                        else:
+                            self._update_state(
+                                last_error="Missing winter scene and aircon_device_id"
+                            )
                 elif current_temp >= (max_temp + hysteresis):
-                    self._send_aircon_off(aircon_id)
+                    off_scene_id = scenes.get("off", "")
+                    turned_off = False
+                    if off_scene_id:
+                        turned_off = self._run_aircon_scene(
+                            off_scene_id,
+                            scene_key="off",
+                            state_reason="automation_winter_off",
+                            assumed_power="off",
+                        )
+                    if not turned_off:
+                        if aircon_id:
+                            self._send_aircon_off(aircon_id)
+                        else:
+                            self._update_state(
+                                last_error="Missing OFF scene and aircon_device_id"
+                            )
             elif mode == "summer":
                 if current_temp >= (max_temp + hysteresis):
-                    self._send_aircon_setall(
-                        aircon_id,
-                        temperature=target_temp,
-                        mode=ac_mode,
-                        fan_speed=fan_speed,
-                        power_state="on",
-                    )
+                    scene_id = scenes.get("summer", "")
+                    executed = False
+                    if scene_id:
+                        executed = self._run_aircon_scene(
+                            scene_id,
+                            scene_key="summer",
+                            state_reason="automation_summer_on",
+                            assumed_power="on",
+                        )
+                    if not executed:
+                        if aircon_id:
+                            self._send_aircon_setall(
+                                aircon_id,
+                                temperature=target_temp,
+                                mode=ac_mode,
+                                fan_speed=fan_speed,
+                                power_state="on",
+                            )
+                        else:
+                            self._update_state(
+                                last_error="Missing summer scene and aircon_device_id"
+                            )
                 elif current_temp <= (min_temp - hysteresis):
-                    self._send_aircon_off(aircon_id)
+                    off_scene_id = scenes.get("off", "")
+                    turned_off = False
+                    if off_scene_id:
+                        turned_off = self._run_aircon_scene(
+                            off_scene_id,
+                            scene_key="off",
+                            state_reason="automation_summer_off",
+                            assumed_power="off",
+                        )
+                    if not turned_off:
+                        if aircon_id:
+                            self._send_aircon_off(aircon_id)
+                        else:
+                            self._update_state(
+                                last_error="Missing OFF scene and aircon_device_id"
+                            )
             else:
                 self._update_state(last_error=f"Unknown mode: {mode}")
         except SwitchBotApiError as exc:

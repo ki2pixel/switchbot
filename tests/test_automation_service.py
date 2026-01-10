@@ -1,0 +1,167 @@
+from __future__ import annotations
+
+import copy
+from typing import Any
+
+from switchbot_dashboard.automation import AutomationService
+
+
+class MemoryStore:
+    def __init__(self, initial: dict[str, Any] | None = None) -> None:
+        self._data = copy.deepcopy(initial or {})
+
+    def read(self) -> dict[str, Any]:
+        return copy.deepcopy(self._data)
+
+    def write(self, new_data: dict[str, Any]) -> None:
+        self._data = copy.deepcopy(new_data)
+
+
+class DummyClient:
+    def __init__(self, temperature: float) -> None:
+        self.temperature = temperature
+        self.run_scene_calls: list[str] = []
+        self.send_command_calls: list[dict[str, Any]] = []
+        self.last_quota_snapshot: dict[str, int] | None = None
+
+    def get_device_status(self, device_id: str) -> dict[str, Any]:
+        return {"body": {"temperature": self.temperature, "humidity": 50}}
+
+    def run_scene(self, scene_id: str) -> None:
+        self.run_scene_calls.append(scene_id)
+
+    def send_command(
+        self,
+        device_id: str,
+        *,
+        command: str,
+        parameter: str = "default",
+        command_type: str = "command",
+    ) -> None:
+        self.send_command_calls.append(
+            {
+                "device_id": device_id,
+                "command": command,
+                "parameter": parameter,
+                "command_type": command_type,
+            }
+        )
+
+    def get_last_quota_snapshot(self) -> dict[str, int] | None:
+        return self.last_quota_snapshot
+
+
+def _default_settings() -> dict[str, Any]:
+    return {
+        "automation_enabled": True,
+        "mode": "winter",
+        "meter_device_id": "meter-1",
+        "aircon_device_id": "aircon-1",
+        "hysteresis_celsius": 0.5,
+        "command_cooldown_seconds": 0,
+        "time_windows": [
+            {"days": [0, 1, 2, 3, 4, 5, 6], "start": "00:00", "end": "23:59"}
+        ],
+        "winter": {
+            "min_temp": 18.0,
+            "max_temp": 24.0,
+            "target_temp": 21.0,
+            "ac_mode": 5,
+            "fan_speed": 3,
+        },
+        "summer": {
+            "min_temp": 22.0,
+            "max_temp": 26.0,
+            "target_temp": 24.0,
+            "ac_mode": 2,
+            "fan_speed": 2,
+        },
+        "aircon_scenes": {
+            "winter": "scene-w",
+            "summer": "scene-s",
+            "fan": "scene-f",
+            "off": "scene-off",
+        },
+    }
+
+
+def _build_service(
+    *,
+    settings: dict[str, Any],
+    temperature: float,
+    initial_state: dict[str, Any] | None = None,
+) -> tuple[AutomationService, DummyClient, MemoryStore, MemoryStore]:
+    settings_store = MemoryStore(settings)
+    state_store = MemoryStore(initial_state or {})
+    client = DummyClient(temperature=temperature)
+    service = AutomationService(settings_store, state_store, client)
+    return service, client, settings_store, state_store
+
+
+def test_run_once_prefers_winter_scene_and_records_quota() -> None:
+    settings = _default_settings()
+    service, client, _settings_store, state_store = _build_service(
+        settings=settings, temperature=17.0
+    )
+
+    service.run_once()
+
+    assert client.run_scene_calls == ["scene-w"]
+    state = state_store.read()
+    assert state["assumed_aircon_power"] == "on"
+    assert str(state["last_action"]).startswith("scene(")
+    assert int(state["api_requests_total"]) >= 1
+
+
+def test_run_once_falls_back_to_setall_when_scene_missing() -> None:
+    settings = _default_settings()
+    settings["aircon_scenes"]["winter"] = ""
+    service, client, _settings_store, state_store = _build_service(
+        settings=settings, temperature=17.0
+    )
+
+    service.run_once()
+
+    assert client.run_scene_calls == []
+    assert len(client.send_command_calls) == 1
+    command = client.send_command_calls[0]
+    assert command["command"] == "setAll"
+    state = state_store.read()
+    assert state["assumed_aircon_power"] == "on"
+    assert str(state["last_action"]).startswith("setAll(")
+
+
+def test_turn_off_outside_window_prefers_off_scene() -> None:
+    settings = _default_settings()
+    settings["time_windows"] = []
+    settings["turn_off_outside_windows"] = True
+    service, client, _settings_store, state_store = _build_service(
+        settings=settings, temperature=23.0
+    )
+
+    service.run_once()
+
+    assert client.run_scene_calls == ["scene-off"]
+    state = state_store.read()
+    assert state["assumed_aircon_power"] == "off"
+    assert "automation_off_outside_window" in state["last_action"]
+
+
+def test_turn_off_falls_back_to_turnoff_command_when_scene_missing() -> None:
+    settings = _default_settings()
+    settings["time_windows"] = []
+    settings["turn_off_outside_windows"] = True
+    settings["aircon_scenes"]["off"] = ""
+    service, client, _settings_store, state_store = _build_service(
+        settings=settings, temperature=23.0
+    )
+
+    service.run_once()
+
+    assert client.run_scene_calls == []
+    assert len(client.send_command_calls) == 1
+    command = client.send_command_calls[0]
+    assert command["command"] == "turnOff"
+    state = state_store.read()
+    assert state["assumed_aircon_power"] == "off"
+    assert state["last_action"] == "turnOff"
