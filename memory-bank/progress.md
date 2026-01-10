@@ -66,6 +66,12 @@
 - Mise à jour de la documentation pour refléter ces changements
 - Nettoyage des références aux presets dans les tests
 
+[2026-01-10 16:40:00] - Scène OFF SwitchBot et validations associées
+- Ajout de la clé `off` aux scènes SwitchBot (stockage, validation, interface et boutons rapides).
+- Routes `/actions/aircon_off` et `/actions/quick_off` désormais pilotées par la scène OFF avec repli `turnOff`.
+- Documentation (`docs/configuration.md`) mise à jour, nouvelles assertions dans `tests/test_dashboard_routes.py` et nettoyage de `tests/test_aircon_presets.py`.
+- Exécution complète de la suite Pytest via `/mnt/venv_ext4/venv_switchbot/bin/python -m pytest`.
+
 ## Terminé
 [2026-01-09 16:47:00] - Implémentation du thème sombre par défaut sur les templates index.html et devices.html.
 [2026-01-09 17:00:00] - Refonte de la page Devices : cartes lisibles, synthèse, copie d'ID et JSON repliables.
@@ -79,6 +85,7 @@
   - Mise à jour de l'interface utilisateur pour afficher les quotas calculés localement
   - Documentation des décisions techniques dans la Memory Bank
 [2026-01-10 13:35:00] - Aircon presets configurables et tests associés
+[2026-01-10 16:40:00] - Scène OFF SwitchBot + documentation/tests
 
 ## En cours
 - Aucune tâche active.

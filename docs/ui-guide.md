@@ -52,10 +52,10 @@ Boutons pour contrôle manuel :
 
 #### Carte “Scènes favorites SwitchBot”
 
-- Trois boutons rapides sont disponibles : “Aircon ON – Hiver (scène)”, “Aircon ON – Été (scène)” et “Aircon ON – Mode neutre”.
-- Chaque bouton déclenche l’exécution d’une scène favorite SwitchBot (IDs récupérés via `GET /v1.1/scenes`).
-- Si l’ID de scène est absent, le bouton est désactivé et une mention “Scene ID manquant” apparaît pour éviter les clics inutiles.
-- La carte “Scènes favorites SwitchBot” dans la section Settings permet de renseigner/mettre à jour chacune des trois scènes. L’état (“non configuré” vs “prêt”) s’affiche automatiquement pour aider à la configuration.
+- Quatre boutons rapides sont disponibles : “Aircon ON – Hiver (scène)”, “Aircon ON – Été (scène)”, “Aircon ON – Mode neutre” et “Aircon OFF (scène)”.
+- Chaque bouton déclenche l’exécution d’une scène favorite SwitchBot (IDs récupérés via `GET /v1.1/scenes`). Le bouton “Aircon OFF (scène)” permet de déclencher une scène dédiée à l’arrêt complet (utilisée également par les routes `/actions/aircon_off` et `/actions/quick_off` lorsqu’elle est configurée).
+- Si l’ID de scène est absent, le bouton correspondant est désactivé et une mention “Scene ID manquant” apparaît pour éviter les clics inutiles.
+- La carte “Scènes favorites SwitchBot” dans la section Settings permet de renseigner/mettre à jour chacune des quatre scènes. L’état (“non configuré” vs “prêt”) s’affiche automatiquement pour aider à la configuration.
 
 ## Page Devices (`/devices`)
 

@@ -228,6 +228,7 @@ class AutomationService:
 
     def run_once(self) -> None:
         now = dt.datetime.now()
+        self._update_state(last_tick=_utc_now_iso())
         settings = self._settings_store.read()
 
         if not settings.get("automation_enabled", False):

@@ -142,8 +142,21 @@
                       </span>
                     </button>
                   </form>
-                  <form method="post" action="{{ url_for('dashboard.aircon_off') }}">
-                    <button class="btn btn-outline-danger w-100" type="submit">Aircon OFF</button>
+                  <form method="post" action="{{ url_for('dashboard.aircon_off') }}" class="flex-grow-1">
+                    <button
+                      class="btn btn-outline-danger w-100"
+                      type="submit"
+                      {% if missing_scenes['off'] %}disabled aria-disabled="true"{% endif %}
+                    >
+                      Aircon OFF (scène)
+                      <span class="d-block small {% if missing_scenes['off'] %}text-warning{% else %}text-muted{% endif %}">
+                        {% if missing_scenes['off'] %}
+                          Scene ID manquant
+                        {% else %}
+                          {{ aircon_scenes['off'] }}
+                        {% endif %}
+                      </span>
+                    </button>
                   </form>
                 </div>
               </div>
@@ -408,7 +421,7 @@
                 </p>
                 <div class="row g-3">
                   {% for key in aircon_scene_keys %}
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-6 col-lg-3">
                       <label class="form-label" for="scene_{{ key }}_id">{{ aircon_scene_labels[key] }}</label>
                       <input
                         class="form-control"

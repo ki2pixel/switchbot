@@ -4,8 +4,18 @@ import datetime as dt
 import json
 from typing import Any
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for, abort
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+    abort,
+)
 
+from .config_store import StoreError
 from .switchbot_api import SwitchBotApiError
 
 
@@ -69,11 +79,12 @@ AC_MODE_CHOICES: list[dict[str, Any]] = [
     {"value": 5, "label": "Heat"},
 ]
 
-AIRCON_SCENE_KEYS: tuple[str, ...] = ("winter", "summer", "fan")
+AIRCON_SCENE_KEYS: tuple[str, ...] = ("winter", "summer", "fan", "off")
 AIRCON_SCENE_LABELS: dict[str, str] = {
     "winter": "Aircon ON – Hiver",
     "summer": "Aircon ON – Été",
     "fan": "Aircon ON – Mode neutre",
+    "off": "Aircon OFF – Scène",
 }
 
 
@@ -209,6 +220,54 @@ def debug_state() -> Any:
     )
 
 
+@dashboard_bp.get("/healthz")
+def healthz() -> Any:
+    app = current_app
+    settings_store = app.extensions["settings_store"]
+    state_store = app.extensions["state_store"]
+    scheduler_service = app.extensions["scheduler_service"]
+
+    timestamp = _utc_now_iso()
+
+    try:
+        settings = settings_store.read()
+        state = state_store.read()
+        scheduler_running = bool(scheduler_service.is_running())
+        automation_enabled = bool(settings.get("automation_enabled", False))
+        last_tick = state.get("last_tick")
+    except StoreError as exc:
+        app.logger.error("[health] store error: %s", exc)
+        payload = {
+            "status": "error",
+            "details": "store_unavailable",
+            "timestamp_utc": timestamp,
+        }
+        return app.response_class(
+            json.dumps(payload) + "\n", mimetype="application/json", status=503
+        )
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        app.logger.exception("[health] unexpected failure")
+        payload = {
+            "status": "error",
+            "details": "unexpected_failure",
+            "timestamp_utc": timestamp,
+        }
+        return app.response_class(
+            json.dumps(payload) + "\n", mimetype="application/json", status=503
+        )
+
+    payload = {
+        "status": "ok",
+        "scheduler_running": scheduler_running,
+        "automation_enabled": automation_enabled,
+        "last_tick": last_tick,
+        "timestamp_utc": timestamp,
+    }
+    return app.response_class(
+        json.dumps(payload) + "\n", mimetype="application/json", status=200
+    )
+
+
 @dashboard_bp.post("/settings")
 def update_settings() -> Any:
     settings_store = current_app.extensions["settings_store"]
@@ -322,11 +381,20 @@ def aircon_off() -> Any:
     client = current_app.extensions["switchbot_client"]
 
     settings = settings_store.read()
+    scenes = _extract_aircon_scenes(settings)
+    off_scene_id = scenes.get("off", "")
+    if off_scene_id:
+        return _execute_aircon_scene(
+            "off",
+            state_reason="manual_off_scene",
+            flash_label="Scène OFF exécutée.",
+            assumed_power="off",
+        )
+
     aircon_id = str(settings.get("aircon_device_id", "")).strip()
     if not aircon_id:
         flash("Missing aircon_device_id", "error")
         return redirect(url_for("dashboard.index"))
-
     try:
         client.send_command(aircon_id, command="turnOff", parameter="default", command_type="command")
     except SwitchBotApiError as exc:
@@ -338,8 +406,11 @@ def aircon_off() -> Any:
 
     state = state_store.read()
     state["assumed_aircon_power"] = "off"
+    state["assumed_aircon_mode"] = None
+    state["assumed_aircon_parameter"] = None
     state["last_action"] = "turnOff (manual)"
     state["last_action_at"] = _utc_now_iso()
+    state["last_error"] = None
     state_store.write(state)
 
     flash("Aircon turnOff sent.")
@@ -351,6 +422,7 @@ def _execute_aircon_scene(
     *,
     state_reason: str,
     flash_label: str,
+    assumed_power: str = "unknown",
 ) -> Any:
     settings_store = current_app.extensions["settings_store"]
     state_store = current_app.extensions["state_store"]
@@ -375,7 +447,7 @@ def _execute_aircon_scene(
         return redirect(url_for("dashboard.index"))
 
     state = state_store.read()
-    state["assumed_aircon_power"] = "unknown"
+    state["assumed_aircon_power"] = assumed_power
     state["assumed_aircon_mode"] = None
     state["assumed_aircon_parameter"] = None
     state["last_action"] = f"scene({scene_id}) ({state_reason})"
@@ -545,6 +617,29 @@ def quick_off() -> Any:
     settings["automation_enabled"] = False
     settings_store.write(settings)
 
+    scenes = _extract_aircon_scenes(settings)
+    off_scene_id = scenes.get("off", "")
+
+    if off_scene_id:
+        try:
+            client.run_scene(off_scene_id)
+        except SwitchBotApiError as exc:
+            state = state_store.read()
+            state["last_error"] = str(exc)
+            state_store.write(state)
+            flash(str(exc), "error")
+            return redirect(url_for("dashboard.index"))
+        state = state_store.read()
+        state["assumed_aircon_power"] = "off"
+        state["assumed_aircon_mode"] = None
+        state["assumed_aircon_parameter"] = None
+        state["last_action"] = f"scene({off_scene_id}) (quick_off)"
+        state["last_action_at"] = _utc_now_iso()
+        state["last_error"] = None
+        state_store.write(state)
+        flash("Automation disabled and OFF scene executed.")
+        return redirect(url_for("dashboard.index"))
+
     aircon_id = str(settings.get("aircon_device_id", "")).strip()
     if not aircon_id:
         flash("Missing aircon_device_id", "error")
@@ -565,6 +660,7 @@ def quick_off() -> Any:
     state["assumed_aircon_parameter"] = None
     state["last_action"] = "turnOff (quick_off)"
     state["last_action_at"] = _utc_now_iso()
+    state["last_error"] = None
     state_store.write(state)
 
     flash("Automation disabled and aircon turned off.")

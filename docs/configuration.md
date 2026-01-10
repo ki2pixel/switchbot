@@ -70,9 +70,10 @@ Ce fichier contient les réglages métier persistés :
 
 #### Aircon scenes (boutons rapides)
 
-- La clé `aircon_scenes` contient trois entrées `winter`, `summer` et `fan`.  
+- La clé `aircon_scenes` contient désormais quatre entrées : `winter`, `summer`, `fan` et `off`.  
 - Chaque entrée correspond à un **sceneId SwitchBot** (copié via l’API `GET /v1.1/scenes`).  
-- Les boutons rapides “Aircon ON – Hiver/Été” ainsi que “Aircon ON – Mode neutre (ventilateur)” déclenchent exclusivement ces scènes.  
+- Les boutons rapides “Aircon ON – Hiver/Été”, “Aircon ON – Mode neutre (ventilateur)” et “Aircon OFF (scène)” déclenchent exclusivement ces scènes.  
+- La scène `off` est également utilisée par le bouton “Quick off” pour couper le climatiseur proprement tout en laissant SwitchBot orchestrer d’éventuelles étapes supplémentaires (ventilation, délais, etc.).  
 - L’UI (section “Scènes favorites SwitchBot”) affiche l’état de chaque ID : badge vert “Prêt” lorsque l’ID est renseigné, avertissement sinon (bouton désactivé).  
 - Les scènes restent côté SwitchBot : profitez-en pour encapsuler des séquences plus riches qu’un simple `setAll` (ex : délai, combinaison multi-devices).  
 - ⚠️ **Pré-requis** : un `aircon_device_id` valide reste nécessaire pour les autres actions (`Aircon OFF`, quick winter/summer). Sans cela, les routes concernées flashent “Missing aircon_device_id”.

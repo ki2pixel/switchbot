@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 
 from flask import Flask
 
-from switchbot_dashboard.routes import DEFAULT_AIRCON_PRESETS, dashboard_bp
+from switchbot_dashboard.config_store import StoreError
+from switchbot_dashboard.routes import dashboard_bp
 
 
 class MemoryStore:
@@ -21,9 +23,13 @@ class MemoryStore:
 class DummyScheduler:
     def __init__(self) -> None:
         self.called = False
+        self.running = True
 
     def reschedule(self) -> None:
         self.called = True
+
+    def is_running(self) -> bool:
+        return self.running
 
 
 class DummyClient:
@@ -40,7 +46,9 @@ def _build_app(
     initial_state: dict[str, object] | None = None,
     client: object | None = None,
 ) -> tuple[Flask, MemoryStore, MemoryStore, DummyScheduler]:
-    app = Flask(__name__)
+    project_root = Path(__file__).resolve().parents[1]
+    template_folder = project_root / "switchbot_dashboard" / "templates"
+    app = Flask(__name__, template_folder=str(template_folder))
     app.secret_key = "test"
 
     settings_store = MemoryStore(initial_settings)
@@ -57,6 +65,14 @@ def _build_app(
     return app, settings_store, state_store, scheduler
 
 
+class FailingStore:
+    def read(self) -> dict[str, object]:
+        raise StoreError("boom")
+
+    def write(self, _data: dict[str, object]) -> None:
+        raise StoreError("boom")
+
+
 def test_update_settings_persists_manual_presets_and_scenes() -> None:
     initial_settings = {
         "automation_enabled": False,
@@ -69,9 +85,7 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "aircon_device_id": "aircon",
         "winter": {"min_temp": 18.0, "max_temp": 24.0, "target_temp": 20.0, "fan_speed": 3, "ac_mode": 5},
         "summer": {"min_temp": 20.0, "max_temp": 28.0, "target_temp": 24.0, "fan_speed": 2, "ac_mode": 2},
-        "aircon_presets": copy.deepcopy(DEFAULT_AIRCON_PRESETS),
-    }
-        "aircon_scenes": {"winter": "", "summer": "", "fan": ""},
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
     }
     app, settings_store, _state_store, scheduler = _build_app(initial_settings)
 
@@ -94,15 +108,10 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "summer_target_temp": "23",
         "summer_ac_mode": "2",
         "summer_fan_speed": "3",
-        "manual_winter_target_temp": "26",
-        "manual_winter_ac_mode": "5",
-        "manual_winter_fan_speed": "4",
-        "manual_summer_target_temp": "19",
-        "manual_summer_ac_mode": "2",
-        "manual_summer_fan_speed": "2",
         "scene_winter_id": "scene-w",
         "scene_summer_id": "scene-s",
         "scene_fan_id": "scene-f",
+        "scene_off_id": "scene-off",
     }
 
     with app.test_client() as client:
@@ -110,14 +119,11 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
 
     assert response.status_code == 302
     persisted = settings_store.read()
-    assert persisted["aircon_presets"] == {
-        "winter": {"target_temp": 26.0, "ac_mode": 5, "fan_speed": 4},
-        "summer": {"target_temp": 19.0, "ac_mode": 2, "fan_speed": 2},
-    }
     assert persisted["aircon_scenes"] == {
         "winter": "scene-w",
         "summer": "scene-s",
         "fan": "scene-f",
+        "off": "scene-off",
     }
     assert scheduler.called is True
 
@@ -126,8 +132,7 @@ def test_aircon_on_winter_runs_scene_and_updates_state() -> None:
     settings = {
         "mode": "winter",
         "aircon_device_id": "aircon",
-        "aircon_scenes": {"winter": "scene-w", "summer": "", "fan": ""},
-        "aircon_presets": copy.deepcopy(DEFAULT_AIRCON_PRESETS),
+        "aircon_scenes": {"winter": "scene-w", "summer": "", "fan": "", "off": ""},
     }
     dummy_client = DummyClient()
     app, settings_store, state_store, _scheduler = _build_app(
@@ -150,8 +155,7 @@ def test_aircon_on_winter_reports_missing_scene_id() -> None:
     settings = {
         "mode": "winter",
         "aircon_device_id": "aircon",
-        "aircon_scenes": {"winter": "", "summer": "", "fan": ""},
-        "aircon_presets": copy.deepcopy(DEFAULT_AIRCON_PRESETS),
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
     }
     dummy_client = DummyClient()
     app, _settings_store, state_store, _scheduler = _build_app(settings, client=dummy_client)
@@ -163,3 +167,90 @@ def test_aircon_on_winter_reports_missing_scene_id() -> None:
     assert dummy_client.scene_calls == []
     state = state_store.read()
     assert state.get("last_action") is None
+
+
+def test_aircon_off_runs_off_scene_when_configured() -> None:
+    settings = {
+        "mode": "winter",
+        "aircon_device_id": "aircon",
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": "scene-off"},
+    }
+    dummy_client = DummyClient()
+    app, _settings_store, state_store, _scheduler = _build_app(
+        settings,
+        initial_state={"assumed_aircon_power": "on"},
+        client=dummy_client,
+    )
+
+    with app.test_client() as client:
+        response = client.post("/actions/aircon_off", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert dummy_client.scene_calls == ["scene-off"]
+    state = state_store.read()
+    assert state["assumed_aircon_power"] == "off"
+    assert state["last_action"].startswith("scene(scene-off)")
+
+
+def test_healthz_returns_scheduler_state_and_tick() -> None:
+    settings = {"automation_enabled": True}
+    last_tick = "2026-01-10T15:30:00+00:00"
+    state = {"last_tick": last_tick}
+    app, _settings_store, _state_store, scheduler = _build_app(
+        settings,
+        initial_state=state,
+    )
+    scheduler.running = True
+
+    with app.test_client() as client:
+        response = client.get("/healthz")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["status"] == "ok"
+    assert payload["scheduler_running"] is True
+    assert payload["automation_enabled"] is True
+    assert payload["last_tick"] == last_tick
+    assert "timestamp_utc" in payload
+
+
+def test_healthz_returns_503_when_store_unavailable() -> None:
+    settings = {"automation_enabled": False}
+    app, _settings_store, _state_store, _scheduler = _build_app(settings)
+    failing = FailingStore()
+    app.extensions["settings_store"] = failing
+    app.extensions["state_store"] = failing
+
+    with app.test_client() as client:
+        response = client.get("/healthz")
+
+    assert response.status_code == 503
+    payload = response.get_json()
+    assert payload["status"] == "error"
+    assert payload["details"] == "store_unavailable"
+
+
+def test_quick_off_prefers_scene_and_disables_automation() -> None:
+    settings = {
+        "automation_enabled": True,
+        "mode": "winter",
+        "aircon_device_id": "aircon",
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": "scene-off"},
+    }
+    dummy_client = DummyClient()
+    app, settings_store, state_store, _scheduler = _build_app(
+        settings,
+        initial_state={"assumed_aircon_power": "on"},
+        client=dummy_client,
+    )
+
+    with app.test_client() as client:
+        response = client.post("/actions/quick_off", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert dummy_client.scene_calls == ["scene-off"]
+    persisted_settings = settings_store.read()
+    assert persisted_settings["automation_enabled"] is False
+    state = state_store.read()
+    assert state["assumed_aircon_power"] == "off"
+    assert state["last_action"].startswith("scene(scene-off)")

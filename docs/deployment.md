@@ -93,6 +93,7 @@ Le fichier `Dockerfile` à la racine :
 - Après déclenchement, vérifier :
   - Logs déploiement dans Render (pas d'erreurs Gunicorn/APScheduler).
   - Page `/` fonctionne, scheduler actif.
+  - Endpoint `https://<service>.onrender.com/healthz` renvoie `{"status": "ok", ...}` avec `scheduler_running`, `automation_enabled`, `last_tick` et `timestamp_utc`. Render peut l’utiliser pour ses **Health Checks**, et des services externes comme UpTimeRobot peuvent également s’y brancher (HTTP 200 attendu, 503 en cas de store indisponible).
 
 ## 7. Checklist de secrets
 

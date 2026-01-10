@@ -24,7 +24,8 @@
   "aircon_scenes": {
     "winter": "c8e87fd2-2b9f-4a2d-8f81-c82e7f230e94",
     "summer": "f621a00e-5979-4372-888b-4e18e4017945",
-    "fan": "2988f98c-ed4a-437c-9faa-fa62ccc38bc8"
+    "fan": "2988f98c-ed4a-437c-9faa-fa62ccc38bc8",
+    "off": "bd52478c-37a0-4607-9ab9-3e9749ecf0df"
   },
   "time_windows": [
     {

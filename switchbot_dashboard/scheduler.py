@@ -68,3 +68,10 @@ class SchedulerService:
 
             self._scheduler.shutdown(wait=False)
             self._scheduler = None
+
+    def is_running(self) -> bool:
+        with self._lock:
+            if self._scheduler is None:
+                return False
+
+            return getattr(self._scheduler, "running", False)
