@@ -44,6 +44,13 @@
 - Les fichiers `config/settings.json` et `config/state.json` restent les valeurs initiales du conteneur, tandis que la production (Render/Upstash) persiste désormais dans Redis, garantissant la survie des réglages après redeploy/scale.
 - La documentation (`docs/configuration.md`, `docs/deployment.md`, `docs/testing.md`) détaille la migration, la sécurité (TLS `rediss://`, mots de passe), et les tests à exécuter pour valider la persistance.
 
+[2026-01-10 13:30:00] - Presets Aircon manuels configurables
+
+- Les boutons “Aircon ON – Hiver/Été” reposent désormais sur une clé `aircon_presets` persistée dans `settings` (Redis ou JSON) ; les valeurs par défaut restent alignées sur la doc SwitchBot (25 °C heat / 18 °C cool).
+- Le formulaire `index.html` expose une section dédiée “Manual Aircon presets” avec validation partagée et indicateurs (aligné/recommandation) pour guider l’utilisateur.
+- `docs/configuration.md` et `docs/ui-guide.md` expliquent la clé `aircon_presets`, les champs disponibles et le workflow recommandé (utiliser l’UI plutôt que modifier le fichier local quand Redis est actif).
+- Des tests unitaires (paramètres + route `/settings`) garantissent la persistance et la non-régression.
+
 [2026-01-09 16:20:00] - UX mobile & formulaires guidés
 
 - L’écran principal (`switchbot_dashboard/templates/index.html`) est orienté mobile-first : nouvelle carte Settings, gradient léger et contrôles tactiles (switchs, badges).

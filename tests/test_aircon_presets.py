@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import copy
 
-from switchbot_dashboard.routes import _extract_aircon_presets, DEFAULT_AIRCON_PRESETS
+from switchbot_dashboard.routes import (
+    AIRCON_SCENE_KEYS,
+    DEFAULT_AIRCON_PRESETS,
+    _extract_aircon_presets,
+    _extract_aircon_scenes,
+)
 
 
 def test_extract_aircon_presets_returns_defaults_when_missing() -> None:
@@ -72,3 +77,25 @@ def test_extract_aircon_presets_does_not_mutate_defaults() -> None:
     _extract_aircon_presets(settings)
 
     assert DEFAULT_AIRCON_PRESETS == before
+
+
+def test_extract_aircon_scenes_returns_empty_strings_when_missing() -> None:
+    scenes = _extract_aircon_scenes({})
+
+    assert scenes == {key: "" for key in AIRCON_SCENE_KEYS}
+
+
+def test_extract_aircon_scenes_trims_and_validates_values() -> None:
+    settings = {
+        "aircon_scenes": {
+            "winter": "  abc-123  ",
+            "summer": 42,
+            "fan": "fan-scene",
+        }
+    }
+
+    scenes = _extract_aircon_scenes(settings)
+
+    assert scenes["winter"] == "abc-123"
+    assert scenes["summer"] == ""
+    assert scenes["fan"] == "fan-scene"

@@ -54,6 +54,18 @@
 - Vérifié la cohérence avec `switchbot_dashboard/__init__.py` et les fichiers CI/CD avant validation.
 - Memory Bank synchronisée (progress mis à jour).
 
+[2026-01-10 13:35:00] - Session presets Aircon configurables
+- Ajout de `DEFAULT_AIRCON_PRESETS`, `_extract_aircon_presets` et `_send_manual_aircon_setall` pour séparer les actions Aircon ON hiver/été et respecter les valeurs documentées.
+- Section UI dédiée “Manual Aircon presets” avec alertes si les réglages divergent des recommandations.
+- Persistance des presets via `settings["aircon_presets"]`, mise à jour des docs (`configuration.md`, `ui-guide.md`) et des tests (`test_aircon_presets.py`, `test_dashboard_routes.py`).
+- Conseils fournis sur la persistance Redis (modifier via l’UI plutôt que `config/settings.json`).
+
+[2026-01-10 15:30:00] - Migration des presets vers des scènes SwitchBot
+- Suppression complète de la logique `aircon_presets` (constantes, helpers, routes) au profit de `aircon_scenes`
+- Mise à jour de l'interface utilisateur pour ne conserver que la configuration des scènes
+- Mise à jour de la documentation pour refléter ces changements
+- Nettoyage des références aux presets dans les tests
+
 ## Terminé
 [2026-01-09 16:47:00] - Implémentation du thème sombre par défaut sur les templates index.html et devices.html.
 [2026-01-09 17:00:00] - Refonte de la page Devices : cartes lisibles, synthèse, copie d'ID et JSON repliables.
@@ -66,6 +78,7 @@
   - Vérification de l'absence de headers de quota dans les réponses de l'API SwitchBot
   - Mise à jour de l'interface utilisateur pour afficher les quotas calculés localement
   - Documentation des décisions techniques dans la Memory Bank
+[2026-01-10 13:35:00] - Aircon presets configurables et tests associés
 
 ## En cours
-Aucune tâche active.
+- Aucune tâche active.

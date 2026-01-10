@@ -80,7 +80,7 @@
                 <dd class="col-7">{{ state.get('last_error') }}</dd>
               </dl>
 
-              <div class="d-flex gap-2 mt-3">
+              <div class="d-flex gap-2 mt-3 flex-wrap">
                 <form method="post" action="{{ url_for('dashboard.run_once') }}">
                   <button class="btn btn-primary" type="submit">Run once</button>
                 </form>
@@ -93,21 +93,57 @@
                 <form method="post" action="{{ url_for('dashboard.quick_off') }}">
                   <button class="btn btn-secondary" type="submit">Off</button>
                 </form>
-                <div class="d-flex flex-column flex-md-row gap-2">
+                <div class="d-flex flex-column flex-md-row gap-2 flex-grow-1">
                   <form method="post" action="{{ url_for('dashboard.aircon_on_winter') }}" class="flex-grow-1">
-                    <button class="btn btn-outline-success w-100" type="submit">
-                      Aircon ON – Hiver
-                      <span class="d-block small text-muted">25 °C · mode heat · fan medium</span>
+                    <button
+                      class="btn btn-outline-success w-100"
+                      type="submit"
+                      {% if missing_scenes['winter'] %}disabled aria-disabled="true"{% endif %}
+                    >
+                      Aircon ON – Hiver (scène)
+                      <span class="d-block small {% if missing_scenes['winter'] %}text-warning{% else %}text-muted{% endif %}">
+                        {% if missing_scenes['winter'] %}
+                          Scene ID manquant
+                        {% else %}
+                          {{ aircon_scenes['winter'] }}
+                        {% endif %}
+                      </span>
                     </button>
                   </form>
                   <form method="post" action="{{ url_for('dashboard.aircon_on_summer') }}" class="flex-grow-1">
-                    <button class="btn btn-outline-success w-100" type="submit">
-                      Aircon ON – Été
-                      <span class="d-block small text-muted">18 °C · mode cool · fan medium</span>
+                    <button
+                      class="btn btn-outline-success w-100"
+                      type="submit"
+                      {% if missing_scenes['summer'] %}disabled aria-disabled="true"{% endif %}
+                    >
+                      Aircon ON – Été (scène)
+                      <span class="d-block small {% if missing_scenes['summer'] %}text-warning{% else %}text-muted{% endif %}">
+                        {% if missing_scenes['summer'] %}
+                          Scene ID manquant
+                        {% else %}
+                          {{ aircon_scenes['summer'] }}
+                        {% endif %}
+                      </span>
+                    </button>
+                  </form>
+                  <form method="post" action="{{ url_for('dashboard.aircon_on_fan') }}" class="flex-grow-1">
+                    <button
+                      class="btn btn-outline-info w-100"
+                      type="submit"
+                      {% if missing_scenes['fan'] %}disabled aria-disabled="true"{% endif %}
+                    >
+                      Aircon ON – Mode neutre
+                      <span class="d-block small {% if missing_scenes['fan'] %}text-warning{% else %}text-muted{% endif %}">
+                        {% if missing_scenes['fan'] %}
+                          Scene ID manquant
+                        {% else %}
+                          {{ aircon_scenes['fan'] }}
+                        {% endif %}
+                      </span>
                     </button>
                   </form>
                   <form method="post" action="{{ url_for('dashboard.aircon_off') }}">
-                    <button class="btn btn-outline-danger" type="submit">Aircon OFF</button>
+                    <button class="btn btn-outline-danger w-100" type="submit">Aircon OFF</button>
                   </form>
                 </div>
               </div>
@@ -366,123 +402,28 @@
 
                 <hr class="my-4" />
 
-                <h2 class="h6">Manual Aircon presets (buttons)</h2>
+                <h2 class="h6">Scènes favorites SwitchBot</h2>
                 <p class="small text-muted">
-                  Utilisés par les actions rapides “Aircon ON – Hiver/Été”. Ajustez les paramètres envoyés via `setAll`.
+                  Renseignez les IDs des scènes favorites (SwitchBot → Scenes). Elles alimentent les boutons rapides hiver/été/ventilateur.
                 </p>
                 <div class="row g-3">
-                  {% set manual_winter = aircon_presets['winter'] %}
-                  {% set manual_summer = aircon_presets['summer'] %}
-                  {% set winter_warning = preset_warnings['winter'] %}
-                  {% set summer_warning = preset_warnings['summer'] %}
-
-                  <div class="col-12 col-md-6">
-                    <div class="card bg-dark-subtle shadow-none">
-                      <div class="card-body p-3">
-                        <h3 class="h6 d-flex justify-content-between align-items-center">
-                          <span>Preset hiver</span>
-                          <span class="badge bg-secondary text-uppercase">setAll</span>
-                        </h3>
-                        <div
-                          class="small mb-3 {% if winter_warning %}text-warning-emphasis{% else %}text-success{% endif %}"
-                        >
-                          {% if winter_warning %}
-                            <strong>Attention :</strong>
-                            Actuel {{ manual_preset_summaries['winter'] }} —
-                            recommandé {{ recommended_preset_summaries['winter'] }}.
-                          {% else %}
-                            Aligné sur la recommandation ({{ manual_preset_summaries['winter'] }}).
-                          {% endif %}
-                        </div>
-                        <div class="row g-2">
-                          <div class="col-4">
-                            <label class="form-label" for="manual_winter_target_temp">Température</label>
-                            <select class="form-select form-select-sm" id="manual_winter_target_temp" name="manual_winter_target_temp">
-                              {% for choice in temp_choices %}
-                                <option value="{{ choice.value }}" {% if manual_winter['target_temp'] == choice.value %}selected{% endif %}>
-                                  {{ choice.label }}°C
-                                </option>
-                              {% endfor %}
-                            </select>
-                          </div>
-                          <div class="col-4">
-                            <label class="form-label" for="manual_winter_ac_mode">Mode</label>
-                            <select class="form-select form-select-sm" id="manual_winter_ac_mode" name="manual_winter_ac_mode">
-                              {% for choice in ac_mode_choices %}
-                                <option value="{{ choice.value }}" {% if manual_winter['ac_mode'] == choice.value %}selected{% endif %}>
-                                  {{ choice.label }}
-                                </option>
-                              {% endfor %}
-                            </select>
-                          </div>
-                          <div class="col-4">
-                            <label class="form-label" for="manual_winter_fan_speed">Ventilation</label>
-                            <select class="form-select form-select-sm" id="manual_winter_fan_speed" name="manual_winter_fan_speed">
-                              {% for choice in fan_speed_choices %}
-                                <option value="{{ choice.value }}" {% if manual_winter['fan_speed'] == choice.value %}selected{% endif %}>
-                                  {{ choice.label }}
-                                </option>
-                              {% endfor %}
-                            </select>
-                          </div>
-                        </div>
-                      </div>
+                  {% for key in aircon_scene_keys %}
+                    <div class="col-12 col-md-4">
+                      <label class="form-label" for="scene_{{ key }}_id">{{ aircon_scene_labels[key] }}</label>
+                      <input
+                        class="form-control"
+                        id="scene_{{ key }}_id"
+                        name="scene_{{ key }}_id"
+                        value="{{ aircon_scenes[key] }}"
+                        placeholder="UUID scène"
+                      />
+                      {% if missing_scenes[key] %}
+                        <div class="form-text text-warning">Non configuré</div>
+                      {% else %}
+                        <div class="form-text text-success">Prêt</div>
+                      {% endif %}
                     </div>
-                  </div>
-
-                  <div class="col-12 col-md-6">
-                    <div class="card bg-dark-subtle shadow-none">
-                      <div class="card-body p-3">
-                        <h3 class="h6 d-flex justify-content-between align-items-center">
-                          <span>Preset été</span>
-                          <span class="badge bg-secondary text-uppercase">setAll</span>
-                        </h3>
-                        <div
-                          class="small mb-3 {% if summer_warning %}text-warning-emphasis{% else %}text-success{% endif %}"
-                        >
-                          {% if summer_warning %}
-                            <strong>Attention :</strong>
-                            Actuel {{ manual_preset_summaries['summer'] }} —
-                            recommandé {{ recommended_preset_summaries['summer'] }}.
-                          {% else %}
-                            Aligné sur la recommandation ({{ manual_preset_summaries['summer'] }}).
-                          {% endif %}
-                        </div>
-                        <div class="row g-2">
-                          <div class="col-4">
-                            <label class="form-label" for="manual_summer_target_temp">Température</label>
-                            <select class="form-select form-select-sm" id="manual_summer_target_temp" name="manual_summer_target_temp">
-                              {% for choice in temp_choices %}
-                                <option value="{{ choice.value }}" {% if manual_summer['target_temp'] == choice.value %}selected{% endif %}>
-                                  {{ choice.label }}°C
-                                </option>
-                              {% endfor %}
-                            </select>
-                          </div>
-                          <div class="col-4">
-                            <label class="form-label" for="manual_summer_ac_mode">Mode</label>
-                            <select class="form-select form-select-sm" id="manual_summer_ac_mode" name="manual_summer_ac_mode">
-                              {% for choice in ac_mode_choices %}
-                                <option value="{{ choice.value }}" {% if manual_summer['ac_mode'] == choice.value %}selected{% endif %}>
-                                  {{ choice.label }}
-                                </option>
-                              {% endfor %}
-                            </select>
-                          </div>
-                          <div class="col-4">
-                            <label class="form-label" for="manual_summer_fan_speed">Ventilation</label>
-                            <select class="form-select form-select-sm" id="manual_summer_fan_speed" name="manual_summer_fan_speed">
-                              {% for choice in fan_speed_choices %}
-                                <option value="{{ choice.value }}" {% if manual_summer['fan_speed'] == choice.value %}selected{% endif %}>
-                                  {{ choice.label }}
-                                </option>
-                              {% endfor %}
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  {% endfor %}
                 </div>
               </form>
             </div>

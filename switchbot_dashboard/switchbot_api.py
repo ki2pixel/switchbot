@@ -162,6 +162,13 @@ class SwitchBotClient:
         }
         return self._request("POST", f"/v1.1/devices/{device_id}/commands", json_body=body)
 
+    def run_scene(self, scene_id: str) -> Any:
+        scene_id = scene_id.strip()
+        if not scene_id:
+            raise SwitchBotApiError("Missing scene_id")
+
+        return self._request("POST", f"/v1.1/scenes/{scene_id}/execute")
+
     def _capture_quota_metadata(self, response: Response) -> None:
         header_map = {key.lower(): value for key, value in response.headers.items()}
         limit_raw = (

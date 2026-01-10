@@ -69,33 +69,12 @@ AC_MODE_CHOICES: list[dict[str, Any]] = [
     {"value": 5, "label": "Heat"},
 ]
 
-DEFAULT_AIRCON_PRESETS: dict[str, dict[str, float | int]] = {
-    # Reference: docs/switchbot/README.md (Air Conditioner setAll command table).
-    "winter": {
-        "target_temp": 25.0,  # °C
-        "ac_mode": 5,  # heat
-        "fan_speed": 3,  # medium
-    },
-    "summer": {
-        "target_temp": 18.0,  # °C
-        "ac_mode": 2,  # cool
-        "fan_speed": 3,  # medium
-    },
+AIRCON_SCENE_KEYS: tuple[str, ...] = ("winter", "summer", "fan")
+AIRCON_SCENE_LABELS: dict[str, str] = {
+    "winter": "Aircon ON – Hiver",
+    "summer": "Aircon ON – Été",
+    "fan": "Aircon ON – Mode neutre",
 }
-
-
-def _lookup_label(choices: list[dict[str, Any]], value: int) -> str:
-    for choice in choices:
-        if choice["value"] == value:
-            return str(choice["label"])
-    return str(value)
-
-
-def _describe_aircon_preset(preset: dict[str, float | int]) -> str:
-    temp = float(preset["target_temp"])
-    ac_label = _lookup_label(AC_MODE_CHOICES, int(preset["ac_mode"])).lower()
-    fan_label = _lookup_label(FAN_SPEED_CHOICES, int(preset["fan_speed"])).lower()
-    return f"{temp:g}°C · mode {ac_label} · fan {fan_label}"
 
 
 def _utc_now_iso() -> str:
@@ -168,89 +147,16 @@ def _get_time_window_form(settings: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _extract_aircon_presets(settings: dict[str, Any]) -> dict[str, dict[str, float | int]]:
-    raw_presets = settings.get("aircon_presets", {})
-    if not isinstance(raw_presets, dict):
-        raw_presets = {}
+def _extract_aircon_scenes(settings: dict[str, Any]) -> dict[str, str]:
+    raw_scenes = settings.get("aircon_scenes", {})
+    if not isinstance(raw_scenes, dict):
+        raw_scenes = {}
 
-    sanitized: dict[str, dict[str, float | int]] = {}
-    for key in ("winter", "summer"):
-        defaults = DEFAULT_AIRCON_PRESETS[key]
-        candidate = raw_presets.get(key, {})
-        target_temp = _as_float(
-            candidate.get("target_temp") if isinstance(candidate, dict) else None,
-            default=float(defaults["target_temp"]),
-            minimum=10.0,
-            maximum=40.0,
-        )
-        ac_mode = _as_int(
-            candidate.get("ac_mode") if isinstance(candidate, dict) else None,
-            default=int(defaults["ac_mode"]),
-            minimum=1,
-            maximum=5,
-        )
-        fan_speed = _as_int(
-            candidate.get("fan_speed") if isinstance(candidate, dict) else None,
-            default=int(defaults["fan_speed"]),
-            minimum=1,
-            maximum=4,
-        )
-        sanitized[key] = {
-            "target_temp": target_temp,
-            "ac_mode": ac_mode,
-            "fan_speed": fan_speed,
-        }
-
+    sanitized: dict[str, str] = {}
+    for key in AIRCON_SCENE_KEYS:
+        value = raw_scenes.get(key, "")
+        sanitized[key] = str(value).strip() if isinstance(value, str) else ""
     return sanitized
-
-
-def _send_manual_aircon_setall(
-    preset_key: str,
-    *,
-    state_reason: str,
-    flash_label: str,
-    settings_override: dict[str, Any] | None = None,
-) -> Any:
-    settings_store = current_app.extensions["settings_store"]
-    settings = settings_override if settings_override is not None else settings_store.read()
-    presets = _extract_aircon_presets(settings)
-
-    preset = presets.get(preset_key)
-    if not preset:
-        flash("Unknown aircon preset.", "error")
-        return redirect(url_for("dashboard.index"))
-
-    state_store = current_app.extensions["state_store"]
-    client = current_app.extensions["switchbot_client"]
-
-    aircon_id = str(settings.get("aircon_device_id", "")).strip()
-    if not aircon_id:
-        flash("Missing aircon_device_id", "error")
-        return redirect(url_for("dashboard.index"))
-
-    parameter = f"{preset['target_temp']},{preset['ac_mode']},{preset['fan_speed']},on"
-
-    try:
-        client.send_command(aircon_id, command="setAll", parameter=parameter, command_type="command")
-    except SwitchBotApiError as exc:
-        state = state_store.read()
-        state["last_error"] = str(exc)
-        state_store.write(state)
-        flash(str(exc), "error")
-        return redirect(url_for("dashboard.index"))
-
-    preset_summary = _describe_aircon_preset(preset)
-    state = state_store.read()
-    state["assumed_aircon_power"] = "on"
-    state["assumed_aircon_mode"] = preset["ac_mode"]
-    state["assumed_aircon_parameter"] = parameter
-    state["last_action"] = f"setAll({parameter}) ({state_reason})"
-    state["last_action_at"] = _utc_now_iso()
-    state["last_error"] = None
-    state_store.write(state)
-
-    flash(f"{flash_label}: {preset_summary}")
-    return redirect(url_for("dashboard.index"))
 
 
 @dashboard_bp.get("/")
@@ -260,17 +166,8 @@ def index() -> str:
 
     settings = settings_store.read()
     state = state_store.read()
-    aircon_presets = _extract_aircon_presets(settings)
-    preset_warnings = {
-        key: aircon_presets[key] != DEFAULT_AIRCON_PRESETS[key]
-        for key in ("winter", "summer")
-    }
-    recommended_preset_summaries = {
-        key: _describe_aircon_preset(DEFAULT_AIRCON_PRESETS[key]) for key in ("winter", "summer")
-    }
-    manual_preset_summaries = {
-        key: _describe_aircon_preset(aircon_presets[key]) for key in ("winter", "summer")
-    }
+    aircon_scenes = _extract_aircon_scenes(settings)
+    missing_scenes = {key: not aircon_scenes[key] for key in AIRCON_SCENE_KEYS}
 
     time_window_form = _get_time_window_form(settings)
     api_requests_remaining = state.get("api_requests_remaining")
@@ -280,16 +177,16 @@ def index() -> str:
         "index.html",
         settings=settings,
         state=state,
-        aircon_presets=aircon_presets,
-        preset_warnings=preset_warnings,
-        recommended_preset_summaries=recommended_preset_summaries,
-        manual_preset_summaries=manual_preset_summaries,
+        aircon_scenes=aircon_scenes,
+        missing_scenes=missing_scenes,
+        aircon_scene_labels=AIRCON_SCENE_LABELS,
         time_window_form=time_window_form,
         day_choices=DAY_CHOICES,
         time_choices=TIME_CHOICES,
         temp_choices=TEMP_CHOICES,
         fan_speed_choices=FAN_SPEED_CHOICES,
         ac_mode_choices=AC_MODE_CHOICES,
+        aircon_scene_keys=AIRCON_SCENE_KEYS,
         api_requests_remaining=api_requests_remaining,
         api_requests_total=api_requests_total,
     )
@@ -318,7 +215,7 @@ def update_settings() -> Any:
     scheduler_service = current_app.extensions["scheduler_service"]
 
     settings = settings_store.read()
-    current_aircon_presets = _extract_aircon_presets(settings)
+    current_aircon_scenes = _extract_aircon_scenes(settings)
 
     settings["automation_enabled"] = _as_bool(request.form.get("automation_enabled"))
     settings["mode"] = str(request.form.get("mode", settings.get("mode", "winter"))).strip().lower()
@@ -394,34 +291,13 @@ def update_settings() -> Any:
 
         settings[key] = profile
 
-    updated_aircon_presets: dict[str, dict[str, float | int]] = {}
-    for preset_key in ("winter", "summer"):
-        current = current_aircon_presets[preset_key]
-        target_temp = _as_float(
-            request.form.get(f"manual_{preset_key}_target_temp"),
-            default=float(current["target_temp"]),
-            minimum=10.0,
-            maximum=40.0,
-        )
-        ac_mode = _as_int(
-            request.form.get(f"manual_{preset_key}_ac_mode"),
-            default=int(current["ac_mode"]),
-            minimum=1,
-            maximum=5,
-        )
-        fan_speed = _as_int(
-            request.form.get(f"manual_{preset_key}_fan_speed"),
-            default=int(current["fan_speed"]),
-            minimum=1,
-            maximum=4,
-        )
-        updated_aircon_presets[preset_key] = {
-            "target_temp": target_temp,
-            "ac_mode": ac_mode,
-            "fan_speed": fan_speed,
-        }
+    updated_aircon_scenes: dict[str, str] = {}
+    for key in AIRCON_SCENE_KEYS:
+        updated_aircon_scenes[key] = str(
+            request.form.get(f"scene_{key}_id", current_aircon_scenes.get(key, ""))
+        ).strip()
 
-    settings["aircon_presets"] = updated_aircon_presets
+    settings["aircon_scenes"] = updated_aircon_scenes
 
     settings_store.write(settings)
     scheduler_service.reschedule()
@@ -470,36 +346,85 @@ def aircon_off() -> Any:
     return redirect(url_for("dashboard.index"))
 
 
+def _execute_aircon_scene(
+    scene_key: str,
+    *,
+    state_reason: str,
+    flash_label: str,
+) -> Any:
+    settings_store = current_app.extensions["settings_store"]
+    state_store = current_app.extensions["state_store"]
+    client = current_app.extensions["switchbot_client"]
+
+    settings = settings_store.read()
+    scenes = _extract_aircon_scenes(settings)
+    scene_id = scenes.get(scene_key, "")
+
+    if not scene_id:
+        scene_label = AIRCON_SCENE_LABELS.get(scene_key, scene_key)
+        flash(f"Missing scene id for {scene_label}", "error")
+        return redirect(url_for("dashboard.index"))
+
+    try:
+        client.run_scene(scene_id)
+    except SwitchBotApiError as exc:
+        state = state_store.read()
+        state["last_error"] = str(exc)
+        state_store.write(state)
+        flash(str(exc), "error")
+        return redirect(url_for("dashboard.index"))
+
+    state = state_store.read()
+    state["assumed_aircon_power"] = "unknown"
+    state["assumed_aircon_mode"] = None
+    state["assumed_aircon_parameter"] = None
+    state["last_action"] = f"scene({scene_id}) ({state_reason})"
+    state["last_action_at"] = _utc_now_iso()
+    state["last_error"] = None
+    state_store.write(state)
+
+    flash(flash_label)
+    return redirect(url_for("dashboard.index"))
+
+
 @dashboard_bp.post("/actions/aircon_on")
 def aircon_on() -> Any:
-    """Legacy action: route to the current mode preset for backward compatibility."""
+    """Route to the current mode scene for backward compatibility."""
     settings_store = current_app.extensions["settings_store"]
     settings = settings_store.read()
     mode = str(settings.get("mode", "winter")).strip().lower()
-    preset_key = mode if mode in DEFAULT_AIRCON_PRESETS else "winter"
-    return _send_manual_aircon_setall(
-        preset_key,
-        state_reason=f"manual_{preset_key}",
-        flash_label=f"Aircon setAll ({preset_key})",
-        settings_override=settings,
+    scene_key = mode if mode in AIRCON_SCENE_KEYS else "winter"
+    return _execute_aircon_scene(
+        scene_key,
+        state_reason=f"manual_{scene_key}_scene",
+        flash_label=f"Scène {scene_key} exécutée.",
     )
 
 
 @dashboard_bp.post("/actions/aircon_on_winter")
 def aircon_on_winter() -> Any:
-    return _send_manual_aircon_setall(
+    return _execute_aircon_scene(
         "winter",
-        state_reason="manual_winter_preset",
-        flash_label="Aircon heat preset",
+        state_reason="manual_winter_scene",
+        flash_label="Scène hiver exécutée.",
     )
 
 
 @dashboard_bp.post("/actions/aircon_on_summer")
 def aircon_on_summer() -> Any:
-    return _send_manual_aircon_setall(
+    return _execute_aircon_scene(
         "summer",
-        state_reason="manual_summer_preset",
-        flash_label="Aircon cool preset",
+        state_reason="manual_summer_scene",
+        flash_label="Scène été exécutée.",
+    )
+
+
+@dashboard_bp.post("/actions/aircon_on_fan")
+def aircon_on_fan() -> Any:
+    return _execute_aircon_scene(
+        "fan",
+        state_reason="manual_fan_scene",
+        flash_label="Scène ventilateur exécutée.",
     )
 
 

@@ -62,31 +62,21 @@ Ce fichier contient les réglages métier persistés :
     "target_temp": 24.0,
     "ac_mode": 2,
     "fan_speed": 2
-  },
-  "aircon_presets": {
-    "winter": {
-      "target_temp": 25.0,
-      "ac_mode": 5,
-      "fan_speed": 3
-    },
-    "summer": {
-      "target_temp": 18.0,
-      "ac_mode": 2,
-      "fan_speed": 3
-    }
   }
 }
 ```
 
 > ℹ️ **Production et conteneurs Render** : lorsque `STORE_BACKEND=redis` est activé, les fichiers `config/settings.json` et `config/state.json` empaquetés dans l'image Docker ne servent qu'à fournir des valeurs initiales. Toutes les modifications effectuées via l'interface sont écrites dans Redis et survivent aux redeploy/scale. Ne modifiez les fichiers locaux que pour préparer un premier déploiement ou dépanner hors ligne.
 
-#### Aircon presets (boutons manuels)
+#### Aircon scenes (boutons rapides)
 
-- La clé `aircon_presets` contient deux sous-objets `winter` et `summer`.  
-- Chaque sous-objet définit les paramètres envoyés lors du clic sur “Aircon ON – Hiver/Été” (`setAll` côté SwitchBot).  
-- Les champs supportés : `target_temp` (10‑40 °C), `ac_mode` (1‑5) et `fan_speed` (1‑4).  
-- L’UI expose désormais ces valeurs dans la carte “Manual Aircon presets”, et les validations utilisent les mêmes helpers `_as_float/_as_int` que le reste du formulaire.  
-- Si la clé est absente, les valeurs par défaut documentées (`winter: 25 °C heat medium`, `summer: 18 °C cool medium`) sont utilisées.
+- La clé `aircon_scenes` contient trois entrées `winter`, `summer` et `fan`.  
+- Chaque entrée correspond à un **sceneId SwitchBot** (copié via l’API `GET /v1.1/scenes`).  
+- Les boutons rapides “Aircon ON – Hiver/Été” ainsi que “Aircon ON – Mode neutre (ventilateur)” déclenchent exclusivement ces scènes.  
+- L’UI (section “Scènes favorites SwitchBot”) affiche l’état de chaque ID : badge vert “Prêt” lorsque l’ID est renseigné, avertissement sinon (bouton désactivé).  
+- Les scènes restent côté SwitchBot : profitez-en pour encapsuler des séquences plus riches qu’un simple `setAll` (ex : délai, combinaison multi-devices).  
+- ⚠️ **Pré-requis** : un `aircon_device_id` valide reste nécessaire pour les autres actions (`Aircon OFF`, quick winter/summer). Sans cela, les routes concernées flashent “Missing aircon_device_id”.
+- ℹ️ **2026-01-10** : La logique historique `aircon_presets` a été supprimée (voir `memory-bank/decisionLog.md`). Toute personnalisation passe désormais par des scènes SwitchBot configurées dans l’application officielle.
 
 ### 3. Backend de stockage (filesystem vs Redis)
 

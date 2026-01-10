@@ -21,17 +21,10 @@
     "fan_speed": 3,
     "ac_mode": 2
   },
-  "aircon_presets": {
-    "winter": {
-      "target_temp": 25.0,
-      "ac_mode": 5,
-      "fan_speed": 3
-    },
-    "summer": {
-      "target_temp": 18.0,
-      "ac_mode": 2,
-      "fan_speed": 3
-    }
+  "aircon_scenes": {
+    "winter": "c8e87fd2-2b9f-4a2d-8f81-c82e7f230e94",
+    "summer": "f621a00e-5979-4372-888b-4e18e4017945",
+    "fan": "2988f98c-ed4a-437c-9faa-fa62ccc38bc8"
   },
   "time_windows": [
     {

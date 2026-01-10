@@ -219,6 +219,25 @@ test -f .env && grep -q "SWITCHBOT_TOKEN\|SWITCHBOT_SECRET" .env
 3. Vérifier que l'UI affiche les réglages existants. Modifier de nouveaux paramètres, puis arrêter/redémarrer l'application : les valeurs doivent être conservées.
 4. Simuler une indisponibilité Redis (arrêt du conteneur) : confirmer que des logs d'erreur apparaissent et que l'application retombe en mode filesystem.
 
+### 6. Scènes SwitchBot (aircon_scenes)
+
+**Objectif** : Vérifier que la configuration des scènes favorites et les boutons rapides associés fonctionnent de bout en bout.
+
+1. **Configuration UI**
+   - Renseigner les champs “Aircon ON – Hiver/Été/Mode neutre” avec des `sceneId` valides via la carte “Scènes favorites SwitchBot”.
+   - Cliquer sur “Save settings” et vérifier dans `config/settings.json` (ou Redis) que `aircon_scenes.winter/summer/fan` contiennent bien les IDs saisis.
+2. **État des boutons rapides**
+   - Rafraîchir `/` : les badges “Prêt” doivent apparaître et les boutons correspondants doivent être actifs.
+   - Supprimer un ID pour confirmer que le bouton est désactivé et affiche “Scene ID manquant”.
+3. **Exécution et traçabilité**
+   - Cliquer sur chaque bouton (`Aircon ON – Hiver`, `Aircon ON – Été`, `Aircon ON – Mode neutre`) et vérifier que :
+     - Les flash messages confirment l’exécution.
+     - `config/state.json` met à jour `last_action` avec `scene(<sceneId>)` et réinitialise les paramètres supposés (mode, power).
+4. **Tests automatisés**
+   - Exécuter `pytest tests/test_dashboard_routes.py::test_update_settings_persists_aircon_scenes tests/test_dashboard_routes.py::test_aircon_on_winter_runs_scene_and_updates_state` pour couvrir la persistance et l’exécution.
+
+> ℹ️ Les anciens tests `test_aircon_presets.py` ont été supprimés car la logique `aircon_presets` n’existe plus (voir `memory-bank/decisionLog.md`, 2026-01-10).
+
 ## Tests d'erreur et résilience
 
 ### 1. API SwitchBot injoignable

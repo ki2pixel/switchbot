@@ -45,17 +45,17 @@ Boutons pour contrôle manuel :
 
 - `Run once` : Déclenche manuellement `AutomationService.run_once`
 - `Chauffage (Hiver)` / `Clim (Été)` / `Off` : Change le mode et exécute immédiatement
-- `Aircon ON – Hiver` / `Aircon ON – Été` : commandes `setAll` préréglées (respectivement 25 °C / mode heat / fan medium et 18 °C / mode cool / fan medium) pour un envoi rapide conforme aux recommandations SwitchBot.
+- `Aircon ON – Hiver (scène)` / `Aircon ON – Été (scène)` / `Aircon ON – Mode neutre` : exécutent directement les scènes favorites définies côté SwitchBot. Les boutons sont automatiquement désactivés si l’ID correspondant n’est pas configuré dans la section “Scènes favorites”.
 - `Aircon OFF` : Commande directe hors automatisation
 
-> 📝 Chaque action met à jour `state.json` pour maintenir la cohérence UI.
+> 📝 Chaque action met à jour `state.json` (puissance supposée, dernière action, erreur éventuelle) afin de garder l’interface synchronisée.
 
-#### Carte “Manual Aircon presets”
+#### Carte “Scènes favorites SwitchBot”
 
-- Permet d’ajuster les réglages envoyés par les boutons “Aircon ON – Hiver/Été”.
-- Une alerte apparaît lorsque les valeurs diffèrent des recommandations (issues de la doc SwitchBot).  
-- Le bandeau affiche simultanément le preset actuel (ex. `25°C · mode heat · fan medium`) et la recommandation pour guider l’utilisateur.
-- Les sélecteurs utilisent les mêmes listes bornées que le reste du formulaire pour garantir la cohérence avec la validation backend.
+- Trois boutons rapides sont disponibles : “Aircon ON – Hiver (scène)”, “Aircon ON – Été (scène)” et “Aircon ON – Mode neutre”.
+- Chaque bouton déclenche l’exécution d’une scène favorite SwitchBot (IDs récupérés via `GET /v1.1/scenes`).
+- Si l’ID de scène est absent, le bouton est désactivé et une mention “Scene ID manquant” apparaît pour éviter les clics inutiles.
+- La carte “Scènes favorites SwitchBot” dans la section Settings permet de renseigner/mettre à jour chacune des trois scènes. L’état (“non configuré” vs “prêt”) s’affiche automatiquement pour aider à la configuration.
 
 ## Page Devices (`/devices`)
 

@@ -1,20 +1,20 @@
-[2026-01-10 02:26:00] - Session terminée
+[2026-01-10 15:39:00] - Session de migration des presets vers scènes terminée
 
 ## Current Focus
-- Aucun focus actif. Session terminée avec succès.
+- Migration complète de la logique des `aircon_presets` vers `aircon_scenes`
+- Nettoyage du code et de la documentation
 
 ## Recent Changes
-- Implémentation d'un système de suivi local des quotas API SwitchBot (10 000 requêtes/jour)
-- Configuration du niveau de log Gunicorn via la variable d'environnement `LOG_LEVEL`
-- Vérification de l'absence de headers de quota dans les réponses de l'API SwitchBot
-- Mise à jour de l'interface utilisateur pour afficher les quotas calculés localement
-- Documentation des décisions techniques dans la Memory Bank
+- Suppression complète des `aircon_presets` du fichier de configuration
+- Nettoyage du code backend (routes.py) pour ne garder que la logique des scènes
+- Mise à jour de l'interface utilisateur pour ne conserver que la configuration des scènes
+- Mise à jour de la documentation pour refléter ces changements
 
 ## Open Questions / Issues
-- Aucun blocage courant.
-- Le système de quota local se réinitialisera automatiquement à minuit UTC.
+- Aucun problème identifié lors de la migration
+- Les tests ont été mis à jour pour refléter les changements
 
 ## Next Steps
-- Surveiller le compteur de quota pour s'assurer qu'il se réinitialise correctement chaque jour
-- Considérer l'ajout d'alertes visuelles lorsque le quota approche de la limite quotidienne
-- Documenter le comportement du système de quota dans la documentation utilisateur
+- Vérifier que tous les tests passent avec succès
+- S'assurer que la documentation est complète et à jour
+- Prévoir une vérification manuelle des fonctionnalités modifiées

@@ -1,7 +1,7 @@
 {
-  "last_temperature": 27.3,
-  "last_humidity": 34,
-  "last_read_at": "2026-01-10T10:05:19.384051+00:00",
+  "last_temperature": 23.5,
+  "last_humidity": 37,
+  "last_read_at": "2026-01-10T13:43:02.940028+00:00",
   "assumed_aircon_power": "unknown",
   "assumed_aircon_mode": null,
   "assumed_aircon_parameter": null,
@@ -9,6 +9,6 @@
   "last_action_at": null,
   "last_error": null,
   "api_quota_day": "2026-01-10",
-  "api_requests_total": 22,
-  "api_requests_remaining": 9978
+  "api_requests_total": 76,
+  "api_requests_remaining": 9924
 }
