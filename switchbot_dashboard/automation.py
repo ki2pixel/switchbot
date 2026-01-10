@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 import logging
 from typing import Any
 
@@ -76,6 +77,7 @@ class AutomationService:
     def _record_quota_snapshot(self) -> None:
         snapshot = self._client.get_last_quota_snapshot()
         if not snapshot:
+            logger.warning("SwitchBot quota snapshot missing on latest call.")
             return
 
         limit = snapshot.get("limit")
@@ -98,6 +100,10 @@ class AutomationService:
 
         self._update_state(**updates)
         logger.info("Recorded SwitchBot quota snapshot: %s", updates)
+        logger.debug(
+            "State after quota update: %s",
+            json.dumps(self._state_store.read(), ensure_ascii=False),
+        )
 
     def poll_meter(self) -> dict[str, Any] | None:
         settings = self._settings_store.read()

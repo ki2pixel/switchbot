@@ -5,11 +5,15 @@ import hashlib
 import hmac
 import time
 import uuid
+import logging
 from dataclasses import dataclass
 from typing import Any
 
 import requests
 from requests import Response
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -82,6 +86,14 @@ class SwitchBotClient:
                     continue
 
                 raise SwitchBotApiError(f"SwitchBot request failed: {exc}") from exc
+
+            logger.debug(
+                "SwitchBot %s %s → HTTP %s headers=%s",
+                method,
+                path,
+                response.status_code,
+                dict(response.headers),
+            )
 
             retryable_http = response.status_code == 429 or 500 <= response.status_code <= 599
             if retryable_http and attempt_index < (self._retry_attempts - 1):
@@ -167,6 +179,7 @@ class SwitchBotClient:
         remaining = self._safe_int(remaining_raw)
 
         if limit is None and remaining is None:
+            logger.debug("SwitchBot quota headers absent on latest response.")
             return
 
         self._last_quota = {}
@@ -174,6 +187,12 @@ class SwitchBotClient:
             self._last_quota["limit"] = limit
         if remaining is not None:
             self._last_quota["remaining"] = remaining
+
+        logger.info(
+            "SwitchBot quota snapshot captured: remaining=%s limit=%s",
+            remaining if remaining is not None else "unknown",
+            limit if limit is not None else "unknown",
+        )
 
     @staticmethod
     def _safe_int(value: str | None) -> int | None:
