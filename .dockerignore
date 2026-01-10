@@ -9,7 +9,7 @@ env/
 venv/
 .env
 .env.*
-config/settings.json
+# config/settings.json
 config/state.json
 # memory-bank/
 docs/README-old.md
