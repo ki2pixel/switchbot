@@ -365,9 +365,9 @@ def test_index_renders_quota_threshold_field_without_alert() -> None:
     soup = BeautifulSoup(response.data, "html.parser")
     alert = soup.select_one(".quota-alert")
     assert alert is None
+    # Le seuil est désormais éditable depuis /reglages uniquement.
     threshold_field = soup.select_one("#api_quota_warning_threshold")
-    assert threshold_field is not None
-    assert threshold_field.get("value") == "350"
+    assert threshold_field is None
 
 
 def test_quota_page_displays_alert_when_threshold_hit() -> None:
@@ -398,11 +398,39 @@ def test_quota_page_displays_alert_when_threshold_hit() -> None:
     remaining_value = soup.select_one(".metric-value")
     assert remaining_value is not None
     assert "50" in remaining_value.get_text()
-    alert = soup.select_one(".quota-alert")
-    assert alert is not None
-    alert_text = " ".join(alert.get_text(strip=True).split())
-    assert "100" in alert_text
-    assert "50" in alert_text
+
+
+def test_settings_page_renders_form_fields() -> None:
+    settings = {
+        "automation_enabled": True,
+        "mode": "winter",
+        "poll_interval_seconds": 180,
+        "command_cooldown_seconds": 120,
+        "hysteresis_celsius": 0.4,
+        "api_quota_warning_threshold": 200,
+        "turn_off_outside_windows": True,
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
+    }
+    state = {"api_requests_remaining": 5000}
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state=state,
+    )
+
+    with app.test_client() as client:
+        response = client.get("/reglages")
+
+    assert response.status_code == 200
+    soup = BeautifulSoup(response.data, "html.parser")
+    title = soup.select_one("h1")
+    assert title is not None
+    assert "Réglages" in title.get_text()
+    form = soup.select_one("form.settings-form")
+    assert form is not None
+    assert form.get("method") == "post"
+    threshold_input = form.select_one("#api_quota_warning_threshold")
+    assert threshold_input is not None
+    assert threshold_input.get("value") == "200"
 
 
 def test_quota_refresh_normalizes_state_and_shows_flash() -> None:

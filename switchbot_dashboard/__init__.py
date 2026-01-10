@@ -79,6 +79,22 @@ def _build_store(
     return store
 
 
+def _mark_temperature_stale(app: Flask, state_store: BaseStore, *, reason: str) -> None:
+    try:
+        state = state_store.read()
+    except StoreError as exc:
+        app.logger.warning("Unable to read state to mark temperature stale: %s", exc)
+        return
+
+    state["last_temperature_stale"] = True
+    state["last_temperature_stale_reason"] = reason
+
+    try:
+        state_store.write(state)
+    except StoreError as exc:
+        app.logger.warning("Unable to persist temperature stale flag: %s", exc)
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
     app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev")
@@ -162,6 +178,12 @@ def create_app() -> Flask:
     app.extensions["quota_tracker"] = quota_tracker
 
     app.register_blueprint(dashboard_bp)
+
+    _mark_temperature_stale(app, state_store, reason="app_start")
+    try:
+        automation_service.poll_meter()
+    except Exception as exc:  # pragma: no cover - defensive safeguard
+        app.logger.warning("Initial meter poll failed: %s", exc)
 
     debug = os.environ.get("FLASK_DEBUG", "0") == "1"
     if not debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":

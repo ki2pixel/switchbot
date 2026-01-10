@@ -1,0 +1,30 @@
+.settings-form label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--sb-muted);
+}
+
+.settings-form .section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.time-window-card {
+  background: rgba(138, 180, 255, 0.08);
+  border: 1px dashed rgba(138, 180, 255, 0.3);
+}
+
+.day-chip .btn {
+  min-width: 48px;
+  border-radius: 999px;
+  border-color: rgba(138, 180, 255, 0.4);
+  color: var(--sb-text);
+}
+
+@media (max-width: 576px) {
+  .day-chip .btn {
+    min-width: 56px;
+  }
+}

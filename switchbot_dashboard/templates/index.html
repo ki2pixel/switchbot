@@ -19,10 +19,11 @@
         <div class="page-header-main">
           <h1 class="h3 mb-0">SwitchBot Dashboard</h1>
           <p class="page-subtitle text-muted mb-0">
-            Pilotez l'automatisation et ajustez vos réglages en un coup d'œil.
+            Surveillez l'état actuel et déclenchez vos actions rapides.
           </p>
         </div>
         <div class="page-header-actions">
+          <a class="btn btn-primary" href="{{ url_for('dashboard.settings_page') }}">Réglages</a>
           <a class="btn btn-outline-primary" href="{{ url_for('dashboard.quota') }}">Quota API</a>
           <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.devices') }}">Appareils</a>
         </div>
@@ -47,7 +48,7 @@
       {% endwith %}
 
       <div class="row g-3">
-        <div class="col-12 col-lg-6">
+        <div class="col-12">
           <div class="card">
             <div class="card-header">Statut actuel</div>
             <div class="card-body">
@@ -84,8 +85,7 @@
                       class="btn btn-outline-success w-100 scene-action"
                       type="submit"
                       aria-label="Activer la scène hiver SwitchBot"
-                      {% if missing_scenes['winter'] %}disabled aria-disabled="true"{% endif %}
-                    >
+                      {% if missing_scenes['winter'] %}disabled aria-disabled="true"{% endif %}>
                       <span class="scene-header">
                         <span class="scene-icon scene-icon--winter" aria-hidden="true">
                           <svg viewBox="0 0 24 24" role="img" focusable="false">
@@ -97,7 +97,7 @@
                             <line x1="3" y1="12" x2="1" y2="12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                             <line x1="23" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                             <line x1="4.22" y1="19.78" x2="2.81" y2="21.19" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-                            <line x1="21.19" y1="2.81" x2="19.78" y1="4.22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                            <line x1="21.19" y1="2.81" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                           </svg>
                         </span>
                         <span class="scene-title">Climatisation ON – Hiver (scène)</span>
@@ -116,8 +116,7 @@
                       class="btn btn-outline-success w-100 scene-action"
                       type="submit"
                       aria-label="Activer la scène été SwitchBot"
-                      {% if missing_scenes['summer'] %}disabled aria-disabled="true"{% endif %}
-                    >
+                      {% if missing_scenes['summer'] %}disabled aria-disabled="true"{% endif %}>
                       <span class="scene-header">
                         <span class="scene-icon scene-icon--summer" aria-hidden="true">
                           <svg viewBox="0 0 24 24" role="img" focusable="false">
@@ -148,8 +147,7 @@
                       class="btn btn-outline-success w-100 scene-action"
                       type="submit"
                       aria-label="Activer la scène ventilation SwitchBot"
-                      {% if missing_scenes['fan'] %}disabled aria-disabled="true"{% endif %}
-                    >
+                      {% if missing_scenes['fan'] %}disabled aria-disabled="true"{% endif %}>
                       <span class="scene-header">
                         <span class="scene-icon scene-icon--fan" aria-hidden="true">
                           <svg viewBox="0 0 24 24" role="img" focusable="false">
@@ -180,8 +178,7 @@
                       class="btn btn-outline-danger w-100 scene-action"
                       type="submit"
                       aria-label="Éteindre le climatiseur via la scène SwitchBot"
-                      {% if missing_scenes['off'] %}disabled aria-disabled="true"{% endif %}
-                    >
+                      {% if missing_scenes['off'] %}disabled aria-disabled="true"{% endif %}>
                       <span class="scene-header">
                         <span class="scene-icon scene-icon--off" aria-hidden="true">
                           <svg viewBox="0 0 24 24" role="img" focusable="false">
@@ -208,301 +205,6 @@
                   </form>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-lg-6">
-          <div class="card">
-            <div class="card-header">Réglages</div>
-            <div class="card-body">
-              <form method="post" action="{{ url_for('dashboard.update_settings') }}" class="settings-form">
-                <div class="form-check form-switch mb-3">
-                  <input
-                    class="form-check-input"
-                    type="checkbox"
-                    role="switch"
-                    id="automation_enabled"
-                    name="automation_enabled"
-                    {% if settings.get('automation_enabled') %}checked{% endif %}
-                  />
-                  <label class="form-check-label" for="automation_enabled">Automatisation activée</label>
-                </div>
-
-                <div class="row g-3">
-                  <div class="col-12 col-md-6">
-                    <label class="form-label" for="mode">Mode</label>
-                    <select class="form-select" id="mode" name="mode">
-                      <option value="winter" {% if settings.get('mode') == 'winter' %}selected{% endif %}>hiver</option>
-                      <option value="summer" {% if settings.get('mode') == 'summer' %}selected{% endif %}>été</option>
-                    </select>
-                  </div>
-
-                  <div class="col-12 col-md-6">
-                    <label class="form-label" for="poll_interval_seconds">Intervalle de sondage (s)</label>
-                    <input
-                      class="form-control"
-                      id="poll_interval_seconds"
-                      name="poll_interval_seconds"
-                      value="{{ settings.get('poll_interval_seconds') }}"
-                      inputmode="numeric"
-                    />
-                  </div>
-
-                  <div class="col-12 col-md-6">
-                    <label class="form-label" for="hysteresis_celsius">Hystérésis (°C)</label>
-                    <input
-                      class="form-control"
-                      id="hysteresis_celsius"
-                      name="hysteresis_celsius"
-                      value="{{ settings.get('hysteresis_celsius') }}"
-                    />
-                  </div>
-
-                  <div class="col-12 col-md-6">
-                    <label class="form-label" for="command_cooldown_seconds">Délai entre commandes (s)</label>
-                    <input
-                      class="form-control"
-                      id="command_cooldown_seconds"
-                      name="command_cooldown_seconds"
-                      value="{{ settings.get('command_cooldown_seconds') }}"
-                      inputmode="numeric"
-                    />
-                  </div>
-
-                  <div class="col-12 col-md-6">
-                    <label class="form-label" for="api_quota_warning_threshold">Seuil d'alerte quota</label>
-                    <input
-                      class="form-control"
-                      id="api_quota_warning_threshold"
-                      name="api_quota_warning_threshold"
-                      type="number"
-                      min="0"
-                      max="10000"
-                      value="{{ settings.get('api_quota_warning_threshold', quota_warning_threshold) }}"
-                    />
-                    <div class="form-text">
-                      Affiche une alerte lorsque les appels restants passent sous cette valeur.
-                    </div>
-                  </div>
-
-                  <div class="col-12">
-                    <div class="form-check mb-2">
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        id="turn_off_outside_windows"
-                        name="turn_off_outside_windows"
-                        {% if settings.get('turn_off_outside_windows') %}checked{% endif %}
-                      />
-                      <label class="form-check-label" for="turn_off_outside_windows">Éteindre en dehors des fenêtres horaires</label>
-                    </div>
-                  </div>
-
-                  <div class="col-12">
-                    <label class="form-label" for="meter_device_id">ID du capteur Meter</label>
-                    <input class="form-control" id="meter_device_id" name="meter_device_id" value="{{ settings.get('meter_device_id') }}" />
-                  </div>
-
-                  <div class="col-12">
-                    <label class="form-label" for="aircon_device_id">ID de la télécommande IR (climatisation)</label>
-                    <input class="form-control" id="aircon_device_id" name="aircon_device_id" value="{{ settings.get('aircon_device_id') }}" />
-                    <div class="form-text">Identifiant de la télécommande infrarouge virtuelle (remoteType: Air Conditioner).</div>
-                  </div>
-
-                  <div class="col-12">
-                    <div class="d-flex align-items-center justify-content-between">
-                      <label class="form-label mb-0">Fenêtre horaire</label>
-                      <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis">optimisé mobile</span>
-                    </div>
-                    <div class="small text-muted mb-2">Sélectionnez les jours puis choisissez l'heure de début et de fin en format 24h.</div>
-                    <div class="border rounded-3 p-3 mb-2 time-window-card">
-                      <div class="row g-3">
-                        <div class="col-12">
-                          <label class="form-label d-block">Jours</label>
-                          <div class="d-flex flex-wrap gap-2">
-                            {% for day in day_choices %}
-                              <div class="form-check form-check-inline day-chip">
-                                <input
-                                  class="btn-check"
-                                  type="checkbox"
-                                  id="day_{{ day.value }}"
-                                  name="time_window_days"
-                                  value="{{ day.value }}"
-                                  {% if day.value in time_window_form['days'] %}checked{% endif %}
-                                />
-                                <label class="btn btn-outline-primary btn-sm" for="day_{{ day.value }}">{{ day.label }}</label>
-                              </div>
-                            {% endfor %}
-                          </div>
-                        </div>
-                        <div class="col-6">
-                          <label class="form-label" for="time_window_start">Début</label>
-                          <select class="form-select" id="time_window_start" name="time_window_start">
-                            <option value="">Choisir…</option>
-                            {% for choice in time_choices %}
-                              <option value="{{ choice }}" {% if time_window_form['start'] == choice %}selected{% endif %}>{{ choice }}</option>
-                            {% endfor %}
-                          </select>
-                        </div>
-                        <div class="col-6">
-                          <label class="form-label" for="time_window_end">Fin</label>
-                          <select class="form-select" id="time_window_end" name="time_window_end">
-                            <option value="">Choisir…</option>
-                            {% for choice in time_choices %}
-                              <option value="{{ choice }}" {% if time_window_form['end'] == choice %}selected{% endif %}>{{ choice }}</option>
-                            {% endfor %}
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <hr />
-
-                {% set winter_profile = settings.get('winter', {}) %}
-                <h2 class="h6">Profil hiver</h2>
-                <div class="row g-2">
-                  <div class="col-4">
-                    <label class="form-label" for="winter_min_temp">Min.</label>
-                    <select class="form-select" id="winter_min_temp" name="winter_min_temp">
-                      {% for choice in temp_choices %}
-                        <option value="{{ choice.value }}" {% if (winter_profile.get('min_temp') | float) == choice.value %}selected{% endif %}>
-                          {{ choice.label }}°C
-                        </option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  <div class="col-4">
-                    <label class="form-label" for="winter_max_temp">Max.</label>
-                    <select class="form-select" id="winter_max_temp" name="winter_max_temp">
-                      {% for choice in temp_choices %}
-                        <option value="{{ choice.value }}" {% if (winter_profile.get('max_temp') | float) == choice.value %}selected{% endif %}>
-                          {{ choice.label }}°C
-                        </option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  <div class="col-4">
-                    <label class="form-label" for="winter_target_temp">Cible</label>
-                    <select class="form-select" id="winter_target_temp" name="winter_target_temp">
-                      {% for choice in temp_choices %}
-                        <option value="{{ choice.value }}" {% if (winter_profile.get('target_temp') | float) == choice.value %}selected{% endif %}>
-                          {{ choice.label }}°C
-                        </option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  <div class="col-6">
-                    <label class="form-label" for="winter_ac_mode">Mode clim</label>
-                    <select class="form-select" id="winter_ac_mode" name="winter_ac_mode">
-                      {% for choice in ac_mode_choices %}
-                        <option value="{{ choice.value }}" {% if (winter_profile.get('ac_mode') | int) == choice.value %}selected{% endif %}>
-                          {{ choice.label }}
-                        </option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  <div class="col-6">
-                    <label class="form-label" for="winter_fan_speed">Vitesse ventilateur</label>
-                    <select class="form-select" id="winter_fan_speed" name="winter_fan_speed">
-                      {% for choice in fan_speed_choices %}
-                        <option value="{{ choice.value }}" {% if (winter_profile.get('fan_speed') | int) == choice.value %}selected{% endif %}>
-                          {{ choice.label }}
-                        </option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                </div>
-
-                <hr />
-
-                {% set summer_profile = settings.get('summer', {}) %}
-                <h2 class="h6">Profil été</h2>
-                <div class="row g-2">
-                  <div class="col-4">
-                    <label class="form-label" for="summer_min_temp">Min.</label>
-                    <select class="form-select" id="summer_min_temp" name="summer_min_temp">
-                      {% for choice in temp_choices %}
-                        <option value="{{ choice.value }}" {% if (summer_profile.get('min_temp') | float) == choice.value %}selected{% endif %}>
-                          {{ choice.label }}°C
-                        </option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  <div class="col-4">
-                    <label class="form-label" for="summer_max_temp">Max.</label>
-                    <select class="form-select" id="summer_max_temp" name="summer_max_temp">
-                      {% for choice in temp_choices %}
-                        <option value="{{ choice.value }}" {% if (summer_profile.get('max_temp') | float) == choice.value %}selected{% endif %}>
-                          {{ choice.label }}°C
-                        </option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  <div class="col-4">
-                    <label class="form-label" for="summer_target_temp">Cible</label>
-                    <select class="form-select" id="summer_target_temp" name="summer_target_temp">
-                      {% for choice in temp_choices %}
-                        <option value="{{ choice.value }}" {% if (summer_profile.get('target_temp') | float) == choice.value %}selected{% endif %}>
-                          {{ choice.label }}°C
-                        </option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  <div class="col-6">
-                    <label class="form-label" for="summer_ac_mode">Mode clim</label>
-                    <select class="form-select" id="summer_ac_mode" name="summer_ac_mode">
-                      {% for choice in ac_mode_choices %}
-                        <option value="{{ choice.value }}" {% if (summer_profile.get('ac_mode') | int) == choice.value %}selected{% endif %}>
-                          {{ choice.label }}
-                        </option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  <div class="col-6">
-                    <label class="form-label" for="summer_fan_speed">Vitesse ventilateur</label>
-                    <select class="form-select" id="summer_fan_speed" name="summer_fan_speed">
-                      {% for choice in fan_speed_choices %}
-                        <option value="{{ choice.value }}" {% if (summer_profile.get('fan_speed') | int) == choice.value %}selected{% endif %}>
-                          {{ choice.label }}
-                        </option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                </div>
-
-                <div class="mt-3">
-                  <button class="btn btn-primary w-100 w-md-auto" type="submit">Enregistrer</button>
-                </div>
-
-                <hr class="my-4" />
-
-                <h2 class="h6">Scènes favorites SwitchBot</h2>
-                <p class="small text-muted">
-                  Renseignez les IDs des scènes favorites (SwitchBot → Scenes). Elles alimentent les boutons rapides hiver/été/ventilateur.
-                </p>
-                <div class="row g-3">
-                  {% for key in aircon_scene_keys %}
-                    <div class="col-12 col-md-6 col-lg-3">
-                      <label class="form-label" for="scene_{{ key }}_id">{{ aircon_scene_labels[key] }}</label>
-                      <input
-                        class="form-control"
-                        id="scene_{{ key }}_id"
-                        name="scene_{{ key }}_id"
-                        value="{{ aircon_scenes[key] }}"
-                        placeholder="UUID scène"
-                      />
-                      {% if missing_scenes[key] %}
-                        <div class="form-text text-warning">Non configuré</div>
-                      {% else %}
-                        <div class="form-text text-success">Prêt</div>
-                      {% endif %}
-                    </div>
-                  {% endfor %}
-                </div>
-              </form>
             </div>
           </div>
         </div>

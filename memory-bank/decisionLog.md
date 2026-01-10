@@ -110,3 +110,13 @@
 - Décision : Implémenter l'auto-fermeture automatique des flash messages après 6 secondes via un script JS dédié, et renforcer le contraste en utilisant des fonds sombres avec texte blanc (respect WCAG AA).
 - Motivation : Les alertes "Automation tick executed." ne disparaissaient pas automatiquement, encombrant l'interface ; le contraste (blanc sur vert clair) était insuffisant pour la lisibilité.
 - Implication : Création de `static/js/alerts.js` pour gérer les transitions ; mises à jour de `theme.css` avec nouvelles variables et styles `.alert` ; modification des templates `index.html` et `quota.html` pour ARIA et auto-dismiss ; documentation dans `ui-guide.md` ; tests Pytest validés sans régression.
+
+[2026-01-10 20:40:00] - Harmonisation de l'interface utilisateur en français
+- Décision : traduire intégralement l'interface utilisateur (templates index.html, devices.html, quota.html et messages flash en routes.py) vers le français pour assurer la cohérence et améliorer l'expérience utilisateur.
+- Motivation : l'interface initiale contenait un mix anglais/français, ce qui pouvait dérouter les utilisateurs francophones ; standardiser sur le français aligné avec la documentation UI.
+- Implication : tous les labels, boutons, badges, métadonnées et messages d'alerte traduits selon la terminologie définie dans docs/ui-guide.md ; validation manuelle recommandée pour la lisibilité mobile/desktop.
+
+[2026-01-10 20:55:00] - Implémentation du flag de température obsolète pour améliorer la fiabilité lors des redeploys
+- Décision : Ajouter `last_temperature_stale` et `last_temperature_stale_reason` dans `state.json` pour signaler explicitement une température potentiellement périmée après un redeploy Render (~1 min).
+- Motivation : Éliminer la "zone grise" où l'automatisation pourrait agir sur une valeur obsolète issue de Redis, en marquant la température comme stale au démarrage et en la rafraîchissant immédiatement via un `poll_meter()` initial.
+- Implication : `create_app()` force le flag à `true` (`reason="app_start"`), puis appelle `poll_meter()` pour le remettre à `false`. En cas d'erreur API, le flag repasse à `true` (`reason="api_error"`). Documentation mise à jour, test ajouté (`tests/test_app_init.py`), pytest validé.

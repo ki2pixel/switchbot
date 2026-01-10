@@ -2,10 +2,11 @@
 
 ## Vue d'ensemble
 
-Le dashboard propose une interface mobile-first avec thème sombre immersif, organisée autour de deux pages principales :
+Le dashboard propose une interface mobile-first avec thème sombre immersif, organisée autour de trois pages principales :
 
-- **Page d'accueil (`/`)** : Contrôle de l'automatisation et des réglages
-- **Page devices (`/devices`)** : Inventaire et configuration des équipements
+- **Page d'accueil (`/`)** : Statut temps réel + actions rapides (scènes et commandes immédiates)
+- **Page Réglages (`/reglages`)** : Tous les formulaires de configuration (fenêtres horaires, profils saisonniers, scènes, quotas…)
+- **Page Devices (`/devices`)** : Inventaire et configuration des équipements
 
 ## Alerte de quota API
 
@@ -34,17 +35,17 @@ Une bannière d'alerte rouge s'affiche en haut de l'interface lorsque le nombre 
 - **Conseil d'exploitation** : lorsque le compteur restant descend sous 200, ralentir les actions manuelles et/ou augmenter `poll_interval_seconds` pour éviter de saturer la limite quotidienne — le bandeau sert d'alerte visuelle.
 - Le badge est mis en évidence sur mobile (stacké sous le titre) pour garder l'information disponible même sur petits écrans.
 
-### Carte Settings
+### Navigation Réglages
 
-Configuration complète orientée mobile avec :
+Un bouton « Réglages » ouvre la page `/reglages`, dédiée à la configuration. Cette page reprend l’intégralité des formulaires historiques :
 
-- **Automatisation & mode** : interrupteur principal et menu `winter/summer`
-- **Fenêtre horaire** : cases à cocher par jour + sélecteurs horaires 24h
-- **Profils Winter/Summer** : paramètres de température, mode AC et ventilation
-- **Scènes SwitchBot** : configuration des scènes favorites pour le contrôle rapide
-- **Paramètres avancés** : configuration du seuil d'alerte de quota API
+- Interrupteur d’automatisation, mode `winter/summer`, intervalle de sondage et cooldown.
+- Fenêtre horaire avec sélection des jours et plages 24h.
+- Profils hiver/été (min/max/cible, mode AC, vitesse ventilateur).
+- Scènes SwitchBot (UUIDs des scènes hiver, été, ventilation, arrêt).
+- Paramètres avancés (seuil d’alerte quota API, IDs devices).
 
-> ℹ️ **Astuce** : Les scènes permettent de définir des configurations complexes directement dans l'application SwitchBot officielle, offrant plus de flexibilité que les paramètres basiques.
+> ℹ️ **Astuce** : Les scènes permettent de définir des configurations complexes directement dans l'application SwitchBot officielle, offrant plus de flexibilité que les paramètres basiques. Elles sont affichées dans `/reglages` avec un statut « Prêt »/« Non configuré ».
 
 #### Configuration des scènes
 

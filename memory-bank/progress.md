@@ -124,6 +124,14 @@
 [2026-01-10 13:35:00] - Aircon presets configurables et tests associés
 [2026-01-10 16:40:00] - Scène OFF SwitchBot + documentation/tests
 [2026-01-10 20:30:00] - Amélioration des flash messages (auto-dismiss et contraste)
+[2026-01-10 20:40:00] - Harmonisation totale des templates UI en français (index.html, devices.html, quota.html) : traductions des labels, boutons, badges et métadonnées selon la terminologie UI.
+[2026-01-10 20:42:00] - Traduction complète des messages flash/alertes en français dans routes.py pour cohérence avec l'interface.
+[2026-01-10 20:50:00] - Session question température redeploy et implémentation flag stale
+- Analyse du comportement de récupération de température lors d’un redeploy Render (~1 min) avec Redis.
+- Implémentation du flag `last_temperature_stale` pour signaler une température potentiellement obsolète.
+- Marquage à `true` au démarrage (`create_app()`), reset à `false` après premier `poll_meter()`.
+- Mise à jour de la documentation (`docs/configuration.md`).
+- Ajout de test (`tests/test_app_init.py`) et validation pytest (18 tests passed).
 
 ## En cours
 - Aucune tâche active.

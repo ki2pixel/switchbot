@@ -200,6 +200,12 @@ def _build_quota_context(settings: dict[str, Any], state: dict[str, Any]) -> dic
     }
 
 
+def _build_scenes_context(settings: dict[str, Any]) -> tuple[dict[str, str], dict[str, bool]]:
+    aircon_scenes = _extract_aircon_scenes(settings)
+    missing_scenes = {key: not aircon_scenes[key] for key in AIRCON_SCENE_KEYS}
+    return aircon_scenes, missing_scenes
+
+
 @dashboard_bp.get("/")
 def index() -> str:
     settings_store = current_app.extensions["settings_store"]
@@ -207,16 +213,35 @@ def index() -> str:
 
     settings = settings_store.read()
     state = state_store.read()
-    aircon_scenes = _extract_aircon_scenes(settings)
-    missing_scenes = {key: not aircon_scenes[key] for key in AIRCON_SCENE_KEYS}
-
-    time_window_form = _get_time_window_form(settings)
-    quota_context = _build_quota_context(settings, state)
+    aircon_scenes, missing_scenes = _build_scenes_context(settings)
 
     return render_template(
         "index.html",
-        settings=settings,
         state=state,
+        settings=settings,
+        aircon_scenes=aircon_scenes,
+        missing_scenes=missing_scenes,
+        aircon_scene_labels=AIRCON_SCENE_LABELS,
+        aircon_scene_keys=AIRCON_SCENE_KEYS,
+    )
+
+
+@dashboard_bp.get("/reglages")
+def settings_page() -> str:
+    settings_store = current_app.extensions["settings_store"]
+    state_store = current_app.extensions["state_store"]
+
+    settings = settings_store.read()
+    state = state_store.read()
+    time_window_form = _get_time_window_form(settings)
+    quota_context = _build_quota_context(settings, state)
+    aircon_scenes, missing_scenes = _build_scenes_context(settings)
+
+    configured_scenes_count = sum(1 for value in aircon_scenes.values() if value)
+
+    return render_template(
+        "settings.html",
+        settings=settings,
         aircon_scenes=aircon_scenes,
         missing_scenes=missing_scenes,
         aircon_scene_labels=AIRCON_SCENE_LABELS,
@@ -228,6 +253,7 @@ def index() -> str:
         ac_mode_choices=AC_MODE_CHOICES,
         aircon_scene_keys=AIRCON_SCENE_KEYS,
         quota_warning_threshold=quota_context["quota_warning_threshold"],
+        configured_scenes_count=configured_scenes_count,
     )
 
 
@@ -247,7 +273,7 @@ def quota() -> str:
 def quota_refresh() -> Any:
     quota_tracker = current_app.extensions.get("quota_tracker")
     if quota_tracker is None:
-        flash("Quota tracker unavailable.", "error")
+        flash("Suivi de quota indisponible.", "error")
         return redirect(url_for("dashboard.quota"))
 
     quota_tracker.record_call()
@@ -390,7 +416,7 @@ def update_settings() -> Any:
             ]
         else:
             flash(
-                "Invalid time window: days must be 0-6 and start/end required.",
+                "Fenêtre horaire invalide : les jours doivent être compris entre 0 et 6 et les heures de début/fin sont obligatoires.",
                 "error",
             )
     else:
@@ -420,7 +446,7 @@ def update_settings() -> Any:
     settings_store.write(settings)
     scheduler_service.reschedule()
 
-    flash("Settings saved.")
+    flash("Paramètres enregistrés.")
     return redirect(url_for("dashboard.index"))
 
 
@@ -429,7 +455,7 @@ def run_once() -> Any:
     automation_service = current_app.extensions["automation_service"]
 
     automation_service.run_once()
-    flash("Automation tick executed.")
+    flash("Cycle d'automatisation exécuté.")
     return redirect(url_for("dashboard.index"))
 
 
@@ -452,7 +478,7 @@ def aircon_off() -> Any:
 
     aircon_id = str(settings.get("aircon_device_id", "")).strip()
     if not aircon_id:
-        flash("Missing aircon_device_id", "error")
+        flash("aircon_device_id manquant", "error")
         return redirect(url_for("dashboard.index"))
     try:
         client.send_command(aircon_id, command="turnOff", parameter="default", command_type="command")
@@ -472,7 +498,7 @@ def aircon_off() -> Any:
     state["last_error"] = None
     state_store.write(state)
 
-    flash("Aircon turnOff sent.")
+    flash("Commande d'arrêt de la climatisation envoyée.")
     return redirect(url_for("dashboard.index"))
 
 
@@ -493,7 +519,7 @@ def _execute_aircon_scene(
 
     if not scene_id:
         scene_label = AIRCON_SCENE_LABELS.get(scene_key, scene_key)
-        flash(f"Missing scene id for {scene_label}", "error")
+        flash(f"Identifiant de scène manquant pour {scene_label}", "error")
         return redirect(url_for("dashboard.index"))
 
     try:
@@ -604,12 +630,12 @@ def quick_off() -> Any:
         state["last_action_at"] = _utc_now_iso()
         state["last_error"] = None
         state_store.write(state)
-        flash("Automation disabled and OFF scene executed.")
+        flash("Automatisation désactivée et scène OFF exécutée.")
         return redirect(url_for("dashboard.index"))
 
     aircon_id = str(settings.get("aircon_device_id", "")).strip()
     if not aircon_id:
-        flash("Missing aircon_device_id", "error")
+        flash("aircon_device_id manquant", "error")
         return redirect(url_for("dashboard.index"))
 
     try:
@@ -630,5 +656,5 @@ def quick_off() -> Any:
     state["last_error"] = None
     state_store.write(state)
 
-    flash("Automation disabled and aircon turned off.")
+    flash("Automatisation désactivée et climatisation éteinte.")
     return redirect(url_for("dashboard.index"))

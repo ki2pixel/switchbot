@@ -84,7 +84,12 @@ class AutomationService:
         try:
             response = self._client.get_device_status(meter_id)
         except SwitchBotApiError as exc:
-            self._update_state(last_error=str(exc), last_read_at=_utc_now_iso())
+            self._update_state(
+                last_error=str(exc),
+                last_read_at=_utc_now_iso(),
+                last_temperature_stale=True,
+                last_temperature_stale_reason="api_error",
+            )
             return None
 
         body = response.get("body", {})
@@ -96,6 +101,8 @@ class AutomationService:
             last_humidity=humidity,
             last_read_at=_utc_now_iso(),
             last_error=None,
+            last_temperature_stale=False,
+            last_temperature_stale_reason=None,
         )
         return {"temperature": temperature, "humidity": humidity}
 

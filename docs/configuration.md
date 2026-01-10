@@ -238,7 +238,8 @@ Le tableau de bord prend en charge deux modes de stockage pour les paramètres e
 
 ## Navigation principale
 
-- **Page d'accueil (`/`)** : Contrôle du scheduler, réglages horaires, profils hiver/été et scènes SwitchBot.
+- **Page d'accueil (`/`)** : Statut temps réel, actions rapides (scènes, exécution ponctuelle, arrêt rapide).
+- **Page Réglages (`/reglages`)** : Tous les formulaires de configuration (automatisation, fenêtres horaires, profils hiver/été, scènes, seuils de quota).
 - **Page devices (`/devices`)** : Inventaire complet des devices pour récupérer rapidement les IDs.
 - **Page quota (`/quota`)** : Suivi du quota API quotidien calculé par `ApiQuotaTracker`.
 
