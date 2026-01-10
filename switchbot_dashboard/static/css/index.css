@@ -19,6 +19,19 @@
   min-width: 260px;
 }
 
+.api-quota-meta {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--sb-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.api-quota-meta .separator {
+  opacity: 0.6;
+}
+
 .api-quota-label {
   font-size: 0.78rem;
   text-transform: uppercase;
@@ -59,6 +72,12 @@
   width: 1px;
   height: 30px;
   background: var(--sb-outline);
+}
+
+.quota-alert {
+  border-color: rgba(246, 195, 67, 0.5);
+  background: rgba(246, 195, 67, 0.08);
+  color: var(--sb-warning);
 }
 
 .settings-form label {

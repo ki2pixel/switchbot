@@ -9,9 +9,9 @@
 - Mis à jour productContext, systemPatterns et decisionLog pour refléter ces choix; progress synchronisé et aucun travail actif restant.
 
 [2026-01-09 16:23:00] - Baseline documenté
-- productContext.md décrit désormais la vision globale, les composants clés et le flux d’automatisation.
+- productContext.md décrit désormais la vision globale, les composants clés et le flux d'automatisation.
 - systemPatterns.md recense les patterns techniques (services injectés, stockage JSON atomique, APScheduler, validations).
-- Prochaine étape : enrichir les entrées au fil des évolutions produit/fonctionnelles.
+- Prochaine étape : enrichir les entrées au fil des évolutions produit/fonctionnelles.
 
 [2026-01-09 16:47:00] - Implémentation du thème sombre par défaut
 - Décision : appliquer un thème sombre immersif par défaut sur les templates `index.html` et `devices.html`, avec palette CSS centralisée (variables), cartes vitrées, composants recolorisés pour lisibilité.
@@ -87,3 +87,21 @@
   - Mise à jour de la documentation dans `ui-guide.md`
   - Conservation de la fonctionnalité `quick_off` pour désactiver l'automatisation et éteindre le climatiseur
 - Impact : Les utilisateurs doivent maintenant utiliser les scènes SwitchBot pour les modes hiver et été, ce qui offre une meilleure expérience utilisateur et plus de fonctionnalités.
+
+[2026-01-10 19:00:00] - Implémentation du système d'alerte de quota
+- Décision : ajout d'un seuil d'avertissement configurable (`api_quota_warning_threshold`) pour alerter l'utilisateur lorsque le nombre de requêtes restantes approche de la limite quotidienne.
+- Motivation : permettre une meilleure anticipation de l'épuisement du quota quotidien (10 000 requêtes/jour) et éviter les interruptions de service.
+- Implémentation :
+  - Ajout d'un champ `api_quota_warning_threshold` dans `config/settings.json` avec une valeur par défaut de 250 requêtes
+  - Affichage d'une alerte visuelle dans l'interface utilisateur lorsque le nombre de requêtes restantes est inférieur ou égal à ce seuil
+  - Ajout de tests d'intégration avec BeautifulSoup pour vérifier le comportement de l'alerte dans différents scénarios
+  - Documentation des bonnes pratiques dans `configuration.md`
+
+[2026-01-10 19:05:00] - Affichage des métadonnées de quota
+- Décision : afficher des informations supplémentaires sur le quota quotidien dans l'interface utilisateur, notamment le jour de suivi (`api_quota_day`) et l'heure de réinitialisation (`api_quota_reset_at`).
+- Motivation : fournir une meilleure visibilité sur le cycle de vie du quota et faciliter le débogage.
+- Implémentation :
+  - Modification de `quota.py` pour stocker systématiquement `api_quota_reset_at` lors de la réinitialisation du quota
+  - Mise à jour du template `index.html` pour afficher ces informations de manière claire et concise
+  - Ajout de styles CSS pour une intégration visuelle harmonieuse
+  - Tests d'intégration pour vérifier l'affichage correct des informations

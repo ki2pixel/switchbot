@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import json
 import logging
 from typing import Any
 
@@ -75,64 +74,6 @@ class AutomationService:
         state.update(updates)
         self._state_store.write(state)
 
-    def _record_local_quota_fallback(self) -> None:
-        state = self._state_store.read()
-        today = dt.datetime.utcnow().date().isoformat()
-
-        if state.get("api_quota_day") != today:
-            state["api_quota_day"] = today
-            state["api_requests_total"] = 0
-
-        try:
-            used = int(state.get("api_requests_total") or 0)
-        except (TypeError, ValueError):
-            used = 0
-
-        used = max(used, 0) + 1
-        daily_limit = 10_000
-        remaining = max(daily_limit - used, 0)
-
-        state["api_requests_total"] = used
-        state["api_requests_remaining"] = remaining
-        self._state_store.write(state)
-
-        logger.info(
-            "Recorded SwitchBot API usage estimate (headers missing): used=%s remaining=%s",
-            used,
-            remaining,
-        )
-
-    def _record_quota_snapshot(self) -> None:
-        snapshot = self._client.get_last_quota_snapshot()
-        if not snapshot:
-            self._record_local_quota_fallback()
-            return
-
-        limit = snapshot.get("limit")
-        remaining = snapshot.get("remaining")
-
-        used: int | None = None
-        if limit is not None and remaining is not None:
-            used = max(limit - remaining, 0)
-
-        updates: dict[str, Any] = {}
-        if remaining is not None:
-            updates["api_requests_remaining"] = remaining
-        if used is not None:
-            updates["api_requests_total"] = used
-        elif limit is not None:
-            updates["api_requests_total"] = limit
-
-        if not updates:
-            return
-
-        self._update_state(**updates)
-        logger.info("Recorded SwitchBot quota snapshot: %s", updates)
-        logger.debug(
-            "State after quota update: %s",
-            json.dumps(self._state_store.read(), ensure_ascii=False),
-        )
-
     def poll_meter(self) -> dict[str, Any] | None:
         settings = self._settings_store.read()
         meter_id = str(settings.get("meter_device_id", "")).strip()
@@ -142,7 +83,6 @@ class AutomationService:
 
         try:
             response = self._client.get_device_status(meter_id)
-            self._record_quota_snapshot()
         except SwitchBotApiError as exc:
             self._update_state(last_error=str(exc), last_read_at=_utc_now_iso())
             return None
@@ -186,7 +126,6 @@ class AutomationService:
             return
 
         self._client.send_command(aircon_device_id, command="turnOff", parameter="default")
-        self._record_quota_snapshot()
         self._update_state(
             assumed_aircon_power="off",
             last_action="turnOff",
@@ -217,7 +156,6 @@ class AutomationService:
             parameter=parameter,
             command_type="command",
         )
-        self._record_quota_snapshot()
         self._update_state(
             assumed_aircon_power=power_state,
             assumed_aircon_mode=mode,
@@ -244,7 +182,6 @@ class AutomationService:
 
         try:
             self._client.run_scene(scene_id)
-            self._record_quota_snapshot()
         except SwitchBotApiError as exc:
             self._update_state(last_error=str(exc))
             logger.error("Scene %s execution failed: %s", scene_key, exc)

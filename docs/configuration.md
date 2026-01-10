@@ -296,12 +296,11 @@ Ce fichier journalise l'état courant pour l'affichage UI :
 ## Quotas & limites API
 
 - L'API SwitchBot applique une limite stricte de **10 000 requêtes/jour** et par compte (référence doc officielle).  
-- Les réponses importantes exposent idéalement des headers `X-RateLimit-*`. Lorsque disponibles, `AutomationService` lit ces valeurs, les convertit et persiste immédiatement `api_requests_remaining` et `api_requests_total` dans `config/state.json` afin de rendre l'information visible dans l'en-tête de `index.html`.  
-- **Fallback local journalier** : si les headers sont absents, chaque appel API déclenché par `AutomationService` (lecture du capteur via `poll_meter()` + envoi de commandes `_send_aircon_off` / `_send_aircon_setall`) incrémente un compteur local. Ce compteur :
-  - s'exécute lors de chaque tick ou action manuelle déclenchant un appel SwitchBot,
-  - se réinitialise automatiquement à minuit UTC grâce à la clé `api_quota_day`,
-  - stocke `api_requests_total`, `api_requests_remaining` et `api_quota_day` dans `config/state.json` pour garantir une visibilité continue.  
-- La vignette "Quota API quotidien" affiche ces valeurs (restantes/utilisées) sur 10 000, ou "N/A" si aucun appel n'a encore été effectué depuis le démarrage.  
+- Le suivi est centralisé via `ApiQuotaTracker` (instancié dans `create_app()` et injecté dans `SwitchBotClient`). Chaque appel au client – peu importe l'origine (scheduler, boutons manuels, pages `/devices`, retries sur erreurs 429/5xx/190) – déclenche automatiquement une incrémentation du compteur :
+  - Si les headers `X-RateLimit-*` sont présents, ils sont persistés tels quels (`api_requests_limit`, `api_requests_remaining`, `api_requests_total`) pour refléter l'état exact fourni par SwitchBot.
+  - Si les headers sont absents (cas le plus fréquent), le tracker tombe en mode estimation locale en incrémentant `api_requests_total` à chaque requête réussie et en recalculant `api_requests_remaining` en fonction de la limite journalière (10 000 par défaut, ajustée si SwitchBot communique une `limit` différente).  
+- Le tracker réinitialise automatiquement `api_quota_day`, `api_requests_total`, `api_requests_remaining` et `api_requests_limit` à minuit UTC, garantissant que l'UI reflète la consommation du jour courant.
+- La vignette "Quota API quotidien" lit désormais ces valeurs sans logique spécifique côté template. L'information est donc cohérente qu'on déclenche une action via l'automatisation (`run_once`) ou via un bouton rapide. Un nouveau champ `api_quota_warning_threshold` (défaut : 250) permet d'afficher une alerte visuelle lorsque `api_requests_remaining` passe sous ce seuil, afin d'anticiper l'épuisement du quota quotidien.
 - Recommandation opérationnelle : surveiller ce compteur avant d'exécuter des rafales d'actions manuelles ou de réduire trop le `poll_interval_seconds`. En dessous de ~200 appels restants, suspendre l'automatisation ou allonger l'intervalle pour éviter de saturer la journée.
 
 ---

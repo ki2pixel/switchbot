@@ -7,7 +7,7 @@ import time
 import uuid
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 import requests
 from requests import Response
@@ -27,6 +27,14 @@ class SwitchBotApiError(RuntimeError):
     pass
 
 
+class QuotaTracker(Protocol):
+    def record_call(self, *, increment: int = 1) -> None:
+        ...
+
+    def record_from_headers(self, *, limit: int | None, remaining: int | None) -> bool:
+        ...
+
+
 class SwitchBotClient:
     def __init__(
         self,
@@ -35,6 +43,7 @@ class SwitchBotClient:
         base_url: str | None = None,
         retry_attempts: int = 2,
         retry_delay_seconds: int = 10,
+        quota_tracker: QuotaTracker | None = None,
     ) -> None:
         self._token = token.strip()
         self._secret = secret.strip()
@@ -42,6 +51,7 @@ class SwitchBotClient:
         self._retry_attempts = max(int(retry_attempts), 1)
         self._retry_delay_seconds = max(int(retry_delay_seconds), 0)
         self._last_quota: dict[str, int] | None = None
+        self._quota_tracker = quota_tracker
 
     def _build_headers(self) -> dict[str, str]:
         if not self._token or not self._secret:
@@ -101,6 +111,17 @@ class SwitchBotClient:
                     time.sleep(self._retry_delay_seconds)
                 continue
 
+            tracker_updated = self._capture_quota_metadata(response)
+
+            if response.status_code >= 400:
+                try:
+                    data = response.json()
+                except ValueError as exc:
+                    raise SwitchBotApiError(
+                        f"SwitchBot HTTP {response.status_code}: invalid JSON error payload."
+                    ) from exc
+                raise SwitchBotApiError(f"SwitchBot HTTP {response.status_code}: {data!r}")
+
             try:
                 data = response.json()
             except ValueError as exc:
@@ -108,18 +129,13 @@ class SwitchBotClient:
                     f"Invalid JSON response from SwitchBot ({response.status_code})."
                 ) from exc
 
-            self._capture_quota_metadata(response)
-
-            if response.status_code >= 400:
-                raise SwitchBotApiError(
-                    f"SwitchBot HTTP {response.status_code}: {data!r}"
-                )
-
             if not isinstance(data, dict) or "statusCode" not in data:
                 raise SwitchBotApiError(f"Unexpected SwitchBot response: {data!r}")
 
             status_code = data.get("statusCode")
             if status_code == 100:
+                if self._quota_tracker and not tracker_updated:
+                    self._quota_tracker.record_call()
                 return data
 
             if status_code == 190 and attempt_index < (self._retry_attempts - 1):
@@ -169,7 +185,7 @@ class SwitchBotClient:
 
         return self._request("POST", f"/v1.1/scenes/{scene_id}/execute")
 
-    def _capture_quota_metadata(self, response: Response) -> None:
+    def _capture_quota_metadata(self, response: Response) -> bool:
         header_map = {key.lower(): value for key, value in response.headers.items()}
         limit_raw = (
             header_map.get("x-ratelimit-limit")
@@ -185,9 +201,13 @@ class SwitchBotClient:
         limit = self._safe_int(limit_raw)
         remaining = self._safe_int(remaining_raw)
 
+        tracker_updated = False
         if limit is None and remaining is None:
+            if self._quota_tracker:
+                self._quota_tracker.record_call()
+                tracker_updated = True
             logger.debug("SwitchBot quota headers absent on latest response.")
-            return
+            return tracker_updated
 
         self._last_quota = {}
         if limit is not None:
@@ -200,6 +220,11 @@ class SwitchBotClient:
             remaining if remaining is not None else "unknown",
             limit if limit is not None else "unknown",
         )
+
+        if self._quota_tracker:
+            tracker_updated = self._quota_tracker.record_from_headers(limit=limit, remaining=remaining)
+
+        return tracker_updated
 
     @staticmethod
     def _safe_int(value: str | None) -> int | None:

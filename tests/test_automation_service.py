@@ -4,6 +4,7 @@ import copy
 from typing import Any
 
 from switchbot_dashboard.automation import AutomationService
+from switchbot_dashboard.quota import ApiQuotaTracker
 
 
 class MemoryStore:
@@ -18,16 +19,23 @@ class MemoryStore:
 
 
 class DummyClient:
-    def __init__(self, temperature: float) -> None:
+    def __init__(self, temperature: float, quota_tracker: ApiQuotaTracker | None = None) -> None:
         self.temperature = temperature
         self.run_scene_calls: list[str] = []
         self.send_command_calls: list[dict[str, Any]] = []
         self.last_quota_snapshot: dict[str, int] | None = None
+        self._quota_tracker = quota_tracker
+
+    def _record_quota(self) -> None:
+        if self._quota_tracker:
+            self._quota_tracker.record_call()
 
     def get_device_status(self, device_id: str) -> dict[str, Any]:
+        self._record_quota()
         return {"body": {"temperature": self.temperature, "humidity": 50}}
 
     def run_scene(self, scene_id: str) -> None:
+        self._record_quota()
         self.run_scene_calls.append(scene_id)
 
     def send_command(
@@ -38,6 +46,7 @@ class DummyClient:
         parameter: str = "default",
         command_type: str = "command",
     ) -> None:
+        self._record_quota()
         self.send_command_calls.append(
             {
                 "device_id": device_id,
@@ -93,7 +102,8 @@ def _build_service(
 ) -> tuple[AutomationService, DummyClient, MemoryStore, MemoryStore]:
     settings_store = MemoryStore(settings)
     state_store = MemoryStore(initial_state or {})
-    client = DummyClient(temperature=temperature)
+    quota_tracker = ApiQuotaTracker(state_store)
+    client = DummyClient(temperature=temperature, quota_tracker=quota_tracker)
     service = AutomationService(settings_store, state_store, client)
     return service, client, settings_store, state_store
 

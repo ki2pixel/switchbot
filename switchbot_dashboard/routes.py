@@ -86,6 +86,7 @@ AIRCON_SCENE_LABELS: dict[str, str] = {
     "fan": "Aircon ON – Mode neutre",
     "off": "Aircon OFF – Scène",
 }
+DEFAULT_QUOTA_WARNING_THRESHOLD = 250
 
 
 def _utc_now_iso() -> str:
@@ -183,6 +184,18 @@ def index() -> str:
     time_window_form = _get_time_window_form(settings)
     api_requests_remaining = state.get("api_requests_remaining")
     api_requests_total = state.get("api_requests_total")
+    api_requests_limit = state.get("api_requests_limit")
+    api_quota_reset_at = state.get("api_quota_reset_at")
+    quota_warning_threshold = int(settings.get("api_quota_warning_threshold") or DEFAULT_QUOTA_WARNING_THRESHOLD)
+    if quota_warning_threshold < 0:
+        quota_warning_threshold = 0
+
+    show_quota_warning = (
+        quota_warning_threshold > 0
+        and isinstance(api_requests_remaining, (int, float))
+        and api_requests_remaining is not None
+        and api_requests_remaining <= quota_warning_threshold
+    )
 
     return render_template(
         "index.html",
@@ -200,6 +213,11 @@ def index() -> str:
         aircon_scene_keys=AIRCON_SCENE_KEYS,
         api_requests_remaining=api_requests_remaining,
         api_requests_total=api_requests_total,
+        api_requests_limit=api_requests_limit,
+        api_quota_day=state.get("api_quota_day"),
+        api_quota_reset_at=api_quota_reset_at,
+        quota_warning_threshold=quota_warning_threshold,
+        show_quota_warning=show_quota_warning,
     )
 
 
@@ -301,6 +319,12 @@ def update_settings() -> Any:
     )
 
     settings["turn_off_outside_windows"] = _as_bool(request.form.get("turn_off_outside_windows"))
+    settings["api_quota_warning_threshold"] = _as_int(
+        request.form.get("api_quota_warning_threshold"),
+        default=int(settings.get("api_quota_warning_threshold", DEFAULT_QUOTA_WARNING_THRESHOLD) or DEFAULT_QUOTA_WARNING_THRESHOLD),
+        minimum=0,
+        maximum=10_000,
+    )
 
     settings["meter_device_id"] = str(request.form.get("meter_device_id", "")).strip()
     settings["aircon_device_id"] = str(request.form.get("aircon_device_id", "")).strip()

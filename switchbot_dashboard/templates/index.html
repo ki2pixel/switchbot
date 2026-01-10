@@ -20,6 +20,18 @@
           <h1 class="h3 mb-0">SwitchBot Dashboard</h1>
           <div class="api-quota">
             <span class="api-quota-label">Quota API quotidien</span>
+            {% if api_quota_day %}
+              <div class="api-quota-meta">
+                Jour suivi : <strong>{{ api_quota_day }}</strong>
+                {% if api_quota_reset_at %}
+                  <span class="separator">•</span>
+                  Reset prévu : <strong>{{ api_quota_reset_at }}</strong>
+                {% else %}
+                  <span class="separator">•</span>
+                  Reset automatique à 00:00 UTC
+                {% endif %}
+              </div>
+            {% endif %}
             <div class="api-quota-values">
               <div class="api-quota-metric">
                 <span class="metric-label">Restantes</span>
@@ -33,9 +45,19 @@
                 <span class="metric-value">
                   {{ api_requests_total if api_requests_total is not none else "N/A" }}
                 </span>
-                <span class="metric-cap">/ 10,000</span>
+                <span class="metric-cap">
+                  / {{ api_requests_limit if api_requests_limit is not none else "10,000" }}
+                </span>
               </div>
             </div>
+            {% if show_quota_warning %}
+              <div class="quota-alert alert alert-warning mt-3" role="status">
+                <strong>Attention : quota critique.</strong>
+                <span>
+                  Il ne reste que {{ api_requests_remaining }} appels (seuil fixé à {{ quota_warning_threshold }}).
+                </span>
+              </div>
+            {% endif %}
           </div>
         </div>
         <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.devices') }}">Devices</a>
@@ -214,6 +236,22 @@
                       value="{{ settings.get('command_cooldown_seconds') }}"
                       inputmode="numeric"
                     />
+                  </div>
+
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="api_quota_warning_threshold">Quota warning threshold</label>
+                    <input
+                      class="form-control"
+                      id="api_quota_warning_threshold"
+                      name="api_quota_warning_threshold"
+                      type="number"
+                      min="0"
+                      max="10000"
+                      value="{{ settings.get('api_quota_warning_threshold', quota_warning_threshold) }}"
+                    />
+                    <div class="form-text">
+                      Affiche une alerte lorsque les appels restants passent sous cette valeur.
+                    </div>
                   </div>
 
                   <div class="col-12">

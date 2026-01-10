@@ -18,6 +18,13 @@
    - `README.md` : index des guides
    - `setup.md` : installation et lancement
    - `configuration.md` : paramètres et validation
+   - **Suivi des quotas** :
+  - Comptage local des requêtes API avec limite de 10 000 requêtes par jour
+  - Stockage dans `state.json` avec réinitialisation quotidienne
+  - Affichage du quota restant dans l'interface utilisateur
+  - Système d'alerte visuel lorsque le nombre de requêtes restantes est faible (configurable via `api_quota_warning_threshold`)
+  - Affichage des métadonnées de quota (jour de suivi, heure de réinitialisation)
+  - Documentation des bonnes pratiques pour la gestion des quotas dans `configuration.md`
    - `ui-guide.md` : interface et interactions
    - `theming.md` : styles et thème sombre
    - `testing.md` : tests manuels et sécurité

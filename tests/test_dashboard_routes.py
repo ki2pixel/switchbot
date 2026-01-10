@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import copy
+import datetime as dt
 from pathlib import Path
 
 from flask import Flask
 
+from bs4 import BeautifulSoup
+
 from switchbot_dashboard.config_store import StoreError
+from switchbot_dashboard.quota import ApiQuotaTracker
 from switchbot_dashboard.routes import dashboard_bp
 
 
@@ -35,9 +39,41 @@ class DummyScheduler:
 class DummyClient:
     def __init__(self) -> None:
         self.scene_calls: list[str] = []
+        self.command_calls: list[dict[str, object]] = []
+        self._quota_tracker: ApiQuotaTracker | None = None
+
+    def attach_quota_tracker(self, tracker: ApiQuotaTracker) -> None:
+        self._quota_tracker = tracker
+
+    def _record_quota(self) -> None:
+        if self._quota_tracker:
+            self._quota_tracker.record_call()
 
     def run_scene(self, scene_id: str) -> None:
+        self._record_quota()
         self.scene_calls.append(scene_id)
+
+    def send_command(
+        self,
+        device_id: str,
+        *,
+        command: str,
+        parameter: str = "default",
+        command_type: str = "command",
+    ) -> None:
+        self._record_quota()
+        self.command_calls.append(
+            {
+                "device_id": device_id,
+                "command": command,
+                "parameter": parameter,
+                "command_type": command_type,
+            }
+        )
+
+
+def _today_iso() -> str:
+    return dt.datetime.utcnow().date().isoformat()
 
 
 def _build_app(
@@ -45,7 +81,7 @@ def _build_app(
     *,
     initial_state: dict[str, object] | None = None,
     client: object | None = None,
-) -> tuple[Flask, MemoryStore, MemoryStore, DummyScheduler]:
+) -> tuple[Flask, MemoryStore, MemoryStore, DummyScheduler, ApiQuotaTracker | None]:
     project_root = Path(__file__).resolve().parents[1]
     template_folder = project_root / "switchbot_dashboard" / "templates"
     app = Flask(__name__, template_folder=str(template_folder))
@@ -55,6 +91,11 @@ def _build_app(
     state_store = MemoryStore(initial_state or {})
     scheduler = DummyScheduler()
 
+    quota_tracker: ApiQuotaTracker | None = None
+    if isinstance(client, DummyClient):
+        quota_tracker = ApiQuotaTracker(state_store)
+        client.attach_quota_tracker(quota_tracker)
+
     app.extensions["settings_store"] = settings_store
     app.extensions["state_store"] = state_store
     app.extensions["switchbot_client"] = client or object()
@@ -62,7 +103,21 @@ def _build_app(
     app.extensions["scheduler_service"] = scheduler
 
     app.register_blueprint(dashboard_bp)
-    return app, settings_store, state_store, scheduler
+    return app, settings_store, state_store, scheduler, quota_tracker
+
+
+def _assert_quota_usage(
+    state_store: MemoryStore,
+    *,
+    expected_used: int,
+    limit: int = 10_000,
+) -> dict[str, object]:
+    state = state_store.read()
+    assert state["api_requests_total"] == expected_used
+    assert state["api_requests_remaining"] == max(limit - expected_used, 0)
+    assert state.get("api_requests_limit", limit) == limit
+    assert state["api_quota_day"] == _today_iso()
+    return state
 
 
 class FailingStore:
@@ -87,7 +142,7 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "summer": {"min_temp": 20.0, "max_temp": 28.0, "target_temp": 24.0, "fan_speed": 2, "ac_mode": 2},
         "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
     }
-    app, settings_store, _state_store, scheduler = _build_app(initial_settings)
+    app, settings_store, _state_store, scheduler, _tracker = _build_app(initial_settings)
 
     form = {
         "automation_enabled": "on",
@@ -112,6 +167,7 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "scene_summer_id": "scene-s",
         "scene_fan_id": "scene-f",
         "scene_off_id": "scene-off",
+        "api_quota_warning_threshold": "250",
     }
 
     with app.test_client() as client:
@@ -125,6 +181,7 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "fan": "scene-f",
         "off": "scene-off",
     }
+    assert persisted["api_quota_warning_threshold"] == 250
     assert scheduler.called is True
 
 
@@ -135,7 +192,7 @@ def test_aircon_on_winter_runs_scene_and_updates_state() -> None:
         "aircon_scenes": {"winter": "scene-w", "summer": "", "fan": "", "off": ""},
     }
     dummy_client = DummyClient()
-    app, settings_store, state_store, _scheduler = _build_app(
+    app, settings_store, state_store, _scheduler, _tracker = _build_app(
         settings,
         initial_state={"assumed_aircon_power": "off"},
         client=dummy_client,
@@ -146,7 +203,7 @@ def test_aircon_on_winter_runs_scene_and_updates_state() -> None:
 
     assert response.status_code == 302
     assert dummy_client.scene_calls == ["scene-w"]
-    state = state_store.read()
+    state = _assert_quota_usage(state_store, expected_used=1)
     assert state["assumed_aircon_power"] == "unknown"
     assert state["last_action"].startswith("scene(scene-w)")
 
@@ -158,7 +215,10 @@ def test_aircon_on_winter_reports_missing_scene_id() -> None:
         "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
     }
     dummy_client = DummyClient()
-    app, _settings_store, state_store, _scheduler = _build_app(settings, client=dummy_client)
+    app, _settings_store, state_store, _scheduler, _tracker = _build_app(
+        settings,
+        client=dummy_client,
+    )
 
     with app.test_client() as client:
         response = client.post("/actions/aircon_on_winter", follow_redirects=True)
@@ -176,7 +236,7 @@ def test_aircon_off_runs_off_scene_when_configured() -> None:
         "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": "scene-off"},
     }
     dummy_client = DummyClient()
-    app, _settings_store, state_store, _scheduler = _build_app(
+    app, _settings_store, state_store, _scheduler, _tracker = _build_app(
         settings,
         initial_state={"assumed_aircon_power": "on"},
         client=dummy_client,
@@ -187,7 +247,7 @@ def test_aircon_off_runs_off_scene_when_configured() -> None:
 
     assert response.status_code == 302
     assert dummy_client.scene_calls == ["scene-off"]
-    state = state_store.read()
+    state = _assert_quota_usage(state_store, expected_used=1)
     assert state["assumed_aircon_power"] == "off"
     assert state["last_action"].startswith("scene(scene-off)")
 
@@ -196,7 +256,7 @@ def test_healthz_returns_scheduler_state_and_tick() -> None:
     settings = {"automation_enabled": True}
     last_tick = "2026-01-10T15:30:00+00:00"
     state = {"last_tick": last_tick}
-    app, _settings_store, _state_store, scheduler = _build_app(
+    app, _settings_store, _state_store, scheduler, _tracker = _build_app(
         settings,
         initial_state=state,
     )
@@ -216,7 +276,7 @@ def test_healthz_returns_scheduler_state_and_tick() -> None:
 
 def test_healthz_returns_503_when_store_unavailable() -> None:
     settings = {"automation_enabled": False}
-    app, _settings_store, _state_store, _scheduler = _build_app(settings)
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(settings)
     failing = FailingStore()
     app.extensions["settings_store"] = failing
     app.extensions["state_store"] = failing
@@ -238,7 +298,7 @@ def test_quick_off_prefers_scene_and_disables_automation() -> None:
         "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": "scene-off"},
     }
     dummy_client = DummyClient()
-    app, settings_store, state_store, _scheduler = _build_app(
+    app, settings_store, state_store, _scheduler, _tracker = _build_app(
         settings,
         initial_state={"assumed_aircon_power": "on"},
         client=dummy_client,
@@ -251,6 +311,112 @@ def test_quick_off_prefers_scene_and_disables_automation() -> None:
     assert dummy_client.scene_calls == ["scene-off"]
     persisted_settings = settings_store.read()
     assert persisted_settings["automation_enabled"] is False
-    state = state_store.read()
+    state = _assert_quota_usage(state_store, expected_used=1)
     assert state["assumed_aircon_power"] == "off"
     assert state["last_action"].startswith("scene(scene-off)")
+
+
+def test_quick_off_multiple_calls_accumulate_quota_usage() -> None:
+    settings = {
+        "automation_enabled": True,
+        "mode": "winter",
+        "aircon_device_id": "aircon",
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": "scene-off"},
+    }
+    dummy_client = DummyClient()
+    app, settings_store, state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state={"assumed_aircon_power": "on"},
+        client=dummy_client,
+    )
+
+    with app.test_client() as client:
+        client.post("/actions/quick_off", follow_redirects=False)
+        client.post("/actions/quick_off", follow_redirects=False)
+
+    state = _assert_quota_usage(state_store, expected_used=2)
+    assert state["assumed_aircon_power"] == "off"
+    assert state["last_action"].endswith("(quick_off)")
+    persisted_settings = settings_store.read()
+    assert persisted_settings["automation_enabled"] is False
+
+
+def test_index_renders_quota_alert_when_threshold_met() -> None:
+    settings = {
+        "automation_enabled": False,
+        "mode": "winter",
+        "api_quota_warning_threshold": 200,
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
+    }
+    state = {
+        "api_requests_total": 9_900,
+        "api_requests_remaining": 100,
+        "api_requests_limit": 10_000,
+        "api_quota_day": _today_iso(),
+        "api_quota_reset_at": "2026-01-10T00:00:00+00:00",
+    }
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state=state,
+    )
+
+    with app.test_client() as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    soup = BeautifulSoup(response.data, "html.parser")
+    meta = soup.select_one(".api-quota-meta")
+    assert meta is not None
+    assert _today_iso() in meta.get_text()
+    alert = soup.select_one(".quota-alert")
+    assert alert is not None
+    alert_text = " ".join(alert.get_text(strip=True).split())
+    assert "100" in alert_text
+    assert "200" in alert_text
+    assert "2026-01-10T00:00:00+00:00" in soup.select_one(".api-quota-meta").get_text()
+
+
+def test_index_hides_quota_alert_when_threshold_high() -> None:
+    settings = {
+        "automation_enabled": False,
+        "mode": "winter",
+        "api_quota_warning_threshold": 20,
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
+    }
+    state = {
+        "api_requests_total": 1_000,
+        "api_requests_remaining": 9_000,
+        "api_requests_limit": 10_000,
+        "api_quota_day": _today_iso(),
+    }
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state=state,
+    )
+
+    with app.test_client() as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    soup = BeautifulSoup(response.data, "html.parser")
+    assert soup.select_one(".quota-alert") is None
+
+
+def test_index_hides_quota_alert_when_values_missing() -> None:
+    settings = {
+        "automation_enabled": False,
+        "mode": "winter",
+        "api_quota_warning_threshold": 200,
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
+    }
+    state = {}
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state=state,
+    )
+
+    with app.test_client() as client:
+        response = client.get("/")
+
+    soup = BeautifulSoup(response.data, "html.parser")
+    assert soup.select_one(".quota-alert") is None

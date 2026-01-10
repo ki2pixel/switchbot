@@ -95,6 +95,16 @@
 - Conservation de la fonctionnalité `quick_off` pour désactiver l'automatisation
 - Tous les tests unitaires passent avec succès après les modifications
 
+[2026-01-10 20:00:00] - Implémentation du système d'alerte de quota et métadonnées
+- Ajout du seuil d'avertissement configurable `api_quota_warning_threshold` dans `config/settings.json` (valeur par défaut : 250)
+- Implémentation de l'alerte visuelle dans l'interface utilisateur quand le nombre de requêtes restantes est faible
+- Affichage des métadonnées de quota (`api_quota_day` et `api_quota_reset_at`) dans l'interface
+- Mise à jour de `quota.py` pour stocker systématiquement l'heure de réinitialisation
+- Ajout de tests d'intégration avec BeautifulSoup pour vérifier le comportement de l'alerte
+- Mise à jour de la documentation dans `configuration.md` avec les bonnes pratiques de gestion des quotas
+- Styles CSS ajoutés pour une intégration visuelle harmonieuse
+- Tous les tests passent avec succès après les modifications
+
 ## Terminé
 [2026-01-09 16:47:00] - Implémentation du thème sombre par défaut sur les templates index.html et devices.html.
 [2026-01-09 17:00:00] - Refonte de la page Devices : cartes lisibles, synthèse, copie d'ID et JSON repliables.

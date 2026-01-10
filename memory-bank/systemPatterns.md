@@ -30,3 +30,41 @@
 - Chaque guide référence les autres et la Memory Bank pour tracer les décisions architecturales.
 - Mise à jour automatique via `/enhance` et `/end` workflows pour synchronisation.
 
+[2026-01-10 20:20:00] - Patterns alignés sur scènes SwitchBot, backend Redis et quotas locaux
+
+## Services & injections
+- `create_app()` assemble et enregistre **BaseStore** (filesystem `JsonStore` ou `RedisJsonStore`), **SwitchBotClient**, **AutomationService**, **SchedulerService** et **ApiQuotaTracker** dans `app.extensions`.  
+- Les vues accèdent uniquement à ces services via `current_app.extensions` (jamais directement aux fichiers, au client HTTP ou au scheduler) et laissent `create_app()` gérer les bascules en cas de `StoreError`.
+
+## Stockage multi-backend
+- `BaseStore` expose une API homogène `read()/write()` pour `settings` et `state`.  
+- `JsonStore` reste la référence locale : verrou `threading.Lock`, écriture via fichier temporaire `.tmp`, UTF-8.  
+- `RedisJsonStore` assure la persistance sur Render/Upstash (TTL optionnel) et remonte les erreurs afin que l’app retombe automatiquement sur le filesystem.
+
+## Boucle d’automatisation
+- APScheduler (`BackgroundScheduler`) déclenche `AutomationService.run_once` (intervalle ≥15 s, `max_instances=1`, reschedule automatique sur changement de `poll_interval_seconds`).  
+- Chaque tick met à jour `last_tick`, lit les réglages, valide scènes/IDs, applique fenêtres horaires + hysteresis puis poll Meter.  
+- La commande privilégie les **scènes SwitchBot** (`aircon_scenes`, helper `aircon.py`) avec fallback `setAll`/`turnOff` si l’ID de scène manque.  
+- Cooldown et état supposé (`assumed_aircon_*`) évitent les doublons; toutes les erreurs sont reflétées dans `state`.
+
+## Gestion des erreurs & retries
+- `SwitchBotClient` encapsule la signature HMAC, gère les retries sur HTTP 429/5xx et sur `statusCode` 190.  
+- Les exceptions remontent en `SwitchBotApiError` pour être loguées proprement, et les métriques de quota sont mises à jour même en fallback.
+
+## Validation et formulaires
+- Les vues passent par `_as_bool/_as_int/_as_float` pour normaliser les entrées, interdisant l’accès brut à `request.form`.  
+- Les choix (jours, horaires, températures, modes, vitesses, scènes) proviennent des constantes partagées dans `routes.py` pour garantir la parité validation/UI.
+
+## Quotas & observabilité
+- `ApiQuotaTracker` (basé sur `state_store`) enregistre le quota quotidien : fallback local (`record_call`) ou snapshot depuis les headers `X-RateLimit-*`. Les champs (`api_requests_*`, `api_quota_day`, `api_quota_reset_at`) alimentent le bandeau d’alerte configurable (`api_quota_warning_threshold`).  
+- `SwitchBotClient` loggue et transmet systématiquement les métadonnées de quota pour faciliter les diagnostics.  
+- `/healthz` expose l’état du scheduler (`is_running()`), du dernier tick et du store sans lire directement les fichiers, afin de fournir un monitoring léger.
+
+## Sécurité & secrets
+- Les tokens et identifiants sensibles restent dans `.env`; aucun secret n’est persisté dans `settings` ou `state`.  
+- Principe du moindre privilège : seules les clés utiles sont exposées dans les vues/JSON renvoyés.
+
+## Documentation structurée
+- Les guides thématiques (`docs/setup.md`, `configuration.md`, `ui-guide.md`, `theming.md`, `testing.md`, `deployment.md`) décrivent ces patterns.  
+- Toute évolution majeure (scènes, quotas, backend Redis, health check) doit être tracée dans la Memory Bank et reliée aux guides.
+

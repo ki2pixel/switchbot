@@ -5,6 +5,7 @@
   "hysteresis_celsius": 0.3,
   "command_cooldown_seconds": 30,
   "turn_off_outside_windows": true,
+  "api_quota_warning_threshold": 250,
   "meter_device_id": "FCE61F1FD04C",
   "aircon_device_id": "01-202401301615-24010246",
   "winter": {

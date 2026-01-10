@@ -12,6 +12,7 @@ from .automation import AutomationService
 from .config_store import BaseStore, JsonStore, RedisJsonStore, StoreError
 from .routes import dashboard_bp
 from .scheduler import SchedulerService
+from .quota import ApiQuotaTracker
 from .switchbot_api import SwitchBotClient
 
 
@@ -132,11 +133,14 @@ def create_app() -> Flask:
     except ValueError:
         retry_delay_seconds = 10
 
+    quota_tracker = ApiQuotaTracker(state_store=state_store)
+
     client = SwitchBotClient(
         token=token,
         secret=secret,
         retry_attempts=retry_attempts,
         retry_delay_seconds=retry_delay_seconds,
+        quota_tracker=quota_tracker,
     )
 
     automation_service = AutomationService(
