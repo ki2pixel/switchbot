@@ -132,6 +132,22 @@ Si une scène ne fonctionne pas comme prévu :
 
 > ℹ️ **Historique :** La logique `aircon_presets` a été remplacée par ce système de scènes plus flexible. Voir `memory-bank/decisionLog.md` pour plus de détails.
 
+### Dépannage de l'automatisation
+
+Pour diagnostiquer un cycle d'automatisation qui ne déclenche pas l'action attendue :
+
+1. **Activer les logs détaillés** : définir `LOG_LEVEL=debug` (dans `.env` ou la configuration Render). Les logs incluent désormais le déclencheur (`scheduler` ou `http:actions.run_once`), les fenêtres horaires évaluées, les seuils calculés (min/max/hysteresis), ainsi que chaque action (scène ou fallback `setAll`/`turnOff`).
+2. **Utiliser `Run once`** : depuis la page d’accueil, cliquer sur « Exécuter une fois » pour forcer un tick et observer en direct les messages `[automation]`.
+3. **Suivre les étapes clés** :
+   - `Automation tick started` : confirme que l’automatisation s’exécute et rappelle l’intervalle.
+   - `Time window evaluation` : affiche les fenêtres interprétées (`[0,1,2] 08:00-22:00`), si l’on est en dehors, et si `turn_off_outside_windows` s’appliquera.
+   - `Temperature evaluation` : loggue `mode`, `current_temp`, `min/max`, `target` et `hysteresis`.
+   - Messages `Winter/Summer mode: ... threshold` + `Requesting aircon scene`/`setAll`/`turnOff` : détaillent l’action choisie et le fallback éventuel.
+   - `Automation tick finished` : fournit l’`outcome` (`winter_on`, `summer_off`, `no_action`, `cooldown`, etc.) pour résumer la décision.
+4. **Inspecter les quotas** : chaque appel SwitchBot (lecture Meter, scène, commande) se termine par `Quota snapshot updated context=...` avec `used/remaining/limit`, utile pour vérifier que les requêtes partent réellement.
+
+> 💡 **Astuce** : combiner ces logs avec `/quota` permet de repérer rapidement un cooldown actif, une fenêtre mal configurée ou un seuil d’hysteresis trop large (par exemple `27.9°C` vs `max=27 + hysteresis=0.3`).
+
 ## Endpoint de santé (`/healthz`)
 
 Le tableau de bord expose un endpoint de santé qui renvoie des métriques essentielles pour le monitoring :
@@ -151,13 +167,22 @@ Le tableau de bord expose un endpoint de santé qui renvoie des métriques essen
 
 ### Champs de réponse
 
+- `status` (chaîne) : "ok" si le service fonctionne normalement, "error" en cas de problème critique
 - `scheduler_running` (booléen) : Indique si le planificateur d'automatisation est actif
 - `automation_enabled` (booléen) : Reflète le paramètre `automation_enabled` des paramètres
 - `last_tick` (ISO 8601) : Horodatage de la dernière exécution de l'automatisation
+- `last_read_at` (ISO 8601) : Dernière lecture réussie du capteur de température
+- `temperature_stale` (booléen) : Indique si la température actuelle est potentiellement obsolète
 - `api_requests_total` (nombre) : Nombre total de requêtes API effectuées aujourd'hui
-- `api_requests_remaining` (nombre) : Estimation des requêtes API restantes (basée sur la limite quotidienne de 1000 requêtes)
+- `api_requests_remaining` (nombre) : Estimation des requêtes API restantes (basée sur la limite quotidienne de 10000 requêtes par défaut)
 - `api_quota_day` (date) : Jour de référence pour le quota actuel (réinitialisé à minuit UTC)
 - `version` (chaîne) : Version de l'application
+
+### Codes d'erreur
+
+- `200 OK` : Le service fonctionne normalement
+- `503 Service Unavailable` : Le service rencontre des problèmes critiques (ex: impossibilité d'accéder au stockage)
+- `429 Too Many Requests` : Trop de requêtes vers l'endpoint (rate limiting)
 
 ### Utilisation recommandée
 
@@ -336,6 +361,20 @@ Ce fichier journalise l'état courant pour l'affichage UI :
   "last_error": null
 }
 ```
+
+## Flag de température obsolète
+
+Le tableau de bord utilise un système de flag pour indiquer quand les données de température sont potentiellement obsolètes :
+
+- `last_temperature_stale` (booléen) : Indique si la dernière lecture de température est obsolète
+- `last_temperature_stale_reason` (chaîne) : Raison de l'obsolescence (ex: "startup", "api_error")
+
+Ce système est particulièrement utile lors des redémarrages du service (comme les redeploys sur Render qui prennent environ 1 minute) pour éviter de prendre des décisions d'automatisation basées sur des données potentiellement périmées.
+
+Le flag est automatiquement :
+- Positionné à `true` au démarrage du service
+- Réinitialisé à `false` après une lecture réussie du capteur via `poll_meter()`
+- Positionné à `true` en cas d'erreur d'API avec `last_temperature_stale_reason` défini sur "api_error"
 
 ## Sécurité et bonnes pratiques
 

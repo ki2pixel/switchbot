@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 from typing import Any
 
 from switchbot_dashboard.automation import AutomationService
@@ -175,3 +176,30 @@ def test_turn_off_falls_back_to_turnoff_command_when_scene_missing() -> None:
     state = state_store.read()
     assert state["assumed_aircon_power"] == "off"
     assert state["last_action"] == "turnOff"
+
+
+def test_run_once_emits_detailed_logs(caplog: Any) -> None:
+    settings = _default_settings()
+    # Force thresholds that will trigger a winter ON action.
+    settings["winter"]["min_temp"] = 24.0
+    settings["winter"]["max_temp"] = 27.0
+    settings["winter"]["target_temp"] = 26.0
+
+    service, client, _settings_store, _state_store = _build_service(
+        settings=settings,
+        temperature=23.0,
+    )
+
+    caplog.set_level(logging.DEBUG, logger="switchbot_dashboard.automation")
+
+    service.run_once()
+
+    # Ensure the automation took the expected action.
+    assert client.run_scene_calls == ["scene-w"]
+
+    messages = [record.message for record in caplog.records if record.name == "switchbot_dashboard.automation"]
+    assert any("Automation tick started" in message for message in messages)
+    assert any("Time window evaluation" in message for message in messages)
+    assert any("Temperature evaluation" in message for message in messages)
+    assert any("Winter mode: below min threshold" in message for message in messages)
+    assert any("Automation tick finished" in message and "outcome='winter_on'" in message for message in messages)

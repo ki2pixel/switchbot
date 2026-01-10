@@ -1,54 +1,141 @@
 # Tableau de bord SwitchBot
 
-Tableau de bord Flask pour la gestion des appareils SwitchBot avec automatisation intelligente et surveillance du quota API.
+Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot, spécialement conçu pour la gestion des climatiseurs et capteurs de température avec une approche orientée scènes.
 
-## 📚 Documentation
+## 🚀 Fonctionnalités clés
 
-- **[Installation et Démarrage](setup.md)** - Prérequis, installation, configuration initiale
-- **[Guide de Configuration](configuration.md)** - Paramètres, scènes SwitchBot, seuils d'alerte
-- **[Guide Utilisateur](ui-guide.md)** - Interface, gestion du quota, configuration des scènes
-- **[Déploiement](deployment.md)** - Docker, CI/CD, surveillance avec l'endpoint `/healthz`
-- **[Tests](testing.md)** - Scénarios de test, validation des fonctionnalités
-- **[Thème](theming.md)** - Personnalisation de l'interface utilisateur
+### Automatisation intelligente
+- **Gestion des scènes** : Exécution de scènes SwitchBot préconfigurées
+- **Profils saisonniers** : Paramètres distincts pour l'hiver et l'été
+- **Fenêtres horaires** : Planification précise des plages d'activation
+- **Détection de présence** : Basée sur les plages horaires configurées
 
-## 🎯 Objectif
+### Surveillance et contrôle
+- **Tableau de bord temps réel** : Vue d'ensemble de l'état du système
+- **Gestion des quotas API** : Suivi et alertes de consommation
+- **Indicateur de fraîcheur** : Détection des données de température obsolètes
+- **Journalisation complète** : Historique des actions et erreurs
 
-Dashboard Flask local qui orchestre la lecture de capteurs SwitchBot et pilote un climatiseur IR virtuel avec résilience locale.
+### Architecture moderne
+- **Injection de dépendances** : Services modulaires et testables
+- **Multi-backend de stockage** : Redis ou système de fichiers
+- **Estimation locale des quotas** : Même sans en-têtes de taux
+- **Gestion robuste des erreurs** : Repli élégant en cas d'indisponibilité
 
-### Fonctionnalités clés
+## ⚙️ Prérequis
 
-- **Automatisation intelligente** : Contrôle basé sur des scènes SwitchBot avec fallback sur les commandes bas niveau
-- **Gestion du quota API** : Surveillance en temps réel avec alertes configurables
-- **Scènes personnalisables** : Configuration facile des scènes hiver/été/ventilation/arrêt
-- **Surveillance de santé** : Endpoint `/healthz` pour le monitoring
-- **Interface utilisateur moderne** : Thème sombre, responsive et accessible
-- **Inventaire des appareils** : Page `/devices` avec gestion des IDs et métadonnées
-- **Sécurité renforcée** : Gestion sécurisée des tokens et validation des entrées
-- **Haute disponibilité** : Résilience aux pannes, reprise sur erreur, basculement automatique
+- **Python** : 3.8 ou supérieur
+- **Compte SwitchBot** : Avec appareils configurés
+- **Token d'API** : Jeton d'API SwitchBot valide
+- **Stockage** : Redis recommandé pour la production
 
-## 🏗️ Architecture
+## 🛠 Installation
 
-- **`app.py`** : Point d'entrée de l'application Flask
-- **`switchbot_dashboard/`** : 
-  - `routes.py` : Gestion des routes et requêtes HTTP
-  - `automation.py` : Service d'automatisation avec gestion des scènes
-  - `quota.py` : Suivi et gestion du quota API
-  - `aircon.py` : Définition des scènes et commandes climatiseur
-- **`config/`** : 
-  - `settings.json` : Configuration utilisateur (scènes, seuils, etc.)
-  - `state.json` : État de l'application et télémétrie
-- **`static/`** : 
-  - `css/theme.css` : Thème sombre et styles partagés
-  - `js/` : Scripts côté client
-- **`templates/`** : Vues Jinja2 pour l'interface utilisateur
-- **`docs/`** : Documentation complète du projet
+1. **Cloner le dépôt** :
+   ```bash
+   git clone https://github.com/votre-utilisateur/switchbot-dashboard.git
+   cd switchbot-dashboard
+   ```
+
+2. **Configurer l'environnement** :
+   ```bash
+   cp .env.example .env
+   # Éditer .env avec vos identifiants SwitchBot
+   ```
+
+3. **Installer les dépendances** :
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Lancer l'application** :
+   ```bash
+   python app.py
+   ```
+
+## 🏗 Architecture
+
+### Composants principaux
+
+- **`AutomationService`** : Cœur de l'automatisation, gère la logique métier
+- **`SwitchBotClient`** : Client API avec suivi des quotas intégré
+- **`BaseStore`** : Interface de stockage abstraite
+  - `RedisJsonStore` : Stockage Redis haute performance
+  - `JsonStore` : Stockage basé sur des fichiers JSON
+- **`ApiQuotaTracker`** : Suivi précis des quotas d'API
+
+### Flux de données
+
+1. **Collecte** : Récupération des données des capteurs via `poll_meter()`
+2. **Analyse** : Vérification des seuils et des fenêtres horaires
+3. **Action** : Exécution des scènes SwitchBot appropriées
+4. **Persistance** : Sauvegarde de l'état et des paramètres
+
+## 📚 Documentation complète
+
+- [Guide d'installation](setup.md) - Configuration détaillée
+- [Guide de l'utilisateur](ui-guide.md) - Utilisation de l'interface
+- [Référence de configuration](configuration.md) - Options avancées
+- [Guide de déploiement](deployment.md) - Mise en production
+
+## 🚦 Statut du projet
+
+### Fonctionnalités implémentées
+
+- [x] Support des scènes SwitchBot
+- [x] Gestion des quotas API
+- [x] Stockage Redis et système de fichiers
+- [x] Interface utilisateur réactive
+- [x] Documentation complète
+
+### Prochaines étapes
+
+- [ ] Support multi-utilisateurs
+- [ ] Tableau de bord d'administration
+- [ ] Notifications push
+- [ ] Intégration avec d'autres écosystèmes domotiques
+
+## 📞 Support
+
+Pour toute question ou problème, veuillez ouvrir une [issue](https://github.com/votre-utilisateur/switchbot-dashboard/issues).
+
+## 🙏 Remerciements
+
+- À l'équipe SwitchBot pour leur API
+- Aux contributeurs du projet
+- À la communauté open source
+
+---
+
+*Dernière mise à jour : 10 janvier 2025*
+
+## 🔍 Aperçu technique
+
+### Gestion des scènes
+
+Le tableau de bord utilise les scènes SwitchBot pour une configuration flexible. Voici un exemple de configuration :
+
+```python
+# Exemple de configuration de scène
+{
+  "winter_scene": "1234567890abcdef1234567890abcdef",
+  "summer_scene": "abcdef1234567890abcdef1234567890",
+  "fan_scene": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
+  "off_scene": "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5"
+}
+```
+
+### Surveillance de la santé
+
+L'application expose un endpoint de monitoring à `/healthz` qui fournit des informations détaillées sur l'état du système, y compris les indicateurs de fraîcheur des données et l'utilisation de l'API.
 
 ## 🚀 Démarrage rapide
 
 ### Prérequis
-- Python 3.8+
-- Compte SwitchBot avec token API valide
-- (Optionnel) Redis pour la persistance des données
+- **Python** : 3.8 ou supérieur
+- **Compte SwitchBot** : Avec appareils configurés
+- **Token d'API** : Jeton d'API SwitchBot valide
+- **Stockage** : Redis recommandé pour la production
 
 ### Installation
 

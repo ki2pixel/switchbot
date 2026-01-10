@@ -1,5 +1,5 @@
 {
-  "automation_enabled": false,
+  "automation_enabled": true,
   "mode": "winter",
   "poll_interval_seconds": 15,
   "hysteresis_celsius": 0.3,

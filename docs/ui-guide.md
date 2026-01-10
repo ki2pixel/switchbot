@@ -2,102 +2,289 @@
 
 ## Vue d'ensemble
 
-Le dashboard propose une interface mobile-first avec thème sombre immersif, organisée autour de trois pages principales :
+Le tableau de bord propose une interface mobile-first avec thème sombre immersif, entièrement traduite en français. L'interface est organisée autour de quatre pages principales :
 
-- **Page d'accueil (`/`)** : Statut temps réel + actions rapides (scènes et commandes immédiates)
-- **Page Réglages (`/reglages`)** : Tous les formulaires de configuration (fenêtres horaires, profils saisonniers, scènes, quotas…)
-- **Page Devices (`/devices`)** : Inventaire et configuration des équipements
+- **Page d'accueil (`/`)** : Statut temps réel, actions rapides et scènes
+- **Page Réglages (`/reglages`)** : Configuration complète (fenêtres horaires, profils saisonniers, scènes, quotas…)
+- **Page Quota (`/quota`)** : Suivi de la consommation de l'API SwitchBot
+- **Page Appareils (`/devices`)** : Inventaire et configuration des équipements
+
+## Messages d'alerte et notifications
+
+### Messages flash
+
+Les messages flash informent l'utilisateur du résultat des actions :
+
+- **Durée d'affichage** : 6 secondes avant disparition automatique
+- **Types de messages** :
+  - `success` (vert) : Action réussie
+  - `danger` (rouge) : Erreur critique
+  - `warning` (jaune) : Avertissement
+  - `info` (bleu) : Information générale
+
+### Accessibilité
+
+- **Contraste** : Respect des normes WCAG AA pour une bonne lisibilité
+- **Fermeture** : Bouton de fermeture clairement visible (×)
+- **Focus** : Gestion du focus pour la navigation au clavier
+- **ARIA** : Attributs ARIA pour les lecteurs d'écran
+- **Thème sombre** : Adaptation des couleurs pour une lecture confortable
+
+### Personnalisation
+
+Les messages utilisent des variables CSS personnalisées pour une cohérence visuelle :
+
+```css
+:root {
+  --alert-success-bg: #d4edda;
+  --alert-success-text: #155724;
+  --alert-danger-bg: #f8d7da;
+  --alert-danger-text: #721c24;
+  --alert-warning-bg: #fff3cd;
+  --alert-warning-text: #856404;
+  --alert-info-bg: #d1ecf1;
+  --alert-info-text: #0c5460;
+}
+
+/* Thème sombre */
+[data-bs-theme="dark"] {
+  --alert-success-bg: rgba(25, 135, 84, 0.2);
+  --alert-success-text: #75b798;
+  /* ... autres couleurs ... */
+}
+```
 
 ## Alerte de quota API
 
-Une bannière d'alerte rouge s'affiche en haut de l'interface lorsque le nombre de requêtes API restantes tombe en dessous du seuil configuré (par défaut 250).
+Une bannière d'alerte s'affiche automatiquement lorsque le nombre de requêtes API restantes tombe en dessous du seuil configuré (250 par défaut).
 
-**Éléments affichés :**
-- Nombre de requêtes restantes (en rouge si sous le seuil)
-- Date de réinitialisation du quota (minuit UTC)
-- Bouton pour accéder à la page de configuration du quota
+### Comportement
 
-**Configuration :**
-- Le seuil d'alerte est configurable dans les paramètres avancés
-- La valeur par défaut est de 250 requêtes (10% d'une limite quotidienne typique de 2500 appels)
-- L'alerte se réinitialise automatiquement à minuit UTC
+- **Affichage** : Bannière fixe en haut de l'écran
+- **Couleur** : Jaune (avertissement) ou rouge (critique)
+- **Contenu** :
+  - Nombre de requêtes restantes
+  - Heure de réinitialisation (minuit UTC)
+  - Bouton pour accéder à la page de quota
+
+### Configuration
+
+- **Seuil d'alerte** : Modifiable dans les paramètres avancés
+- **Valeur par défaut** : 250 requêtes (10% de la limite quotidienne de 2500 appels)
+- **Réinitialisation** : Automatique à minuit UTC
+
+### Bonnes pratiques
+
+- Surveillez régulièrement la consommation d'API
+- Augmentez le seuil d'alerte si nécessaire
+- Évitez les actions manuelles répétitives qui consomment des crédits
 
 ## Page d'accueil (`/`)
 
-### En-tête avec quota API
+### En-tête
 
-- L'en-tête affiche le titre "SwitchBot Dashboard" et le bouton d'accès à la page "Devices".
-- À droite, la vignette "Quota API quotidien" présente :
-  - Le nombre de requêtes restantes sur le quota journalier (limite fixe : 10 000 par compte).
-  - Le nombre de requêtes utilisées, avec la limite totale affichée.
-  - L'état "N/A" tant qu'aucune requête n'a encore été effectuée depuis le dernier démarrage.
-- Les valeurs sont recalculées après chaque appel API : si les headers `X-RateLimit-*` sont fournis, ils sont utilisés directement, sinon le compteur local journalier prend le relais (mise à jour par `AutomationService` lors de `poll_meter()` et de chaque commande envoyée).
-- **Conseil d'exploitation** : lorsque le compteur restant descend sous 200, ralentir les actions manuelles et/ou augmenter `poll_interval_seconds` pour éviter de saturer la limite quotidienne — le bandeau sert d'alerte visuelle.
-- Le badge est mis en évidence sur mobile (stacké sous le titre) pour garder l'information disponible même sur petits écrans.
+- **Titre** : "Tableau de bord SwitchBot"
+- **Boutons d'accès rapide** :
+  - **Réglages** : Accès aux paramètres complets
+  - **Quota API** : Consommation et limites
+  - **Appareils** : Gestion des équipements
 
-### Navigation Réglages
-
-Un bouton « Réglages » ouvre la page `/reglages`, dédiée à la configuration. Cette page reprend l’intégralité des formulaires historiques :
-
-- Interrupteur d’automatisation, mode `winter/summer`, intervalle de sondage et cooldown.
-- Fenêtre horaire avec sélection des jours et plages 24h.
-- Profils hiver/été (min/max/cible, mode AC, vitesse ventilateur).
-- Scènes SwitchBot (UUIDs des scènes hiver, été, ventilation, arrêt).
-- Paramètres avancés (seuil d’alerte quota API, IDs devices).
-
-> ℹ️ **Astuce** : Les scènes permettent de définir des configurations complexes directement dans l'application SwitchBot officielle, offrant plus de flexibilité que les paramètres basiques. Elles sont affichées dans `/reglages` avec un statut « Prêt »/« Non configuré ».
-
-#### Configuration des scènes
-
-1. **Ouvrez l'application SwitchBot** et créez des scènes pour chaque mode :
-   - Hiver : configuration de chauffage
-   - Été : configuration de climatisation
-   - Ventilation : mode ventilateur uniquement
-   - Arrêt : éteindre le climatiseur
-
-2. **Récupérez les UUID** des scènes :
-   - Via l'API SwitchBot (`GET /v1.1/scenes`)
-   - Ou dans l'application mobile : Paramètres > Aide > À propos > Détails de l'API
-
-3. **Configurez les scènes** dans l'interface :
-   - Cliquez sur le bouton de la scène à configurer
-   - Collez l'UUID correspondant
-   - Sauvegardez les paramètres
-
-4. **Vérification** :
-   - Les boutons passent au vert une fois configurés
-   - Les scènes sont testables directement depuis l'interface
-   - Les scènes manquantes sont désactivées avec un indicateur visuel
-
-### Carte Current Status
+### Vignette Quota API
 
 Affiche en temps réel :
 
-- Dernière lecture de température/humidité
-- État supposé de la climatisation
-- Dernière action et horodatage
-- Messages d'erreur éventuels
+- **Requêtes restantes** : Nombre d'appels disponibles
+- **Utilisation** : Barre de progression visuelle
+- **Réinitialisation** : Compte à rebours avant minuit UTC
 
-### Contrôle manuel
+### Statut actuel
 
-#### Actions rapides
+- **Température/Humidité** : Dernière lecture
+- **Climatisation** : État supposé (ON/OFF)
+- **Dernière action** : Commande exécutée
+- **Erreurs** : Dernier message d'erreur
 
-- **`Run once`** : Exécute immédiatement un cycle d'automatisation
-- **`Quick off`** : Éteint le climatiseur en utilisant la scène OFF configurée (ou la commande `turnOff` en cas de scène non configurée)
+### Actions rapides
 
-#### Scènes SwitchBot
+- **Exécuter** : Lance un cycle d'automatisation
+- **Arrêt rapide** : Éteint la climatisation
+- **Scènes** : Bascule entre les modes prédéfinis
 
-Les scènes permettent d'exécuter des configurations complexes prédéfinies dans l'application SwitchBot officielle.  
-Chaque bouton de scène affiche désormais une icône évocatrice (soleil, flocon, ventilateur, veille) pour gagner en lisibilité visuelle sans afficher les UUID :
+### Scènes SwitchBot
 
-- **`Hiver`** : Active la scène d'hiver configurée (par exemple : chauffage à 20°C)
-- **`Été`** : Active la scène d'été configurée (par exemple : climatisation à 24°C)
-- **`Ventilation`** : Active le mode ventilation (ventilateur sans chauffage/rafraîchissement)
-- **`Arrêt`** : Éteint le climatiseur (utilisée par l'automatisation avec l'option *turn_off_outside_windows*)
+Les scènes permettent d'exécuter des configurations complexes en un clic :
 
-**Indicateurs visuels :**
-- Icône de couleur + titre : scène correctement configurée et prête à l'emploi
-- Bouton rouge avec icône ⚠️ : scène non configurée (cliquer pour configurer)
+1. **Hiver** : Active le mode chauffage
+2. **Été** : Active la climatisation
+3. **Ventilation** : Active le ventilateur
+4. **Arrêt** : Éteint l'appareil
+
+> ℹ️ Les scènes doivent être configurées au préalable dans l'application SwitchBot officielle.
+
+## Page Réglages (`/reglages`)
+
+### 1. Automatisation
+
+- **Activer/désactiver** : Active ou désactive l'automatisation
+- **Mode** : Bascule entre hiver et été
+- **Intervalle** : Fréquence de vérification (15-3600 secondes)
+- **Délai entre commandes** : Protection contre les déclenchements trop rapprochés
+
+### 2. Fenêtres horaires
+
+Définissez les plages d'activation :
+
+- **Jours** : Sélection multiple (lun-dim)
+- **Heure de début/fin** : Format 24h
+- **Bouton +** : Ajoute une nouvelle plage
+
+### 3. Profils saisonniers
+
+#### Hiver
+- Température minimale : 14-30°C
+- Température maximale : 16-32°C
+- Température cible : 18-28°C
+- Mode : Auto/Froid/Sécheur/Ventilation/Chauffage
+- Vitesse : Auto/Faible/Moyenne/Forte
+
+#### Été
+- Mêmes paramètres que l'hiver
+- Configuration indépendante
+
+### 4. Scènes SwitchBot
+
+Configuration des scènes :
+
+1. **Hiver** : UUID de la scène de chauffage
+2. **Été** : UUID de la scène de climatisation
+3. **Ventilation** : UUID de la scène de ventilation
+4. **Arrêt** : UUID de la scène d'arrêt
+
+> ℹ️ Les scènes doivent être créées au préalable dans l'application SwitchBot.
+
+### 5. Paramètres avancés
+
+- **Seuil d'alerte API** : Nombre de requêtes restantes avant alerte
+- **Hystérésis** : Marge pour éviter les déclenchements intempestifs
+- **ID des appareils** : Configuration manuelle si nécessaire
+
+### Guide de configuration des scènes
+
+### 1. Création des scènes
+
+Dans l'application SwitchBot :
+
+1. **Hiver** :
+   - Température : 20°C
+   - Mode : Chauffage
+   - Vitesse : Moyenne
+
+2. **Été** :
+   - Température : 24°C
+   - Mode : Froid
+   - Vitesse : Auto
+
+3. **Ventilation** :
+   - Mode : Ventilateur
+   - Vitesse : Faible
+
+4. **Arrêt** :
+   - Commande : Éteindre
+
+### 2. Récupération des UUID
+
+#### Méthode 1 : Application mobile
+1. Allez dans **Paramètres**
+2. Sélectionnez **Aide**
+3. Appuyez sur **À propos**
+4. Choisissez **Détails de l'API**
+5. Notez les UUID des scènes
+
+#### Méthode 2 : API SwitchBot
+
+```bash
+curl -X GET "https://api.switch-bot.com/v1.1/scenes" \
+     -H "Authorization: VOTRE_TOKEN" \
+     -H "Content-Type: application/json"
+```
+
+### 3. Configuration dans le tableau de bord
+
+1. Allez dans **Réglages** > **Scènes SwitchBot**
+2. Pour chaque scène :
+   - Cliquez sur le champ correspondant
+   - Collez l'UUID
+   - Validez avec la touche Entrée
+3. Sauvegardez les paramètres
+
+### Vérification
+
+- **Succès** : Le bouton devient vert
+- **Erreur** : Message d'erreur explicite
+- **Test** : Utilisez les boutons de la page d'accueil
+
+## Gestion des erreurs
+
+### Messages d'erreur courants
+
+#### Scène non configurée
+- **Cause** : L'UUID de la scène est manquant ou invalide
+- **Solution** : Vérifiez la configuration dans **Réglages** > **Scènes**
+
+#### Erreur API
+- **Cause** : Problème de connexion avec SwitchBot
+- **Solution** : Vérifiez votre connexion Internet et les identifiants API
+
+#### Données obsolètes
+- **Cause** : Pas de mise à jour récente
+- **Solution** : Vérifiez l'intervalle de sondage et la connexion
+
+### Journalisation
+
+Les erreurs sont enregistrées dans :
+
+- **Fichiers de log** : `logs/switchbot.log`
+- **Niveaux** : DEBUG, INFO, WARNING, ERROR, CRITICAL
+- **Rotation** : 10 Mo max, 5 fichiers de sauvegarde
+
+Pour le débogage, activez le mode verbose :
+
+```bash
+LOG_LEVEL=debug python app.py
+```
+
+## FAQ
+
+### Comment ajouter un nouvel appareil ?
+
+1. Allez dans **Appareils**
+2. Notez l'ID de l'appareil
+3. Ajoutez-le dans **Réglages** > **Paramètres avancés**
+
+### Pourquoi ma scène ne s'exécute-t-elle pas ?
+
+Vérifiez :
+- Que l'UUID est correct
+- Que l'appareil est en ligne
+- Que le mode correspond à la saison
+
+### Comment réduire la consommation d'API ?
+
+- Augmentez l'intervalle de sondage
+- Désactivez l'automatisation si non nécessaire
+- Évitez les actions manuelles répétitives
+
+## Support
+
+Pour toute question, consultez :
+
+- [Documentation SwitchBot](https://github.com/OpenWonderLabs/SwitchBotAPI)
+- [Forum communautaire](https://community.switch-bot.com/)
+- Support technique : support@example.com
+
+---
+
+*Dernière mise à jour : 10 janvier 2025*
 - Bouton grisé : scène désactivée (configuration manquante ou erreur de chargement)
 - Animation : scène en cours d'exécution
 
