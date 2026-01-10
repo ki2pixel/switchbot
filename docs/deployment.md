@@ -71,12 +71,62 @@ Le fichier `Dockerfile` à la racine :
    - `REDIS_TTL_SECONDS` (optionnel) si vous souhaitez expirer automatiquement les données (laisser vide pour stockage permanent).
 3. Activer les logs sur Render : par défaut, Gunicorn écrit sur stdout/stderr, visibles dans l'onglet Logs.
 
-## 5. Processus de déploiement
+## 5. Surveillance et santé de l'application
+
+### Endpoint de santé (`/healthz`)
+
+L'application expose un endpoint de santé qui peut être utilisé pour la surveillance et le monitoring :
+
+```
+GET /healthz
+```
+
+**Réponse en cas de succès (200 OK) :**
+```json
+{
+  "status": "ok",
+  "scheduler_running": true,
+  "automation_enabled": true,
+  "last_tick": "2024-01-10T14:30:00Z",
+  "api_requests_total": 42,
+  "api_requests_remaining": 958,
+  "api_quota_day": "2024-01-10",
+  "version": "1.0.0"
+}
+```
+
+**Champs de la réponse :**
+- `status` : État global de l'application (`ok`, `warning` ou `error`)
+- `scheduler_running` : Indique si le planificateur d'automatisation est actif
+- `automation_enabled` : Indique si l'automatisation est activée
+- `last_tick` : Dernière exécution du planificateur (ISO 8601)
+- `api_requests_total` : Nombre total de requêtes API effectuées aujourd'hui
+- `api_requests_remaining` : Nombre de requêtes API restantes avant d'atteindre la limite quotidienne
+- `api_quota_day` : Date de réinitialisation du quota (minuit UTC)
+- `version` : Version de l'application
+
+**Codes de statut HTTP :**
+- `200 OK` : L'application fonctionne normalement
+- `503 Service Unavailable` : L'application rencontre des problèmes critiques (ex: store inaccessible)
+
+**Utilisation avec des outils de monitoring :**
+- **Render** : Configurer des checks de santé dans le dashboard Render
+- **Uptime Kuma** : Surveiller la disponibilité avec des requêtes périodiques
+- **Prometheus/Grafana** : Récupérer les métriques pour des tableaux de bord avancés
+
+**Exemple de configuration pour Uptime Kuma :**
+- URL : `https://votre-app.onrender.com/healthz`
+- Méthode : `GET`
+- Intervalle : 5 minutes
+- Seuil d'alerte : Code de statut != 200 OU `status != "ok"`
+
+## 6. Processus de déploiement
 
 1. Commit + push sur `main` (ou lancer manuellement le workflow).
 2. GitHub Actions construit et pousse l'image sur GHCR.
 3. Le workflow appelle le webhook Render ; en cas d'échec il utilise l'API (fallback).
 4. Render déploie la nouvelle image. Suivre la progression dans Render Dashboard.
+5. Vérifier que l'endpoint `/healthz` répond avec le statut `200 OK` après le déploiement.
 
 ## 6. Tests & validation
 
@@ -84,8 +134,26 @@ Le fichier `Dockerfile` à la racine :
 - `docker build -t switchbot:local .`
 - `docker run -it --rm -p 8000:8000 --env-file=.env switchbot:local`
 - Vérifier l'interface utilisateur : `http://localhost:8000`
-- Tester l'endpoint de santé : `curl http://localhost:8000/healthz`
+- Tester l'endpoint de santé :
+  ```bash
+  # Vérifier le statut de santé
+  curl -v http://localhost:8000/healthz
+  
+  # Vérifier les métriques de quota
+  curl -s http://localhost:8000/healthz | jq '{
+    status: .status,
+    requests_remaining: .api_requests_remaining,
+    last_tick: .last_tick
+  }'
+  ```
 - Vérifier les logs pour les erreurs potentielles : `docker logs <container_id>`
+- Tester le comportement en cas d'erreur :
+  ```bash
+  # Simuler une erreur de store
+  docker run -it --rm -p 8000:8000 -e STORE_BACKEND=invalid --env-file=.env switchbot:local
+  # Vérifier que /healthz retourne 503
+  curl -v http://localhost:8000/healthz
+  ```
 
 ### GitHub Actions
 - Lancer `workflow_dispatch` en fournissant la branche.

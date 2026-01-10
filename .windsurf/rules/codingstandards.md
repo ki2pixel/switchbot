@@ -76,6 +76,7 @@ Ce document décrit les règles obligatoires pour tout nouveau code ou refactori
 ### Automatisation
 - Tests unitaires pour toute logique de conversion.
 - Utiliser `caplog` (pytest) pour valider les niveaux de log (surtout lors des bascules de stockage).
+- **Exécution Pytest** : Lancer systématiquement la suite via l’environnement projet `/mnt/venv_ext4/venv_switchbot/bin/python -m pytest`.
 
 ## 8. Process de contribution
 

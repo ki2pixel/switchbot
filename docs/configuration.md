@@ -63,6 +63,7 @@ Ce fichier contient les réglages métier persistés :
     "ac_mode": 2,
     "fan_speed": 2
   },
+  "api_quota_warning_threshold": 250,
   "aircon_scenes": {
     "winter": "SCENE_WINTER_UUID",
     "summer": "SCENE_SUMMER_UUID",
@@ -74,6 +75,15 @@ Ce fichier contient les réglages métier persistés :
 ```
 
 > ℹ️ **Production et conteneurs Render** : lorsque `STORE_BACKEND=redis` est activé, les fichiers `config/settings.json` et `config/state.json` empaquetés dans l'image Docker ne servent qu'à fournir des valeurs initiales. Toutes les modifications effectuées via l'interface sont écrites dans Redis et survivent aux redeploy/scale. Ne modifiez les fichiers locaux que pour préparer un premier déploiement ou dépanner hors ligne.
+
+#### Gestion du quota API (`api_quota_warning_threshold`)
+
+- **Valeur par défaut** : `250` (10% d'une limite quotidienne typique de 2500 appels)
+- **Comportement** :
+  - Déclenche une alerte visuelle (bannière rouge) dans l'interface utilisateur lorsque le nombre de requêtes restantes tombe en dessous de ce seuil
+  - Permet d'anticiper l'épuisement du quota quotidien SwitchBot (limite de 2500 appels/jour)
+  - Configurable via l'interface utilisateur ou directement dans `settings.json`
+  - Se réinitialise à minuit UTC avec le compteur de quota
 
 #### Scènes SwitchBot (automatisation + boutons rapides)
 
@@ -96,8 +106,11 @@ La configuration des scènes permet de déclencher des actions complexes pré-co
     - Si une scène n'est pas configurée, le système utilise automatiquement les commandes `setAll`/`turnOff`
     - Un `aircon_device_id` valide est nécessaire pour ce mode de secours
     - L'interface affiche un avertissement si des scènes obligatoires sont manquantes
+    - Les boutons correspondants aux scènes manquantes sont désactivés dans l'interface
   - **Gestion de l'état :**
     - La scène `off` est utilisée par le bouton "Quick off" pour un arrêt contrôlé
+    - L'état des scènes est vérifié au démarrage et après chaque modification des paramètres
+    - Les erreurs d'exécution des scènes sont journalisées et affichées dans l'interface
     - L'état de l'appareil est suivi via `assumed_aircon_power` dans l'état de l'application
     - L'interface affiche des indicateurs visuels pour chaque scène (configurée/manquante)
 

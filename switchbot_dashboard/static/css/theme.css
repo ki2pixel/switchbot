@@ -16,6 +16,11 @@
   --sb-info: #4bc9f0;
   --sb-danger: #ff6b81;
   --sb-success: #6ee7b7;
+  --sb-success-bg: #0d4b39;
+  --sb-warning-bg: #5f370e;
+  --sb-danger-bg: #611527;
+  --sb-info-bg: #0b3a57;
+  --sb-alert-text: #f8fafc;
 }
 
 body.sb-dark {
@@ -287,21 +292,41 @@ dl dd {
 
 .alert {
   border-radius: 1rem;
-  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
-  border: 1px solid var(--sb-outline);
-  color: var(--sb-text);
+  border: 1px solid transparent;
+  padding: 1rem 1.25rem;
+  color: var(--sb-alert-text);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.alert p:last-child {
+  margin-bottom: 0;
 }
 
 .alert-success {
-  border-color: rgba(110, 231, 183, 0.4);
+  background: var(--sb-success-bg);
+  border-color: rgba(110, 231, 183, 0.35);
 }
 
 .alert-danger {
-  border-color: rgba(255, 107, 129, 0.5);
+  background: var(--sb-danger-bg);
+  border-color: rgba(255, 107, 129, 0.35);
 }
 
 .alert-warning {
-  border-color: rgba(246, 195, 67, 0.5);
+  background: var(--sb-warning-bg);
+  border-color: rgba(246, 195, 67, 0.35);
+}
+
+.alert-info {
+  background: var(--sb-info-bg);
+  border-color: rgba(75, 201, 240, 0.45);
+}
+
+.alert-dismissed {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 pre {

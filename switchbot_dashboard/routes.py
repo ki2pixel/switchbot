@@ -250,6 +250,7 @@ def quota_refresh() -> Any:
         flash("Quota tracker unavailable.", "error")
         return redirect(url_for("dashboard.quota"))
 
+    quota_tracker.record_call()
     quota_tracker.refresh_snapshot()
     flash("Quota mis à jour.", "success")
     return redirect(url_for("dashboard.quota"))

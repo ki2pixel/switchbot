@@ -7,6 +7,20 @@ Le dashboard propose une interface mobile-first avec thème sombre immersif, org
 - **Page d'accueil (`/`)** : Contrôle de l'automatisation et des réglages
 - **Page devices (`/devices`)** : Inventaire et configuration des équipements
 
+## Alerte de quota API
+
+Une bannière d'alerte rouge s'affiche en haut de l'interface lorsque le nombre de requêtes API restantes tombe en dessous du seuil configuré (par défaut 250).
+
+**Éléments affichés :**
+- Nombre de requêtes restantes (en rouge si sous le seuil)
+- Date de réinitialisation du quota (minuit UTC)
+- Bouton pour accéder à la page de configuration du quota
+
+**Configuration :**
+- Le seuil d'alerte est configurable dans les paramètres avancés
+- La valeur par défaut est de 250 requêtes (10% d'une limite quotidienne typique de 2500 appels)
+- L'alerte se réinitialise automatiquement à minuit UTC
+
 ## Page d'accueil (`/`)
 
 ### En-tête avec quota API
@@ -28,8 +42,31 @@ Configuration complète orientée mobile avec :
 - **Fenêtre horaire** : cases à cocher par jour + sélecteurs horaires 24h
 - **Profils Winter/Summer** : paramètres de température, mode AC et ventilation
 - **Scènes SwitchBot** : configuration des scènes favorites pour le contrôle rapide
+- **Paramètres avancés** : configuration du seuil d'alerte de quota API
 
 > ℹ️ **Astuce** : Les scènes permettent de définir des configurations complexes directement dans l'application SwitchBot officielle, offrant plus de flexibilité que les paramètres basiques.
+
+#### Configuration des scènes
+
+1. **Ouvrez l'application SwitchBot** et créez des scènes pour chaque mode :
+   - Hiver : configuration de chauffage
+   - Été : configuration de climatisation
+   - Ventilation : mode ventilateur uniquement
+   - Arrêt : éteindre le climatiseur
+
+2. **Récupérez les UUID** des scènes :
+   - Via l'API SwitchBot (`GET /v1.1/scenes`)
+   - Ou dans l'application mobile : Paramètres > Aide > À propos > Détails de l'API
+
+3. **Configurez les scènes** dans l'interface :
+   - Cliquez sur le bouton de la scène à configurer
+   - Collez l'UUID correspondant
+   - Sauvegardez les paramètres
+
+4. **Vérification** :
+   - Les boutons passent au vert une fois configurés
+   - Les scènes sont testables directement depuis l'interface
+   - Les scènes manquantes sont désactivées avec un indicateur visuel
 
 ### Carte Current Status
 
@@ -51,16 +88,23 @@ Affiche en temps réel :
 
 Les scènes permettent d'exécuter des configurations complexes prédéfinies dans l'application SwitchBot officielle :
 
-- **`Aircon ON – Hiver`** : Active la scène d'hiver configurée (par exemple : chauffage à 20°C)
-- **`Aircon ON – Été`** : Active la scène d'été configurée (par exemple : climatisation à 24°C)
-- **`Aircon ON – Mode neutre`** : Active le mode ventilation (ventilateur sans chauffage/rafraîchissement)
-- **`Aircon OFF`** : Éteint le climatiseur (utilisée par l'automatisation avec l'option *turn_off_outside_windows*)
+- **`Hiver`** : Active la scène d'hiver configurée (par exemple : chauffage à 20°C)
+- **`Été`** : Active la scène d'été configurée (par exemple : climatisation à 24°C)
+- **`Ventilation`** : Active le mode ventilation (ventilateur sans chauffage/rafraîchissement)
+- **`Arrêt`** : Éteint le climatiseur (utilisée par l'automatisation avec l'option *turn_off_outside_windows*)
+
+**Indicateurs visuels :**
+- Bouton vert : scène correctement configurée et prête à l'emploi
+- Bouton rouge avec icône ⚠️ : scène non configurée (cliquer pour configurer)
+- Bouton grisé : scène désactivée (configuration manquante ou erreur de chargement)
+- Animation : scène en cours d'exécution
+
+> 💡 **Conseil** : Pour une expérience optimale, configurez toujours la scène `off` pour assurer un arrêt propre du climatiseur.
 
 #### Indicateurs visuels
 
 - **Bouton vert** : Scène configurée et prête à l'emploi
 - **Bouton rouge** : Scène non configurée (cliquer pour configurer)
-- **Animation** : Scène en cours d'exécution
 - **Icône ⚠️** : Avertissement de configuration manquante
 
 > ℹ️ **Fonctionnement de l'automatisation** :
@@ -68,32 +112,33 @@ Les scènes permettent d'exécuter des configurations complexes prédéfinies da
 > - Si une scène n'est pas configurée, elle utilise les commandes `setAll`/`turnOff` (nécessite `aircon_device_id`)
 > - Vérifiez les messages d'état pour les erreurs de configuration
 
-### Configuration des scènes
+### Surveillance du quota API
 
-1. **Créer des scènes** dans l'application SwitchBot :
-   - Hiver : Configuration de chauffage
-   - Été : Configuration de climatisation
-   - Ventilation : Mode ventilateur uniquement
-   - Arrêt : Éteindre le climatiseur
+La jauge de quota en haut à droite de l'interface affiche en temps réel :
+- Le nombre de requêtes restantes (sur 2500 par jour par défaut)
+- Un indicateur visuel (vert/orange/rouge) selon le niveau de consommation
+- Un lien vers la page de configuration du quota
 
-2. **Récupérer les UUID** :
-   - Via l'API SwitchBot (`GET /v1.1/scenes`)
-   - Ou depuis l'application mobile (Paramètres > Aide > À propos > Détails de l'API)
+**Bonnes pratiques :**
+- Surveillez régulièrement le quota pour éviter les coupures
+- Augmentez le seuil d'alerte si nécessaire dans les paramètres
+- Contactez le support SwitchBot pour augmenter votre quota si nécessaire
 
-3. **Configurer les scènes** :
-   - Cliquez sur un bouton rouge pour configurer
-   - Collez l'UUID de la scène correspondante
-   - Sauvegardez les paramètres
+### Dépannage des scènes
 
-4. **Vérification** :
-   - Les boutons passent au vert une fois configurés
-   - Les scènes sont testables directement depuis l'interface
+Si une scène ne s'exécute pas correctement :
+1. Vérifiez que l'UUID est correct dans les paramètres
+2. Testez la scène directement depuis l'application SwitchBot
+3. Vérifiez que le device est en ligne et accessible
+4. Consultez les logs de l'application pour les erreurs (niveau `debug` si nécessaire)
+5. Vérifiez que le quota API n'est pas épuisé
 
-> 💡 **Bonnes pratiques** :
-> - Configurez toujours la scène `off` pour un arrêt propre
-> - Testez chaque scène après configuration
-> - Consultez les logs en cas d'erreur avec `LOG_LEVEL=debug`
-> - Les scènes offrent plus de fiabilité que les commandes IR individuelles
+### Bonnes pratiques
+
+- **Sécurité** : Ne partagez jamais vos tokens API ou UUID de scènes
+- **Sauvegardes** : Exportez régulièrement vos configurations
+- **Mises à jour** : Vérifiez les mises à jour de l'application pour les nouvelles fonctionnalités
+- **Support** : En cas de problème, consultez les logs et préparez les informations de débogage avant de contacter le support
 
 ## Surveillance de l'état
 
@@ -172,7 +217,7 @@ Chaque appareil est représenté par une carte interactive :
 
 ### Messages utilisateur
 
-- **Flash messages** : Succès (vert), avertissements (orange), erreurs (rouge)
+- **Flash messages** : Succès (fond vert foncé), avertissements (fond orange foncé), erreurs (fond rouge foncé) avec texte blanc à fort contraste. Ils se ferment automatiquement après ~6 secondes pour éviter d'encombrer l'interface, tout en laissant le temps de lire le message.
 - **Badges d'état** : Information contextuelle sur les devices
 - **Retours clipboard** : Confirmation visuelle temporaire
 

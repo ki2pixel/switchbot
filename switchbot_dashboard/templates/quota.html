@@ -31,14 +31,20 @@
 
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-          <div class="mb-3">
+          <div class="mb-3" aria-live="polite" aria-atomic="true">
             {% for category, message in messages %}
               {% if category == 'error' %}
-                <div class="alert alert-danger">{{ message }}</div>
+                <div class="alert alert-danger" role="alert" data-auto-dismiss="6000">
+                  {{ message }}
+                </div>
               {% elif category == 'success' %}
-                <div class="alert alert-success">{{ message }}</div>
+                <div class="alert alert-success" role="alert" data-auto-dismiss="6000">
+                  {{ message }}
+                </div>
               {% else %}
-                <div class="alert alert-info">{{ message }}</div>
+                <div class="alert alert-info" role="alert" data-auto-dismiss="6000">
+                  {{ message }}
+                </div>
               {% endif %}
             {% endfor %}
           </div>
@@ -109,5 +115,6 @@
         </div>
       </article>
     </div>
+    <script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
   </body>
 </html>

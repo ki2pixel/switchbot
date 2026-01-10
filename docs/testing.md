@@ -20,6 +20,13 @@ Ce guide décrit les tests manuels recommandés pour valider le bon fonctionneme
 # Vérifier : http://127.0.0.1:5000/ s'affiche sans erreur
 ```
 
+### 3. Suite Pytest (obligatoire)
+
+```bash
+# Toujours exécuter la suite avec l'interpréteur du projet pour éviter les divergences d'environnement
+/mnt/venv_ext4/venv_switchbot/bin/python -m pytest
+```
+
 ### 3. Configuration initiale
 
 ```bash
@@ -67,163 +74,219 @@ test -f .env && grep -q "SWITCHBOT_TOKEN\|SWITCHBOT_SECRET" .env
 
 ## Tests du point de terminaison de santé
 
-### 1. Endpoint `/healthz`
+### 1. Endpoint `/healthz` - Cas nominal
 
-**Scénarios de test** :
-- Accéder à `GET /healthz`
-- Vérifier que le statut est `200 OK`
-- Vérifier que le corps de la réponse contient :
-  ```json
-  {
-    "status": "ok",
-    "scheduler_running": true,
-    "automation_enabled": true,
-    "last_tick": "2024-01-10T14:30:00Z",
-    "api_requests_total": 42,
-    "api_requests_remaining": 958,
-    "api_quota_day": "2024-01-10",
-    "version": "1.0.0"
-  }
-  ```
-- Vérifier que `last_tick` est récent (moins de 5 minutes)
-- Vérifier que `api_requests_remaining` est cohérent avec le quota quotidien
+**Prérequis :**
+- Application démarrée avec une configuration valide
+- Store fonctionnel (Redis ou JSON)
+- Scheduler en cours d'exécution
 
-### 2. Surveillance continue
+**Scénarios de test :**
+1. **Requête de base**
+   ```bash
+   curl -v http://localhost:8000/healthz
+   ```
+   - Vérifier le code de statut `200 OK`
+   - Vérifier le contenu de la réponse :
+     ```json
+     {
+       "status": "ok",
+       "scheduler_running": true,
+       "automation_enabled": true,
+       "last_tick": "2024-01-10T14:30:00Z",
+       "api_requests_total": 42,
+       "api_requests_remaining": 958,
+       "api_quota_day": "2024-01-10",
+       "version": "1.0.0"
+     }
+     ```
+   - Vérifier que `last_tick` est récent (< 5 minutes)
+   - Vérifier que `api_requests_remaining` est cohérent avec le quota quotidien
 
-**Configuration** :
-- Configurer un outil de monitoring pour interroger `/healthz` toutes les 5 minutes
-- Définir des alertes pour :
-  - `status != "ok"`
-  - `scheduler_running == false`
-  - `last_tick` trop ancien (> 10 minutes)
-  - `api_requests_remaining` < 100
+2. **Vérification des métriques**
+   - Exécuter plusieurs actions via l'API/UI
+   - Vérifier que `api_requests_total` est incrémenté
+   - Vérifier que `api_requests_remaining` est décrémenté en conséquence
+   - Vérifier que `api_quota_day` correspond à la date du jour (UTC)
+
+### 2. Tests d'erreur
+
+1. **Store indisponible**
+   - Démarrer l'application avec `STORE_BACKEND=invalid`
+   - Vérifier que `/healthz` retourne `503 Service Unavailable`
+   - Vérifier que `status` est `error` dans la réponse
+
+2. **Scheduler arrêté**
+   - Arrêter le scheduler via l'API/UI
+   - Vérifier que `scheduler_running` est `false`
+   - Vérifier que `status` est `warning`
+
+3. **Quota épuisé**
+   - Simuler un quota épuisé en modifiant le store
+   - Vérifier que `api_requests_remaining` est `0`
+   - Vérifier que `status` est `warning`
+
+### 3. Surveillance continue
+
+**Configuration recommandée :**
+- **Fréquence** : Toutes les 5 minutes
+- **Seuils d'alerte :**
+  - `status != "ok"` → Critique
+  - `scheduler_running == false` → Avertissement
+  - `last_tick` > 10 minutes → Critique
+  - `api_requests_remaining` < 100 → Avertissement
+  - `api_requests_remaining` < 50 → Critique
+
+**Outils recommandés :**
+- **Uptime Kuma** : Surveillance de la disponibilité
+- **Prometheus** : Collecte des métriques
+- **Grafana** : Tableaux de bord de surveillance
+- **AlertManager** : Gestion des alertes
+
+### 4. Tests d'intégration
+
+1. **Redémarrage de l'application**
+   - Vérifier que les compteurs de quota sont conservés
+   - Vérifier que le statut du scheduler est rétabli
+
+2. **Changement de jour**
+   - Simuler un changement de jour (minuit UTC)
+   - Vérifier que les compteurs sont réinitialisés
+   - Vérifier que `api_quota_day` est mis à jour
+
+3. **Chargement élevé**
+   - Simuler un nombre élevé de requêtes concurrentes
+   - Vérifier que l'endpoint reste réactif
+   - Surveiller l'utilisation mémoire/CPU
 
 **Validation** :
 - Simuler une panne (arrêter le planificateur, couper l'accès à l'API SwitchBot)
 - Vérifier que les alertes se déclenchent correctement
 - Vérifier que les alertes se résolvent lorsque le problème est corrigé
 
+## Tests de l'automatisation
+
+### 1. Priorité des scènes SwitchBot
+
+**Scénario** : Vérifier que le service d'automatisation utilise d'abord les scènes configurées avant de recourir aux commandes bas niveau.
+
+**Étapes :**
+1. Configurer une scène `winter` valide
+2. Simuler une température en dessous du seuil minimum
+3. Vérifier que la scène `winter` est déclenchée
+4. Vérifier que les commandes `setAll`/`turnOff` ne sont pas utilisées
+
+**Assertions :**
+- La scène est déclenchée exactement une fois
+- Le log indique l'utilisation de la scène
+- L'état du climatiseur est correctement mis à jour
+
+### 2. Fallback sur les commandes bas niveau
+
+**Scénario** : Vérifier le comportement lorsqu'une scène n'est pas configurée.
+
+**Étapes :**
+1. Supprimer la configuration de la scène `winter`
+2. Simuler une température en dessous du seuil minimum
+3. Vérifier que la commande `setAll` est utilisée avec les paramètres du profil hiver
+4. Vérifier qu'un avertissement est enregistré dans les logs
+
+**Assertions :**
+- La commande `setAll` est appelée avec les bons paramètres
+- Un avertissement est enregistré dans les logs
+- L'interface utilisateur affiche un indicateur pour la scène manquante
+
+### 3. Gestion des erreurs de scène
+
+**Scénario** : Vérifier le comportement lorsqu'une scène échoue.
+
+**Étapes :**
+1. Configurer une scène avec un UUID invalide
+2. Simuler une température en dessous du seuil minimum
+3. Vérifier que le système bascule sur les commandes bas niveau
+4. Vérifier qu'une erreur est enregistrée dans les logs
+
+**Assertions :**
+- Le système tente d'abord d'exécuter la scène
+- En cas d'échec, il bascule sur les commandes bas niveau
+- Une erreur est enregistrée dans les logs
+- L'interface utilisateur affiche l'état d'erreur
+
+### 4. Tests de performance
+
+**Scénario** : Vérifier que le système peut gérer un grand nombre de scènes et de commandes.
+
+**Étapes :**
+1. Configurer plusieurs scènes avec des paramètres différents
+2. Simuler des changements de température rapides
+3. Surveiller les temps de réponse et l'utilisation des ressources
+
+**Assertions :**
+- Les temps de réponse restent acceptables (< 500ms)
+- Aucune fuite de mémoire n'est détectée
+- Les commandes sont exécutées dans le bon ordre
+
+### 5. Tests d'intégration
+
+**Scénario** : Vérifier l'intégration entre les différents composants.
+
+**Étapes :**
+1. Configurer des scènes pour différents modes (hiver, été, ventilation)
+2. Simuler des changements de température et des plages horaires
+3. Vérifier que les scènes appropriées sont déclenchées
+4. Vérifier que le quota API est correctement mis à jour
+
+**Assertions :**
+- Les scènes sont déclenchées en fonction des conditions
+- Le quota API est correctement mis à jour
+- Les logs reflètent les actions entreprises
+- L'interface utilisateur est mise à jour en temps réel
+
 ## Tests de l'interface utilisateur
 
-### 1. Page d'accueil responsive
+### 1. Gestion du quota API
 
-**Desktop (> 768px)** :
-- Cartes en grille multi-colonnes
-- Hover states fonctionnels
-- Espacements optimaux pour souris
+**Scénario** : Vérifier que l'interface affiche correctement les informations de quota.
 
-**Mobile (< 768px)** :
-- Cartes pleine largeur
-- Contrôles tactiles espacés
-- Scrolling vertical fluide
+**Étapes :**
+1. Configurer un seuil d'alerte bas (ex: 100)
+2. Simuler une consommation de quota
+3. Vérifier que l'alerte s'affiche lorsque le seuil est atteint
+4. Vérifier que le compteur de quota est mis à jour en temps réel
 
-**Validation** :
-- Ouvrir devtools, tester différentes tailles d'écran
-- Vérifier que tous les éléments restent cliquables
+**Assertions :**
+- L'alerte de quota s'affiche au bon moment
+- Le compteur est mis à jour après chaque action
+- Le lien vers la configuration du quota fonctionne
 
-### 2. Formulaire Settings
+### 2. Configuration des scènes
 
-**Fonctionnalités** :
-- Switchs automatisation/mode
-- Dropdowns temporels (jours/heures)
-- Profils saisonniers bornés
+**Scénario** : Vérifier que l'interface permet de configurer les scènes.
 
-**Validation** :
-- Changer chaque paramètre individuellement
-- Vérifier la sauvegarde dans `settings.json`
-- Tester les valeurs limites (min/max)
+**Étapes :**
+1. Accéder à la page de configuration
+2. Ajouter/modifier une scène
+3. Vérifier que les changements sont enregistrés
+4. Tester la scène directement depuis l'interface
 
-### 3. Scènes SwitchBot et Automatisation
+**Assertions :**
+- Les champs de formulaire sont correctement validés
+- Les erreurs sont affichées de manière claire
+- Les scènes sont exécutées comme prévu
 
-#### Tests des scènes
+### 3. Navigation
 
-**1. Configuration et exécution**
-- Configurer chaque scène (hiver, été, ventilation, arrêt) avec des UUID valides
-- Vérifier que les boutons passent du rouge au vert après configuration
-- Tester chaque scène et vérifier l'exécution sur l'appareil cible
-- Vérifier que `state.json` est mis à jour avec `last_action` contenant `scene(<sceneId>)`
+- **Pages** : Vérifier que toutes les pages sont accessibles
+- **Liens** : Vérifier que tous les liens fonctionnent correctement
+- **Responsive** : Tester l'affichage sur différentes tailles d'écran
+- **Accessibilité** : Vérifier la navigation au clavier et le contraste des couleurs
 
-**2. Fallback vers commandes bas niveau**
-- Désactiver la scène "off" en laissant le champ vide
-- Activer `turn_off_outside_windows`
-- Vérifier que l'automatisation utilise `turnOff` quand la scène n'est pas configurée
-- Vérifier que `assumed_aircon_power` est correctement mis à jour
+### 4. Formulaire de configuration
 
-**3. Gestion des erreurs**
-- Configurer un UUID invalide pour une scène
-- Tester l'exécution et vérifier le message d'erreur
-- Vérifier que l'état reste cohérent malgré l'échec
-- Vérifier les logs pour les messages d'erreur détaillés
-
-**4. Tests automatisés**
-- Exécuter `pytest tests/test_automation_service.py -v`
-- Vérifier que tous les tests passent, en particulier :
-  - `test_run_once_prefers_winter_scene_and_records_quota`
-  - `test_run_once_falls_back_to_setall_when_scene_missing`
-  - `test_turn_off_outside_window_prefers_off_scene`
-  - `test_turn_off_falls_back_to_turnoff_command_when_scene_missing`
-
-### 4. Stockage Redis
-
-#### Configuration
-- Configurer l'application pour utiliser Redis (`STORE_BACKEND=redis`)
-- Vérifier que les données de configuration sont correctement chargées depuis Redis
-- Tester la persistance des modifications entre les redémarrages
-
-#### Scénarios de test
-
-**1. Basculer entre les backends**
-- Passer de `filesystem` à `redis` et inversement
-- Vérifier que les données sont correctement migrées
-- S'assurer qu'aucune donnée n'est perdue lors de la transition
-
-**2. Résilience**
-- Couper la connexion à Redis pendant le fonctionnement
-- Vérifier que l'application bascule correctement en mode `filesystem`
-- Rétablir la connexion et vérifier la reprise du service
-
-### 5. Actions rapides et boutons de scène
-
-**Boutons à tester** :
-- `Run once` : Vérifier exécution et mise à jour `state.json`
-- Boutons de scène : Vérifier l'exécution de chaque scène configurée
-- `Quick off` : Vérifier qu'il utilise la scène OFF ou la commande `turnOff`
-
-**Validation** :
-- Vérifier que `state.json` est mis à jour avec la dernière action
-- Confirmer que `assumed_aircon_power` est correctement mis à jour
-- Vérifier les logs pour confirmer l'exécution des scènes
-- Tester avec `LOG_LEVEL=debug` pour des informations détaillées
-
-## Tests page `/devices`
-
-### 1. Inventaire et copie d'ID
-
-**Workflow** :
-1. Ouvrir `/devices`
-2. Vérifier compteur devices/remotes
-3. Cliquer "Copier l'ID" sur un device Meter
-4. Coller dans un éditeur pour validation
-5. Répéter pour une remote Air Conditioner
-
-**Attendu** :
-- Retour visuel "Copié ✓" pendant 1,8 s
-- ID valide dans le presse-papiers
-- Pas d'erreur console
-
-### 2. Accordion JSON
-
-**Test** :
-- Cliquer "Afficher le JSON brut deviceList"
-- Vérifier que le payload s'affiche
-- Refermer et vérifier la fermeture
-
-### 3. Mobile responsiveness
-
-**Validation** :
-- Tester sur mobile réel ou devtools mobile
-- Vérifier que les cartes restent lisibles
-- Confirmer que les boutons sont accessibles
+- **Validation** : Tester la validation des champs (températures, heures, etc.)
+- **Soumission** : Vérifier que les modifications sont correctement enregistrées
+- **Retour d'erreur** : Vérifier que les messages d'erreur sont clairs et pertinents
+- **Confirmation** : Vérifier que les actions critiques nécessitent une confirmation
 
 ## Tests de thème et styles
 

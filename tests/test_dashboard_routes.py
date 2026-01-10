@@ -427,8 +427,9 @@ def test_quota_refresh_normalizes_state_and_shows_flash() -> None:
     assert response.status_code == 200
     refreshed_state = state_store.read()
     assert refreshed_state["api_quota_day"] == _today_iso()
-    assert refreshed_state["api_requests_total"] == 0
-    assert refreshed_state["api_requests_remaining"] == refreshed_state["api_requests_limit"] == 10_000
+    assert refreshed_state["api_requests_total"] == 1
+    assert refreshed_state["api_requests_limit"] == 10_000
+    assert refreshed_state["api_requests_remaining"] == 9_999
     soup = BeautifulSoup(response.data, "html.parser")
     success = soup.select_one(".alert-success")
     assert success is not None
