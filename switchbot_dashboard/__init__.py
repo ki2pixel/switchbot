@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -14,6 +15,11 @@ def create_app() -> Flask:
     app = Flask(__name__)
     app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev")
     app.config["STATE_DEBUG_TOKEN"] = os.environ.get("STATE_DEBUG_TOKEN", "").strip()
+
+    log_level_raw = os.environ.get("LOG_LEVEL", "info").strip().upper()
+    log_level = getattr(logging, log_level_raw, logging.INFO)
+    logging.getLogger().setLevel(log_level)
+    app.logger.setLevel(log_level)
 
     project_root = Path(__file__).resolve().parents[1]
     settings_path = os.environ.get(

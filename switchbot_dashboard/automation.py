@@ -74,10 +74,37 @@ class AutomationService:
         state.update(updates)
         self._state_store.write(state)
 
+    def _record_local_quota_fallback(self) -> None:
+        state = self._state_store.read()
+        today = dt.datetime.utcnow().date().isoformat()
+
+        if state.get("api_quota_day") != today:
+            state["api_quota_day"] = today
+            state["api_requests_total"] = 0
+
+        try:
+            used = int(state.get("api_requests_total") or 0)
+        except (TypeError, ValueError):
+            used = 0
+
+        used = max(used, 0) + 1
+        daily_limit = 10_000
+        remaining = max(daily_limit - used, 0)
+
+        state["api_requests_total"] = used
+        state["api_requests_remaining"] = remaining
+        self._state_store.write(state)
+
+        logger.info(
+            "Recorded SwitchBot API usage estimate (headers missing): used=%s remaining=%s",
+            used,
+            remaining,
+        )
+
     def _record_quota_snapshot(self) -> None:
         snapshot = self._client.get_last_quota_snapshot()
         if not snapshot:
-            logger.warning("SwitchBot quota snapshot missing on latest call.")
+            self._record_local_quota_fallback()
             return
 
         limit = snapshot.get("limit")

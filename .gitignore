@@ -21,8 +21,8 @@ venv/
 *.secret
 
 # Local config/state artifacts
-# config/settings.json
-# config/state.json
+config/settings.json
+config/state.json
 # memory-bank/
 
 # Logs / runtime
