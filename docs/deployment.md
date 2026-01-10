@@ -19,7 +19,7 @@ Le fichier `Dockerfile` à la racine :
 - Image de base `python:3.11-slim`.
 - Installation des dépendances via `requirements.txt` (incluant Gunicorn).
 - Création utilisateur non root `appuser`.
-- Démarrage via `gunicorn 'switchbot_dashboard:create_app()'` (port 8000, logs stdout/stderr, timeout 120s).
+- Démarrage via `gunicorn 'switchbot_dashboard:create_app()'` (port 8000, logs stdout/stderr, timeout 120s, niveau de log configurable via LOG_LEVEL).
 - Variables :
   - `PORT` (Render fournit automatiquement la valeur).
   - `WEB_CONCURRENCY` (défaut 2, ajustable via Render env var).
@@ -63,7 +63,12 @@ Le fichier `Dockerfile` à la racine :
    - `SWITCHBOT_RETRY_ATTEMPTS`, `SWITCHBOT_RETRY_DELAY_SECONDS` si besoin.
    - `SWITCHBOT_POLL_INTERVAL_SECONDS` pour override.
    - `WEB_CONCURRENCY` (optionnel, exemple `1` pour plan Free).
+   - `LOG_LEVEL` (optionnel) : Niveau de log pour Gunicorn (DEBUG, INFO, WARNING, ERROR, CRITICAL), défaut `info`.
    - `FLASK_SECRET_KEY` (secret aléatoire).
+   - `STORE_BACKEND=redis` pour activer la persistance externe des réglages/état.
+   - `REDIS_URL` (obligatoire si `STORE_BACKEND=redis`). Render fournit une URL TLS sous la forme `rediss://default:<password>@host:6379/0`.
+   - `REDIS_PREFIX` (optionnel, ex. `switchbot_dashboard:prod` pour isoler les clés).
+   - `REDIS_TTL_SECONDS` (optionnel) si vous souhaitez expirer automatiquement les données (laisser vide pour stockage permanent).
 3. Activer les logs sur Render : par défaut, Gunicorn écrit sur stdout/stderr, visibles dans l'onglet Logs.
 
 ## 5. Processus de déploiement
@@ -100,6 +105,10 @@ Le fichier `Dockerfile` à la racine :
 | Render → Environment | `SWITCHBOT_SECRET` | Secret SwitchBot API |
 | Render → Environment | `FLASK_SECRET_KEY` | Secret Flask |
 | Render → Environment | `WEB_CONCURRENCY` (optionnel) | Nombre de workers Gunicorn |
+| Render → Environment | `STORE_BACKEND` | `filesystem` (défaut) ou `redis`. Recommandé : `redis` pour la persistance |
+| Render → Environment | `REDIS_URL` | URL TLS de l'instance Redis Render |
+| Render → Environment | `REDIS_PREFIX` (optionnel) | Préfixe de clés pour isoler plusieurs environnements |
+| Render → Environment | `REDIS_TTL_SECONDS` (optionnel) | TTL des données stockées dans Redis |
 
 ## 8. Bonnes pratiques
 

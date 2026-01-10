@@ -3,11 +3,11 @@ from typing import Callable
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from .config_store import JsonStore
+from .config_store import BaseStore
 
 
 class SchedulerService:
-    def __init__(self, settings_store: JsonStore, tick_callable: Callable[[], None]) -> None:
+    def __init__(self, settings_store: BaseStore, tick_callable: Callable[[], None]) -> None:
         self._settings_store = settings_store
         self._tick_callable = tick_callable
         self._scheduler: BackgroundScheduler | None = None

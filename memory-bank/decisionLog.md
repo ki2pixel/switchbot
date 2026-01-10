@@ -37,3 +37,9 @@
 - Décision : standardiser l’exécution via un Dockerfile Gunicorn (logs stdout/stderr, utilisateur non-root) et publier l’image sur GitHub Container Registry avec un workflow GitHub Actions doté d’un fallback API Render.
 - Motivation : éviter les limites de build Render, disposer d’un pipeline reproductible et contrôlé depuis GitHub, garantir le déclenchement via webhook puis API si besoin.
 - Implication : tous les déploiements passent par `.github/workflows/build-and-push.yml`, les secrets `RENDER_DEPLOY_WEBHOOK_URL`, `RENDER_API_KEY`, `RENDER_SERVICE_ID` sont requis sur GitHub, Render consomme l’image GHCR (plan Free).
+
+[2026-01-10 02:20:00] - Gestion des quotas API SwitchBot avec fallback local
+- Décision : implémenter un compteur local journalier pour suivre l'utilisation de l'API SwitchBot, avec une limite de 10 000 requêtes par jour, en l'absence de headers de quota dans les réponses de l'API.
+- Motivation : l'API SwitchBot ne fournit pas systématiquement les en-têtes de quota (X-RateLimit-*), ce qui rendait l'affichage du quota inutilisable (affichant "N/A").
+- Implémentation : ajout d'un mécanisme de suivi local dans `automation.py` qui s'incrémente à chaque appel API et se réinitialise quotidiennement. Le compteur est stocké dans `state.json` et synchronisé avec l'interface utilisateur.
+- Configuration du niveau de log : modification du `Dockerfile` pour respecter la variable d'environnement `LOG_LEVEL` dans Gunicorn, permettant un débogage plus efficace en production.

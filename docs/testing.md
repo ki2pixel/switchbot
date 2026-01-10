@@ -196,6 +196,23 @@ test -f .env && grep -q "SWITCHBOT_TOKEN\|SWITCHBOT_SECRET" .env
 - Tester dedans/dehors des heures
 - Vérifier que l'automatisation respecte les horaires
 
+### 4. Système de quotas API
+
+**Validation** :
+- Déclencher plusieurs actions manuelles (Run once, Aircon ON/OFF) et vérifier que `api_requests_total` dans `state.json` s'incrémente après chaque appel API réussi.
+- Simuler un changement de jour en modifiant manuellement `api_quota_day` dans `state.json` à une date passée, puis redémarrer le serveur et confirmer la réinitialisation des compteurs.
+- Ouvrir l'UI après un appel API et vérifier que la vignette "Quota API quotidien" affiche les valeurs restantes/utilisées correctement, ou "N/A" si aucun quota n'a été capturé.
+- Temporairement invalider les tokens SwitchBot pour forcer le mode fallback local (sans headers) et s'assurer que le compteur s'incrémente malgré l'absence de headers de quota.
+
+### 5. Backend de stockage (filesystem vs Redis)
+
+**Scénario** : S'assurer que les réglages persistent après redémarrage/redeploy.
+
+1. Démarrer localement avec `STORE_BACKEND=filesystem`. Modifier un réglage via l'UI et vérifier la mise à jour du fichier `config/settings.json`.
+2. Exporter `config/settings.json` / `config/state.json`, définir `STORE_BACKEND=redis`, `REDIS_URL` (ex. instance Redis Docker locale) et redémarrer.
+3. Vérifier que l'UI affiche les réglages existants. Modifier de nouveaux paramètres, puis arrêter/redémarrer l'application : les valeurs doivent être conservées.
+4. Simuler une indisponibilité Redis (arrêt du conteneur) : confirmer que des logs d'erreur apparaissent et que l'application retombe en mode filesystem.
+
 ## Tests d'erreur et résilience
 
 ### 1. API SwitchBot injoignable

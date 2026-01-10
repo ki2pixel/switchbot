@@ -9,6 +9,16 @@ Le dashboard propose une interface mobile-first avec thème sombre immersif, org
 
 ## Page d'accueil (`/`)
 
+### En-tête avec quota API
+
+- L'en-tête affiche le titre "SwitchBot Dashboard" et le bouton d'accès à la page "Devices".
+- À droite, la vignette "Quota API quotidien" présente :
+  - Le nombre de requêtes restantes sur le quota journalier (10 000 par compte).
+  - Le nombre de requêtes utilisées, avec la limite totale affichée.
+  - Affichage "N/A" si aucune donnée de quota n'a encore été capturée.
+- Les valeurs sont mises à jour automatiquement après chaque appel API, via les headers de réponse ou le compteur local en fallback.
+- Utile pour surveiller l'usage avant d'exécuter des actions manuelles fréquentes.
+
 ### Carte Settings
 
 Configuration complète orientée mobile avec :

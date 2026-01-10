@@ -12,6 +12,7 @@ SWITCHBOT_SECRET=votre_secret_ici
 SWITCHBOT_RETRY_ATTEMPTS=2
 SWITCHBOT_RETRY_DELAY_SECONDS=10
 SWITCHBOT_POLL_INTERVAL_SECONDS=60
+LOG_LEVEL=info
 FLASK_SECRET_KEY=change_me
 ```
 
@@ -26,6 +27,7 @@ FLASK_SECRET_KEY=change_me
 
 - `SWITCHBOT_RETRY_ATTEMPTS` et `SWITCHBOT_RETRY_DELAY_SECONDS` retombent respectivement sur `2` et `10` secondes si la valeur fournie n'est pas un entier valide.  
 - Définir `FLASK_SECRET_KEY` dans `.env` est indispensable : en production, cela évite le fallback `"dev"` utilisé uniquement pour le développement et protège les sessions/flash messages.
+- `LOG_LEVEL` contrôle le niveau de log de Gunicorn (valeurs possibles : DEBUG, INFO, WARNING, ERROR, CRITICAL), appliqué via le Dockerfile en production et via `switchbot_dashboard/__init__.py` en développement.
 
 ### 2. Paramètres applicatifs (`config/settings.json`)
 
@@ -60,6 +62,33 @@ Ce fichier contient les réglages métier persistés :
   }
 }
 ```
+
+> ℹ️ **Production et conteneurs Render** : lorsque `STORE_BACKEND=redis` est activé, les fichiers `config/settings.json` et `config/state.json` empaquetés dans l'image Docker ne servent qu'à fournir des valeurs initiales. Toutes les modifications effectuées via l'interface sont écrites dans Redis et survivent aux redeploy/scale. Ne modifiez les fichiers locaux que pour préparer un premier déploiement ou dépanner hors ligne.
+
+### 3. Backend de stockage (filesystem vs Redis)
+
+| Variable | Description |
+| --- | --- |
+| `STORE_BACKEND` | `filesystem` (défaut) ou `redis`. Contrôle le backend utilisé pour `settings` et `state`. |
+| `REDIS_URL` | URL complète (supporte `redis://` et `rediss://`). Inclure mot de passe Render. |
+| `REDIS_PREFIX` | Préfixe utilisé pour composer les clés (`<prefix>:settings`, `<prefix>:state`). |
+| `REDIS_TTL_SECONDS` | Optionnel. TTL appliqué aux clés Redis (laisser vide pour persistance illimitée). |
+| `SWITCHBOT_SETTINGS_PATH` / `SWITCHBOT_STATE_PATH` | Forcent les chemins JSON si vous restez en mode filesystem. |
+
+**Procédure de migration** :
+
+1. Configurer et tester localement via le backend filesystem.
+2. Exporter `config/settings.json` et `config/state.json` si vous souhaitez pré-peupler Redis.
+3. Créer une instance Redis (Render → Redis) et récupérer l'URL sécurisée (`rediss://default:<password>@host:6379/0`).
+4. Définir `STORE_BACKEND=redis`, `REDIS_URL=<url>`, éventuellement `REDIS_PREFIX`.
+5. (Optionnel) Importer les fichiers via `redis-cli` : `SET switchbot_dashboard:settings "$(cat config/settings.json)"`.
+6. Redémarrer le service et vérifier depuis l'UI que les réglages persistent après un redeploy.
+
+**Sécurité** :
+
+- Préférer `rediss://` (TLS) pour tous les environnements accessibles depuis Internet.
+- Utiliser un mot de passe unique par environnement et limiter les droits réseau (Render gère automatiquement les ACL internes).
+- Journaliser les erreurs Redis : l'application repasse automatiquement en filesystem si le backend est indisponible (logs visibles dans Render).
 
 ## Inventaire des devices (`/devices`)
 
@@ -116,7 +145,10 @@ Ce fichier journalise l'état courant pour l'affichage UI :
   "last_humidity": 55,
   "last_action": "setAll",
   "last_action_at": "2026-01-09T17:30:00Z",
-  "assumed_aircon_state": "on",
+  "assumed_aircon_power": "on",
+  "api_requests_total": 150,
+  "api_requests_remaining": 9850,
+  "api_quota_day": "2026-01-10",
   "last_error": null
 }
 ```
@@ -130,10 +162,11 @@ Ce fichier journalise l'état courant pour l'affichage UI :
 
 ## Quotas & limites API
 
-- L'API SwitchBot applique une limite de 10 000 requêtes par jour et par compte (référence doc officielle).  
-- Les réponses importantes exposent des headers de quotas. Lorsque disponibles, `AutomationService` persiste `api_requests_remaining` et `api_requests_total` dans `config/state.json` afin de rendre l'information visible dans l'en-tête de `index.html`.  
-- La vignette "Quota API quotidien" affiche ces deux valeurs et indique `N/A` si l'information n'a pas encore été remontée.  
-- Surveiller ce compteur avant d'exécuter des rafales d'actions manuelles ou de réduire trop le poll interval : en dessous d'un reste de 200 appels, désactiver l'automatisation ou espacer les requêtes pour éviter d'atteindre le plafond quotidien.
+- L'API SwitchBot applique une limite de 10 000 requêtes par jour et par compte (référence doc officielle).  
+- Les réponses importantes exposent des headers de quotas (X-RateLimit-*). Lorsque disponibles, `AutomationService` persiste `api_requests_remaining` et `api_requests_total` dans `config/state.json` afin de rendre l'information visible dans l'en-tête de `index.html`.  
+- En l'absence de headers de quota dans les réponses API, le système maintient un compteur local journalier. Ce compteur s'incrémente à chaque appel API, se réinitialise automatiquement à minuit UTC, et stocke les valeurs `api_requests_total`, `api_requests_remaining` et `api_quota_day` dans `config/state.json`. Ce mécanisme de fallback garantit la visibilité des quotas même sans headers.  
+- La vignette "Quota API quotidien" affiche les valeurs restantes/utilisées sur 10 000, ou "N/A" si aucune information n'a encore été capturée.  
+- Surveiller ce compteur avant d'exécuter des rafales d'actions manuelles ou de réduire trop le `poll_interval_seconds` : en dessous d'un reste de 200 appels, désactiver l'automatisation ou espacer les requêtes pour éviter d'atteindre le plafond quotidien.
 
 ---
 

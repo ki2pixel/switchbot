@@ -5,7 +5,7 @@ import json
 import logging
 from typing import Any
 
-from .config_store import JsonStore
+from .config_store import BaseStore
 from .switchbot_api import SwitchBotApiError, SwitchBotClient
 
 
@@ -61,8 +61,8 @@ logger = logging.getLogger(__name__)
 class AutomationService:
     def __init__(
         self,
-        settings_store: JsonStore,
-        state_store: JsonStore,
+        settings_store: BaseStore,
+        state_store: BaseStore,
         switchbot_client: SwitchBotClient,
     ) -> None:
         self._settings_store = settings_store

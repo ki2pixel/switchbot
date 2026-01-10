@@ -56,10 +56,16 @@
 
 ## Terminé
 [2026-01-09 16:47:00] - Implémentation du thème sombre par défaut sur les templates index.html et devices.html.
-[2026-01-09 17:00:00] - Refonte de la page Devices : cartes lisibles, synthèse, copie d’ID et JSON repliables.
+[2026-01-09 17:00:00] - Refonte de la page Devices : cartes lisibles, synthèse, copie d'ID et JSON repliables.
 [2026-01-09 17:20:00] - Externalisation complète des styles (theme.css + feuilles spécifiques) et documentation associée.
 [2026-01-09 17:40:00] - Restructuration de la documentation en guides thématiques avec index et renvois croisés.
 [2026-01-09 22:05:00] - Chaîne de déploiement containerisée (Dockerfile, GHCR workflow, doc déploiement) livrée et premier déploiement Render validé.
+[2026-01-10 02:20:00] - Implémentation d'un système de suivi local des quotas API SwitchBot
+  - Ajout d'un compteur journalier local dans `automation.py` pour suivre l'utilisation de l'API (10 000 requêtes/jour)
+  - Configuration de `LOG_LEVEL` pour Gunicorn via la variable d'environnement
+  - Vérification de l'absence de headers de quota dans les réponses de l'API SwitchBot
+  - Mise à jour de l'interface utilisateur pour afficher les quotas calculés localement
+  - Documentation des décisions techniques dans la Memory Bank
 
 ## En cours
 Aucune tâche active.

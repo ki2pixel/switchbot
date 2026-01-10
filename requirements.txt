@@ -3,3 +3,4 @@ APScheduler>=3.10,<4
 requests>=2.31,<3
 python-dotenv>=1.0,<2
 gunicorn>=21.2,<22
+redis>=5,<6
