@@ -65,6 +65,17 @@ class ApiQuotaTracker:
         )
         return True
 
+    def refresh_snapshot(self) -> dict[str, Any]:
+        """
+        Force a normalization of the quota snapshot even if no API call occurred recently.
+
+        Returns the refreshed state for callers that want to reuse the values.
+        """
+        state = self._normalize_state()
+        self._state_store.write(state)
+        logger.debug("[quota] snapshot refreshed: day=%s remaining=%s", state.get("api_quota_day"), state.get("api_requests_remaining"))
+        return state
+
     def _normalize_state(self) -> dict[str, Any]:
         state = self._state_store.read()
         now = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc)

@@ -159,6 +159,7 @@ def create_app() -> Flask:
     app.extensions["switchbot_client"] = client
     app.extensions["automation_service"] = automation_service
     app.extensions["scheduler_service"] = scheduler_service
+    app.extensions["quota_tracker"] = quota_tracker
 
     app.register_blueprint(dashboard_bp)
 

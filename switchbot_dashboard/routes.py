@@ -171,6 +171,35 @@ def _extract_aircon_scenes(settings: dict[str, Any]) -> dict[str, str]:
     return sanitized
 
 
+def _build_quota_context(settings: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
+    api_requests_remaining = state.get("api_requests_remaining")
+    api_requests_total = state.get("api_requests_total")
+    api_requests_limit = state.get("api_requests_limit")
+    api_quota_reset_at = state.get("api_quota_reset_at")
+
+    raw_threshold = settings.get("api_quota_warning_threshold", DEFAULT_QUOTA_WARNING_THRESHOLD)
+    quota_warning_threshold = int(raw_threshold or DEFAULT_QUOTA_WARNING_THRESHOLD)
+    if quota_warning_threshold < 0:
+        quota_warning_threshold = 0
+
+    show_quota_warning = (
+        quota_warning_threshold > 0
+        and isinstance(api_requests_remaining, (int, float))
+        and api_requests_remaining is not None
+        and api_requests_remaining <= quota_warning_threshold
+    )
+
+    return {
+        "api_requests_remaining": api_requests_remaining,
+        "api_requests_total": api_requests_total,
+        "api_requests_limit": api_requests_limit,
+        "api_quota_day": state.get("api_quota_day"),
+        "api_quota_reset_at": api_quota_reset_at,
+        "quota_warning_threshold": quota_warning_threshold,
+        "show_quota_warning": show_quota_warning,
+    }
+
+
 @dashboard_bp.get("/")
 def index() -> str:
     settings_store = current_app.extensions["settings_store"]
@@ -182,20 +211,7 @@ def index() -> str:
     missing_scenes = {key: not aircon_scenes[key] for key in AIRCON_SCENE_KEYS}
 
     time_window_form = _get_time_window_form(settings)
-    api_requests_remaining = state.get("api_requests_remaining")
-    api_requests_total = state.get("api_requests_total")
-    api_requests_limit = state.get("api_requests_limit")
-    api_quota_reset_at = state.get("api_quota_reset_at")
-    quota_warning_threshold = int(settings.get("api_quota_warning_threshold") or DEFAULT_QUOTA_WARNING_THRESHOLD)
-    if quota_warning_threshold < 0:
-        quota_warning_threshold = 0
-
-    show_quota_warning = (
-        quota_warning_threshold > 0
-        and isinstance(api_requests_remaining, (int, float))
-        and api_requests_remaining is not None
-        and api_requests_remaining <= quota_warning_threshold
-    )
+    quota_context = _build_quota_context(settings, state)
 
     return render_template(
         "index.html",
@@ -211,14 +227,32 @@ def index() -> str:
         fan_speed_choices=FAN_SPEED_CHOICES,
         ac_mode_choices=AC_MODE_CHOICES,
         aircon_scene_keys=AIRCON_SCENE_KEYS,
-        api_requests_remaining=api_requests_remaining,
-        api_requests_total=api_requests_total,
-        api_requests_limit=api_requests_limit,
-        api_quota_day=state.get("api_quota_day"),
-        api_quota_reset_at=api_quota_reset_at,
-        quota_warning_threshold=quota_warning_threshold,
-        show_quota_warning=show_quota_warning,
+        quota_warning_threshold=quota_context["quota_warning_threshold"],
     )
+
+
+@dashboard_bp.get("/quota")
+def quota() -> str:
+    settings_store = current_app.extensions["settings_store"]
+    state_store = current_app.extensions["state_store"]
+
+    settings = settings_store.read()
+    state = state_store.read()
+    quota_context = _build_quota_context(settings, state)
+
+    return render_template("quota.html", **quota_context)
+
+
+@dashboard_bp.post("/quota/refresh")
+def quota_refresh() -> Any:
+    quota_tracker = current_app.extensions.get("quota_tracker")
+    if quota_tracker is None:
+        flash("Quota tracker unavailable.", "error")
+        return redirect(url_for("dashboard.quota"))
+
+    quota_tracker.refresh_snapshot()
+    flash("Quota mis à jour.", "success")
+    return redirect(url_for("dashboard.quota"))
 
 
 @dashboard_bp.get("/debug/state")

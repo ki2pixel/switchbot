@@ -91,16 +91,15 @@ def _build_app(
     state_store = MemoryStore(initial_state or {})
     scheduler = DummyScheduler()
 
-    quota_tracker: ApiQuotaTracker | None = None
-    if isinstance(client, DummyClient):
-        quota_tracker = ApiQuotaTracker(state_store)
-        client.attach_quota_tracker(quota_tracker)
-
+    quota_tracker = ApiQuotaTracker(state_store)
     app.extensions["settings_store"] = settings_store
     app.extensions["state_store"] = state_store
+    if isinstance(client, DummyClient):
+        client.attach_quota_tracker(quota_tracker)
     app.extensions["switchbot_client"] = client or object()
     app.extensions["automation_service"] = object()
     app.extensions["scheduler_service"] = scheduler
+    app.extensions["quota_tracker"] = quota_tracker
 
     app.register_blueprint(dashboard_bp)
     return app, settings_store, state_store, scheduler, quota_tracker
@@ -341,19 +340,18 @@ def test_quick_off_multiple_calls_accumulate_quota_usage() -> None:
     assert persisted_settings["automation_enabled"] is False
 
 
-def test_index_renders_quota_alert_when_threshold_met() -> None:
+def test_index_renders_quota_threshold_field_without_alert() -> None:
     settings = {
         "automation_enabled": False,
         "mode": "winter",
-        "api_quota_warning_threshold": 200,
+        "api_quota_warning_threshold": 350,
         "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
     }
     state = {
-        "api_requests_total": 9_900,
-        "api_requests_remaining": 100,
+        "api_requests_total": 100,
+        "api_requests_remaining": 9_900,
         "api_requests_limit": 10_000,
         "api_quota_day": _today_iso(),
-        "api_quota_reset_at": "2026-01-10T00:00:00+00:00",
     }
     app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
         settings,
@@ -365,58 +363,73 @@ def test_index_renders_quota_alert_when_threshold_met() -> None:
 
     assert response.status_code == 200
     soup = BeautifulSoup(response.data, "html.parser")
-    meta = soup.select_one(".api-quota-meta")
-    assert meta is not None
-    assert _today_iso() in meta.get_text()
+    alert = soup.select_one(".quota-alert")
+    assert alert is None
+    threshold_field = soup.select_one("#api_quota_warning_threshold")
+    assert threshold_field is not None
+    assert threshold_field.get("value") == "350"
+
+
+def test_quota_page_displays_alert_when_threshold_hit() -> None:
+    settings = {
+        "api_quota_warning_threshold": 100,
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
+    }
+    state = {
+        "api_requests_total": 9_950,
+        "api_requests_remaining": 50,
+        "api_requests_limit": 10_000,
+        "api_quota_day": _today_iso(),
+        "api_quota_reset_at": "2026-01-11T00:00:00+00:00",
+    }
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state=state,
+    )
+
+    with app.test_client() as client:
+        response = client.get("/quota")
+
+    assert response.status_code == 200
+    soup = BeautifulSoup(response.data, "html.parser")
+    title = soup.select_one("h1")
+    assert title is not None
+    assert "Quota API quotidien" in title.get_text()
+    remaining_value = soup.select_one(".metric-value")
+    assert remaining_value is not None
+    assert "50" in remaining_value.get_text()
     alert = soup.select_one(".quota-alert")
     assert alert is not None
     alert_text = " ".join(alert.get_text(strip=True).split())
     assert "100" in alert_text
-    assert "200" in alert_text
-    assert "2026-01-10T00:00:00+00:00" in soup.select_one(".api-quota-meta").get_text()
+    assert "50" in alert_text
 
 
-def test_index_hides_quota_alert_when_threshold_high() -> None:
+def test_quota_refresh_normalizes_state_and_shows_flash() -> None:
     settings = {
-        "automation_enabled": False,
-        "mode": "winter",
-        "api_quota_warning_threshold": 20,
+        "api_quota_warning_threshold": 100,
         "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
     }
     state = {
-        "api_requests_total": 1_000,
-        "api_requests_remaining": 9_000,
+        "api_quota_day": "2000-01-01",
+        "api_requests_total": 9000,
+        "api_requests_remaining": 1000,
         "api_requests_limit": 10_000,
-        "api_quota_day": _today_iso(),
     }
-    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
+    app, _settings_store, state_store, _scheduler, _tracker = _build_app(
         settings,
         initial_state=state,
     )
 
     with app.test_client() as client:
-        response = client.get("/")
+        response = client.post("/quota/refresh", follow_redirects=True)
 
     assert response.status_code == 200
+    refreshed_state = state_store.read()
+    assert refreshed_state["api_quota_day"] == _today_iso()
+    assert refreshed_state["api_requests_total"] == 0
+    assert refreshed_state["api_requests_remaining"] == refreshed_state["api_requests_limit"] == 10_000
     soup = BeautifulSoup(response.data, "html.parser")
-    assert soup.select_one(".quota-alert") is None
-
-
-def test_index_hides_quota_alert_when_values_missing() -> None:
-    settings = {
-        "automation_enabled": False,
-        "mode": "winter",
-        "api_quota_warning_threshold": 200,
-        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
-    }
-    state = {}
-    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
-        settings,
-        initial_state=state,
-    )
-
-    with app.test_client() as client:
-        response = client.get("/")
-
-    soup = BeautifulSoup(response.data, "html.parser")
-    assert soup.select_one(".quota-alert") is None
+    success = soup.select_one(".alert-success")
+    assert success is not None
+    assert "Quota mis à jour" in success.get_text()

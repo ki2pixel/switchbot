@@ -223,6 +223,43 @@ Le tableau de bord prend en charge deux modes de stockage pour les paramètres e
 - Préférer `rediss://` (TLS) pour tous les environnements accessibles depuis Internet.
 - Utiliser un mot de passe unique par environnement et limiter les droits réseau (Render gère automatiquement les ACL internes).
 
+## Navigation principale
+
+- **Page d'accueil (`/`)** : Contrôle du scheduler, réglages horaires, profils hiver/été et scènes SwitchBot.
+- **Page devices (`/devices`)** : Inventaire complet des devices pour récupérer rapidement les IDs.
+- **Page quota (`/quota`)** : Suivi du quota API quotidien calculé par `ApiQuotaTracker`.
+
+## Page d'accueil (`/`)
+
+### En-tête
+
+- Titre + sous-titre rappelant la mission du dashboard.
+- Deux boutons principaux :
+  - **Quota API** → ouvre la page `/quota`.
+  - **Devices** → redirige vers `/devices`.
+- L'allègement de l'en-tête libère de l'espace pour les cartes **Current status** et **Settings**.
+
+### Carte Settings
+
+- Le champ `Quota warning threshold` configure `api_quota_warning_threshold`.
+- Une valeur de `0` désactive l'alerte.
+- Les autres réglages (mode, fenêtres horaires, scènes) restent inchangés.
+
+## Page quota API (`/quota`)
+
+- La vignette "Quota API quotidien" affiche :
+  - Requêtes restantes (`api_requests_remaining`) et utilisées (`api_requests_total`) avec la limite (`api_requests_limit`, 10 000 par défaut).
+  - Jour suivi (`api_quota_day`) et horaire de reset (`api_quota_reset_at`). Si l'horodatage est absent, l'UI rappelle la réinitialisation à 00:00 UTC.
+  - Alerte jaune lorsque `api_requests_remaining` ≤ `api_quota_warning_threshold`.
+- Un encadré latéral rappelle le fonctionnement d'`ApiQuotaTracker` :
+  - Réinitialisation automatique à minuit (UTC).
+  - Fallback local lorsque l'API n'expose pas les en-têtes `X-RateLimit-*`.
+  - Comptabilisation des appels issus de l'automatisation, des actions rapides, des scènes et des pages `/devices`.
+- **Conseils d'exploitation** :
+  - Ajustez `api_quota_warning_threshold` depuis la page d'accueil avant les journées chargées (valeur par défaut : 250).
+  - Sous le seuil, réduisez les actions manuelles ou augmentez `poll_interval_seconds`.
+  - Contrôlez la page avant un rafraîchissement massif des devices ou un ajustement de scènes.
+
 ## Inventaire des devices (`/devices`)
 
 ### Workflow de récupération des IDs
@@ -300,7 +337,8 @@ Ce fichier journalise l'état courant pour l'affichage UI :
   - Si les headers `X-RateLimit-*` sont présents, ils sont persistés tels quels (`api_requests_limit`, `api_requests_remaining`, `api_requests_total`) pour refléter l'état exact fourni par SwitchBot.
   - Si les headers sont absents (cas le plus fréquent), le tracker tombe en mode estimation locale en incrémentant `api_requests_total` à chaque requête réussie et en recalculant `api_requests_remaining` en fonction de la limite journalière (10 000 par défaut, ajustée si SwitchBot communique une `limit` différente).  
 - Le tracker réinitialise automatiquement `api_quota_day`, `api_requests_total`, `api_requests_remaining` et `api_requests_limit` à minuit UTC, garantissant que l'UI reflète la consommation du jour courant.
-- La vignette "Quota API quotidien" lit désormais ces valeurs sans logique spécifique côté template. L'information est donc cohérente qu'on déclenche une action via l'automatisation (`run_once`) ou via un bouton rapide. Un nouveau champ `api_quota_warning_threshold` (défaut : 250) permet d'afficher une alerte visuelle lorsque `api_requests_remaining` passe sous ce seuil, afin d'anticiper l'épuisement du quota quotidien.
+- La vignette "Quota API quotidien" (page `/quota`) consomme ces valeurs sans logique supplémentaire. Que les appels proviennent du scheduler, d'un bouton rapide ou de la page `/devices`, l'information reste synchronisée.
+- Le champ `api_quota_warning_threshold` (défaut : 250) déclenche l'alerte affichée sur `/quota`. Fixez-le selon vos besoins : valeur plus élevée pour anticiper, `0` pour désactiver l'avertissement.
 - Recommandation opérationnelle : surveiller ce compteur avant d'exécuter des rafales d'actions manuelles ou de réduire trop le `poll_interval_seconds`. En dessous de ~200 appels restants, suspendre l'automatisation ou allonger l'intervalle pour éviter de saturer la journée.
 
 ---
