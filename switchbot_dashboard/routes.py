@@ -4,7 +4,7 @@ import datetime as dt
 import json
 from typing import Any
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for, abort
 
 from .switchbot_api import SwitchBotApiError
 
@@ -164,6 +164,23 @@ def index() -> str:
         ac_mode_choices=AC_MODE_CHOICES,
         api_requests_remaining=api_requests_remaining,
         api_requests_total=api_requests_total,
+    )
+
+
+@dashboard_bp.get("/debug/state")
+def debug_state() -> Any:
+    expected_token = current_app.config.get("STATE_DEBUG_TOKEN")
+    provided_token = request.args.get("token")
+
+    if not expected_token or provided_token != expected_token:
+        abort(404)
+
+    state_store = current_app.extensions["state_store"]
+    state = state_store.read()
+
+    return current_app.response_class(
+        json.dumps(state, indent=2, ensure_ascii=False) + "\n",
+        mimetype="application/json",
     )
 
 

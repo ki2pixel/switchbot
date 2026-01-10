@@ -13,6 +13,7 @@ from .routes import dashboard_bp
 def create_app() -> Flask:
     app = Flask(__name__)
     app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev")
+    app.config["STATE_DEBUG_TOKEN"] = os.environ.get("STATE_DEBUG_TOKEN", "").strip()
 
     project_root = Path(__file__).resolve().parents[1]
     settings_path = os.environ.get(
