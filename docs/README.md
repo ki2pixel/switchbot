@@ -5,10 +5,10 @@ Documentation structurée du projet avec guides thématiques.
 ## 📚 Guides
 
 - **[Installation et Démarrage](setup.md)** - Prérequis, installation venv, configuration initiale
-- **[Configuration](configuration.md)** - `.env`, `settings.json`, workflow `/devices`, validation
-- **[Guide UI](ui-guide.md)** - Interface utilisateur, interactions mobile/desktop, accessibilité  
+- **[Configuration](configuration.md)** - `.env`, `settings.json`, workflow `/devices`, validation, quotas API
+- **[Guide UI](ui-guide.md)** - Interface utilisateur, bandeau quota, interactions mobile/desktop, accessibilité  
 - **[Theming](theming.md)** - Thème sombre, variables CSS, personnalisation, contrast WCAG
-- **[Tests et Validation](testing.md)** - Scénarios de test manuel, vérification, sécurité
+- **[Tests et Validation](testing.md)** - Scénarios de test manuel (quota, automation, sécurité)
 - **[Déploiement Render/GitHub](deployment.md)** - Docker, CI/CD GHCR, secrets, déclenchement Render
 
 ## 🎯 Objectif

@@ -35,35 +35,58 @@ Ce fichier contient les réglages métier persistés :
 
 ```json
 {
-  "meter_device_id": "C271111EC0AB",
-  "aircon_device_id": "02-202008110034-13",
+  "automation_enabled": true,
+  "mode": "summer",
   "poll_interval_seconds": 60,
   "command_cooldown_seconds": 30,
   "hysteresis_celsius": 0.5,
-  "automation_enabled": true,
-  "mode": "summer",
-  "time_windows": {
-    "monday": {"enabled": true, "start": "08:00", "end": "22:00"},
-    "tuesday": {"enabled": true, "start": "08:00", "end": "22:00"}
-  },
-  "summer_profile": {
-    "min_temperature": 22.0,
-    "max_temperature": 26.0,
-    "target_temperature": 24.0,
-    "ac_mode": 2,
-    "fan_speed": 1
-  },
-  "winter_profile": {
-    "min_temperature": 18.0,
-    "max_temperature": 22.0,
-    "target_temperature": 20.0,
+  "meter_device_id": "C271111EC0AB",
+  "aircon_device_id": "02-202008110034-13",
+  "time_windows": [
+    {
+      "days": [0, 1, 2, 3, 4, 5, 6],
+      "start": "08:00",
+      "end": "22:00"
+    }
+  ],
+  "winter": {
+    "min_temp": 18.0,
+    "max_temp": 22.0,
+    "target_temp": 20.0,
     "ac_mode": 5,
-    "fan_speed": 1
+    "fan_speed": 3
+  },
+  "summer": {
+    "min_temp": 22.0,
+    "max_temp": 26.0,
+    "target_temp": 24.0,
+    "ac_mode": 2,
+    "fan_speed": 2
+  },
+  "aircon_presets": {
+    "winter": {
+      "target_temp": 25.0,
+      "ac_mode": 5,
+      "fan_speed": 3
+    },
+    "summer": {
+      "target_temp": 18.0,
+      "ac_mode": 2,
+      "fan_speed": 3
+    }
   }
 }
 ```
 
 > ℹ️ **Production et conteneurs Render** : lorsque `STORE_BACKEND=redis` est activé, les fichiers `config/settings.json` et `config/state.json` empaquetés dans l'image Docker ne servent qu'à fournir des valeurs initiales. Toutes les modifications effectuées via l'interface sont écrites dans Redis et survivent aux redeploy/scale. Ne modifiez les fichiers locaux que pour préparer un premier déploiement ou dépanner hors ligne.
+
+#### Aircon presets (boutons manuels)
+
+- La clé `aircon_presets` contient deux sous-objets `winter` et `summer`.  
+- Chaque sous-objet définit les paramètres envoyés lors du clic sur “Aircon ON – Hiver/Été” (`setAll` côté SwitchBot).  
+- Les champs supportés : `target_temp` (10‑40 °C), `ac_mode` (1‑5) et `fan_speed` (1‑4).  
+- L’UI expose désormais ces valeurs dans la carte “Manual Aircon presets”, et les validations utilisent les mêmes helpers `_as_float/_as_int` que le reste du formulaire.  
+- Si la clé est absente, les valeurs par défaut documentées (`winter: 25 °C heat medium`, `summer: 18 °C cool medium`) sont utilisées.
 
 ### 3. Backend de stockage (filesystem vs Redis)
 
@@ -162,11 +185,14 @@ Ce fichier journalise l'état courant pour l'affichage UI :
 
 ## Quotas & limites API
 
-- L'API SwitchBot applique une limite de 10 000 requêtes par jour et par compte (référence doc officielle).  
-- Les réponses importantes exposent des headers de quotas (X-RateLimit-*). Lorsque disponibles, `AutomationService` persiste `api_requests_remaining` et `api_requests_total` dans `config/state.json` afin de rendre l'information visible dans l'en-tête de `index.html`.  
-- En l'absence de headers de quota dans les réponses API, le système maintient un compteur local journalier. Ce compteur s'incrémente à chaque appel API, se réinitialise automatiquement à minuit UTC, et stocke les valeurs `api_requests_total`, `api_requests_remaining` et `api_quota_day` dans `config/state.json`. Ce mécanisme de fallback garantit la visibilité des quotas même sans headers.  
-- La vignette "Quota API quotidien" affiche les valeurs restantes/utilisées sur 10 000, ou "N/A" si aucune information n'a encore été capturée.  
-- Surveiller ce compteur avant d'exécuter des rafales d'actions manuelles ou de réduire trop le `poll_interval_seconds` : en dessous d'un reste de 200 appels, désactiver l'automatisation ou espacer les requêtes pour éviter d'atteindre le plafond quotidien.
+- L'API SwitchBot applique une limite stricte de **10 000 requêtes/jour** et par compte (référence doc officielle).  
+- Les réponses importantes exposent idéalement des headers `X-RateLimit-*`. Lorsque disponibles, `AutomationService` lit ces valeurs, les convertit et persiste immédiatement `api_requests_remaining` et `api_requests_total` dans `config/state.json` afin de rendre l'information visible dans l'en-tête de `index.html`.  
+- **Fallback local journalier** : si les headers sont absents, chaque appel API déclenché par `AutomationService` (lecture du capteur via `poll_meter()` + envoi de commandes `_send_aircon_off` / `_send_aircon_setall`) incrémente un compteur local. Ce compteur :
+  - s'exécute lors de chaque tick ou action manuelle déclenchant un appel SwitchBot,
+  - se réinitialise automatiquement à minuit UTC grâce à la clé `api_quota_day`,
+  - stocke `api_requests_total`, `api_requests_remaining` et `api_quota_day` dans `config/state.json` pour garantir une visibilité continue.  
+- La vignette "Quota API quotidien" affiche ces valeurs (restantes/utilisées) sur 10 000, ou "N/A" si aucun appel n'a encore été effectué depuis le démarrage.  
+- Recommandation opérationnelle : surveiller ce compteur avant d'exécuter des rafales d'actions manuelles ou de réduire trop le `poll_interval_seconds`. En dessous de ~200 appels restants, suspendre l'automatisation ou allonger l'intervalle pour éviter de saturer la journée.
 
 ---
 

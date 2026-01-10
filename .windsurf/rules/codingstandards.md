@@ -4,9 +4,9 @@ description:
 globs: 
 ---
 
-# Standards de développement – SwitchBot Dashboard
+# Standards de développement – SwitchBot Dashboard (MàJ Janvier 2026)
 
-Ce document décrit les règles obligatoires pour tout nouveau code ou refactorisation. Il complète `docs/README.md` (installation) et doit être lu avant toute contribution.
+Ce document décrit les règles obligatoires pour tout nouveau code ou refactorisation.
 
 ## 1. Philosophie générale
 
@@ -20,61 +20,78 @@ Ce document décrit les règles obligatoires pour tout nouveau code ou refactori
 ## 2. Organisation du code
 
 - **Python** : regrouper la logique métier dans `switchbot_dashboard/` (services, API, tâches). Éviter d’ajouter du code dans `app.py` hors bootstrap.
-- **Configuration** : seules les valeurs persistées vont dans `config/settings.json` ou `config/state.json` via `JsonStore`. Les secrets restent dans `.env`.
+- **Configuration** : seules les valeurs persistées vont dans le store configuré (Redis ou JSON). Les secrets restent dans `.env`.
 - **Docs** : toute règle ou procédure doit résider dans `docs/` et être liée depuis le README si critique.
-- **Imports** : ordre PEP 8 (stdlib, deps, modules locaux) avec lignes vides entre groupes.
+- **Imports** : ordre PEP 8 (stdlib, deps, modules locaux) avec lignes vides entre groupes.
+- **Thématisation** : Tous les styles doivent résider dans `static/css/`. L'usage de `<style>` inline dans les templates Jinja est proscrit.
 
-## 3. Backend Python (Flask)
+## 3. Backend Python (Flask) & Stockage
 
+### Typage et Validation
 - **Typage** : activer `from __future__ import annotations` dans les nouveaux modules et typer toutes les signatures publiques.
 - **Validation** : centraliser la conversion/validation des paramètres (cf. helpers `_as_bool`, `_as_int`, `_as_float`). Ne jamais consommer directement `request.form` hors de ces fonctions.
+
+### Sélection dynamique du stockage (`BaseStore`)
+- Toute lecture/écriture de `settings` ou `state` doit passer par un objet `BaseStore` obtenu via `current_app.extensions`. **Interdiction d'ouvrir les fichiers JSON directement.**
+- Le système supporte Redis (`RedisJsonStore`) avec un fallback automatique vers le système de fichiers (`JsonStore`).
+- Lorsqu'un code manipule un store, il doit traiter `StoreError` et laisser `create_app()` gérer la logique de bascule (ne pas dupliquer la logique de fallback).
+
+### Services et API
 - **Services** : encapsuler les appels SwitchBot dans des classes dédiées (ex: `SwitchBotClient`). Pas de requêtes HTTP dans les vues.
+- **Quotas API** : Chaque appel au `SwitchBotClient` doit enregistrer le quota via l'API fournie par `AutomationService`. L'accès direct à `state.json` pour incrémenter les compteurs est interdit.
 - **Erreurs** : lever des exceptions spécifiques (`SwitchBotApiError`) et les traduire en messages utilisateur via `flash`.
-- **Concurrence** : toute écriture disque via `JsonStore` doit être atomique. Éviter les accès concurrents non contrôlés.
-- **Performance** : éviter les requêtes API répétées dans une même requête Flask; préférer un cache léger ou le `SchedulerService`.
 
 ## 4. Frontend & templates Jinja
 
-- **Structure** : séparer le HTML, le JS inline minimal, et les styles via des blocs `<style>` situés en bas du template ou dans des fichiers statiques si volumineux.
-- **Accessibilité** : utiliser des labels explicites, attributs `aria-*` lorsque nécessaire, contrastes suffisants. Tester en mobile (viewport meta).
-- **Comportement** : tout script manipulant l’état doit vérifier les valeurs renvoyées par le backend; gérer les erreurs (`fetch` avec `try/catch`, `flash` côté serveur).
-- **Design** : respecter les directives Frontend (pas de fonts par défaut, couleurs intentionnelles, animations limitées mais signifiantes). Documenter les palettes dans ce fichier si personnalisées.
+- **Structure** : séparer le HTML des styles. Importer la palette via `theme.css` et placer les styles spécifiques dans un fichier dédié sous `static/css/` (ex: `devices.css`).
+- **Thème Sombre** : Utiliser exclusivement les variables CSS définies dans `theme.css`. Éviter les codes couleur "magiques" (#FFF, etc.) dans les templates.
+- **Accessibilité** : respecter la checklist WCAG (labels explicites, attributs `aria-*`, contrastes suffisants). Tester systématiquement le focus et le survol (hover).
+- **Comportement** : tout script JS manipulant l’état doit vérifier les valeurs renvoyées par le backend; gérer les erreurs via `try/catch`.
 
 ## 5. Configuration, secrets et environnement
 
 - **.env** : aucune valeur sensible ne doit être commitée. Fournir une version dans `.env.example`.
-- **Variables dynamiques** : lorsqu’une variable d’environnement peut surcharger un paramètre (ex: `SWITCHBOT_POLL_INTERVAL_SECONDS`), synchroniser proprement dans `create_app`.
-- **Validation** : lors du chargement de JSON (settings/state), vérifier les schémas attendus et loguer les champs inconnus.
+- **Variables dynamiques** : Toute nouvelle variable (ex: `REDIS_URL`, `LOG_LEVEL`, `STORE_BACKEND`) doit être documentée dans `docs/configuration.md` avec des valeurs par défaut explicites et validées (trim, types) dans `create_app`.
+- **Validation** : lors du chargement de données persistées, vérifier les schémas attendus et loguer les champs inconnus.
 
-## 6. Journalisation & observabilité
+## 6. Journalisation & Observabilité
 
-- Utiliser `current_app.logger` pour tout message serveur. N’écrire ni `print` ni logs silencieux.
-- Préfixer les logs critiques par le contexte (`[scheduler]`, `[api]`, etc.) pour simplifier le filtrage.
-- Ne jamais loguer de secrets ni de payloads contenant des données sensibles.
+- **Logger** : Utiliser `current_app.logger` ou un logger enfant. Ne jamais utiliser `logging.basicConfig` ou `print`.
+- **Configuration** : Le niveau de log doit respecter la variable d'environnement `LOG_LEVEL`.
+- **Contexte** : Préfixer les messages par le contexte entre crochets : `[scheduler]`, `[api]`, `[store]`, etc.
+- **Sécurité** : Ne jamais loguer de secrets, de jetons API ou de payloads contenant des données personnelles sensibles.
+- **Quotas** : L'interface doit afficher les quotas calculés localement (reset à minuit UTC) et alerter l'utilisateur en cas de dépassement imminent.
 
 ## 7. Tests & assurance qualité
 
+### Scénarios obligatoires
 - **Cas nominaux** : température stable, réglages valides, commandes SwitchBot OK.
-- **Cas limites** : seuils avec hysteresis (limite ±0.1°C), JSON corrompu, credentials manquants, API 429/5xx.
-- **Cas d’erreur** : IDs vides, réglages impossibles (min > max), timeouts SwitchBot, scheduler stoppé.
-- Ajouter des tests unitaires pour toute logique de conversion/validation nouvellement créée. Décrire les scénarios manuels attendus dans `docs/README.md` si non automatisables.
+- **Cas limites** : seuils avec hystérésis (limite ±0.1°C), JSON corrompu, credentials manquants.
+- **Résilience stockage** : simuler l'indisponibilité de Redis pour vérifier le basculement transparent vers le stockage local.
+- **API SwitchBot** : simuler les erreurs 429 (Too Many Requests) et 5xx pour vérifier le comportement des compteurs de quota et des retries.
+
+### Automatisation
+- Ajouter des tests unitaires pour toute logique de conversion/validation.
+- Utiliser `caplog` (pytest) pour vérifier que les logs de bascule de stockage ou d'erreurs API sont correctement émis au niveau attendu.
 
 ## 8. Process de contribution
 
-1. Créer une branche descriptive (`feature/hysteresis-config`).
-2. Tenir `docs/` synchronisé lorsque vous introduisez de nouvelles commandes, paramètres ou flux.
-3. Soumettre une PR avec :
-   - description claire,
-   - captures ou logs pertinents,
-   - checklist de tests manuels effectués.
-4. Revue :
-   - vérifier sécurité (données utilisateurs, appels API),
-   - double-check performance (boucles, appels réseau),
-   - confirmer que les règles ci-dessus sont respectées.
+1. **Branche** : Créer une branche descriptive (`feature/redis-backend`).
+2. **Documentation** : Mettre à jour `docs/` (configuration, thèmes, tests) en même temps que le code.
+3. **PR (Pull Request)** :
+   - Description claire des changements.
+   - Capture d'écran si impact UI (vérification thème sombre/mobile).
+   - Checklist des tests manuels effectués (notamment le fallback storage).
+4. **Revue** :
+   - Vérifier l'absence de styles inline.
+   - Vérifier que l'accès au stockage passe par `BaseStore`.
+   - Confirmer la gestion des quotas API.
 
 ## 9. Décisions et traçabilité
 
-- Toute décision architecturale majeure doit être ajoutée dans `memory-bank/decisionLog.md` avec horodatage.
-- Documenter les tâches en cours/terminées dans `memory-bank/progress.md` pour garder l’historique des efforts.
+- Toute décision architecturale majeure doit être consignée dans `memory-bank/decisionLog.md` avec horodatage.
+- Les progrès et tâches restantes sont suivis dans `memory-bank/progress.md`.
+- Ce standard est complété par les guides spécifiques : `docs/configuration.md`, `docs/testing.md`, `docs/theming.md`.
 
 ---
+*Dernière mise à jour : 10 Janvier 2026*

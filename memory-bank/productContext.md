@@ -37,6 +37,13 @@
 - `state.json` journalise les dernières lectures/erreurs pour inspection depuis l’UI.
 - Tests recommandés (docs/README.md) : validation des paramètres, transitions des seuils, fiabilité du cooldown, gestion des erreurs API (429/5xx/190).
 
+[2026-01-10 10:55:00] - Stockage persistant multi-backend
+
+- `switchbot_dashboard/config_store.py` introduit une interface `BaseStore` et deux implémentations : `JsonStore` (filesystem) et `RedisJsonStore`.
+- `create_app()` choisit dynamiquement le backend via `STORE_BACKEND` (`filesystem` par défaut), `REDIS_URL`, `REDIS_PREFIX` et `REDIS_TTL_SECONDS`, avec fallback automatique vers le filesystem en cas d’erreur.
+- Les fichiers `config/settings.json` et `config/state.json` restent les valeurs initiales du conteneur, tandis que la production (Render/Upstash) persiste désormais dans Redis, garantissant la survie des réglages après redeploy/scale.
+- La documentation (`docs/configuration.md`, `docs/deployment.md`, `docs/testing.md`) détaille la migration, la sécurité (TLS `rediss://`, mots de passe), et les tests à exécuter pour valider la persistance.
+
 [2026-01-09 16:20:00] - UX mobile & formulaires guidés
 
 - L’écran principal (`switchbot_dashboard/templates/index.html`) est orienté mobile-first : nouvelle carte Settings, gradient léger et contrôles tactiles (switchs, badges).

@@ -33,6 +33,11 @@
 - Motivation : l'ancien README était volumineux et monolithique; la nouvelle structure permet une navigation modulaire et respecte les principes DRY et d'organisation.
 - Implication : `docs/README.md` devient une page d'index concise; chaque guide référence les autres et la Memory Bank pour tracer les décisions architecturales.
 
+[2026-01-10 10:55:00] - Persistance des réglages via backend Redis optionnel
+- Décision : introduire `BaseStore` + `RedisJsonStore` et permettre à `create_app()` de sélectionner dynamiquement un backend `filesystem` (par défaut) ou `redis` via les variables `STORE_BACKEND`, `REDIS_URL`, `REDIS_PREFIX`, `REDIS_TTL_SECONDS`.
+- Motivation : conserver `config/settings.json` et `config/state.json` après redeploy/scale Render grâce à un stockage externe (ex. Upstash), éviter la perte d'automatisation.
+- Implication : dépendance `redis>=5` ajoutée, `.env.example` et documentation (configuration, déploiement, tests) détaillent la migration et la sécurité; le système retombe automatiquement sur le filesystem si Redis est indisponible.
+
 [2026-01-09 22:05:00] - Chaîne de déploiement containerisée (Docker → GHCR → Render)
 - Décision : standardiser l’exécution via un Dockerfile Gunicorn (logs stdout/stderr, utilisateur non-root) et publier l’image sur GitHub Container Registry avec un workflow GitHub Actions doté d’un fallback API Render.
 - Motivation : éviter les limites de build Render, disposer d’un pipeline reproductible et contrôlé depuis GitHub, garantir le déclenchement via webhook puis API si besoin.

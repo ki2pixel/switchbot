@@ -63,7 +63,7 @@ Le fichier `Dockerfile` à la racine :
    - `SWITCHBOT_RETRY_ATTEMPTS`, `SWITCHBOT_RETRY_DELAY_SECONDS` si besoin.
    - `SWITCHBOT_POLL_INTERVAL_SECONDS` pour override.
    - `WEB_CONCURRENCY` (optionnel, exemple `1` pour plan Free).
-   - `LOG_LEVEL` (optionnel) : Niveau de log pour Gunicorn (DEBUG, INFO, WARNING, ERROR, CRITICAL), défaut `info`.
+   - `LOG_LEVEL` (optionnel mais recommandé) : Niveau de log propagé à Gunicorn via `--log-level ${LOG_LEVEL:-info}` dans le `Dockerfile`. Utiliser `warning` ou `error` en production pour réduire le bruit, `debug`/`info` lors des diagnostics.
    - `FLASK_SECRET_KEY` (secret aléatoire).
    - `STORE_BACKEND=redis` pour activer la persistance externe des réglages/état.
    - `REDIS_URL` (obligatoire si `STORE_BACKEND=redis`). Render fournit une URL TLS sous la forme `rediss://default:<password>@host:6379/0`.
@@ -114,7 +114,9 @@ Le fichier `Dockerfile` à la racine :
 
 - **Pipeline minutes** : le build GHCR côté GitHub évite de consommer les minutes Render.
 - **Sécurité** : ne jamais commiter `.env`. Utiliser les secrets Render/GitHub.
-- **Logs** : Gunicorn utilise `--access-logfile -` et `--error-logfile -` pour être visibles dans Render.
+- **Logs** :
+  - Gunicorn écrit via `--access-logfile -` et `--error-logfile -` (donc visibles dans Render).
+  - Ajuster `LOG_LEVEL` selon le contexte : `info` par défaut, `warning` en production stable, `debug` temporairement lors d'une investigation (revenir ensuite à `info` pour limiter la verbosité).
 - **Fallback** : surveiller la sortie du job GitHub pour voir si le webhook a réussi ou si le fallback API a été nécessaire.
 
 ---

@@ -13,11 +13,12 @@ Le dashboard propose une interface mobile-first avec thème sombre immersif, org
 
 - L'en-tête affiche le titre "SwitchBot Dashboard" et le bouton d'accès à la page "Devices".
 - À droite, la vignette "Quota API quotidien" présente :
-  - Le nombre de requêtes restantes sur le quota journalier (10 000 par compte).
+  - Le nombre de requêtes restantes sur le quota journalier (limite fixe : 10 000 par compte).
   - Le nombre de requêtes utilisées, avec la limite totale affichée.
-  - Affichage "N/A" si aucune donnée de quota n'a encore été capturée.
-- Les valeurs sont mises à jour automatiquement après chaque appel API, via les headers de réponse ou le compteur local en fallback.
-- Utile pour surveiller l'usage avant d'exécuter des actions manuelles fréquentes.
+  - L'état "N/A" tant qu'aucune requête n'a encore été effectuée depuis le dernier démarrage.
+- Les valeurs sont recalculées après chaque appel API : si les headers `X-RateLimit-*` sont fournis, ils sont utilisés directement, sinon le compteur local journalier prend le relais (mise à jour par `AutomationService` lors de `poll_meter()` et de chaque commande envoyée).
+- **Conseil d'exploitation** : lorsque le compteur restant descend sous 200, ralentir les actions manuelles et/ou augmenter `poll_interval_seconds` pour éviter de saturer la limite quotidienne — le bandeau sert d'alerte visuelle.
+- Le badge est mis en évidence sur mobile (stacké sous le titre) pour garder l'information disponible même sur petits écrans.
 
 ### Carte Settings
 
@@ -44,9 +45,17 @@ Boutons pour contrôle manuel :
 
 - `Run once` : Déclenche manuellement `AutomationService.run_once`
 - `Chauffage (Hiver)` / `Clim (Été)` / `Off` : Change le mode et exécute immédiatement
-- `Aircon ON (setAll)` / `Aircon OFF` : Commandes directes hors automatisation
+- `Aircon ON – Hiver` / `Aircon ON – Été` : commandes `setAll` préréglées (respectivement 25 °C / mode heat / fan medium et 18 °C / mode cool / fan medium) pour un envoi rapide conforme aux recommandations SwitchBot.
+- `Aircon OFF` : Commande directe hors automatisation
 
 > 📝 Chaque action met à jour `state.json` pour maintenir la cohérence UI.
+
+#### Carte “Manual Aircon presets”
+
+- Permet d’ajuster les réglages envoyés par les boutons “Aircon ON – Hiver/Été”.
+- Une alerte apparaît lorsque les valeurs diffèrent des recommandations (issues de la doc SwitchBot).  
+- Le bandeau affiche simultanément le preset actuel (ex. `25°C · mode heat · fan medium`) et la recommandation pour guider l’utilisateur.
+- Les sélecteurs utilisent les mêmes listes bornées que le reste du formulaire pour garantir la cohérence avec la validation backend.
 
 ## Page Devices (`/devices`)
 

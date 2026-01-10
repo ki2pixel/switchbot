@@ -199,10 +199,16 @@ test -f .env && grep -q "SWITCHBOT_TOKEN\|SWITCHBOT_SECRET" .env
 ### 4. Système de quotas API
 
 **Validation** :
-- Déclencher plusieurs actions manuelles (Run once, Aircon ON/OFF) et vérifier que `api_requests_total` dans `state.json` s'incrémente après chaque appel API réussi.
-- Simuler un changement de jour en modifiant manuellement `api_quota_day` dans `state.json` à une date passée, puis redémarrer le serveur et confirmer la réinitialisation des compteurs.
-- Ouvrir l'UI après un appel API et vérifier que la vignette "Quota API quotidien" affiche les valeurs restantes/utilisées correctement, ou "N/A" si aucun quota n'a été capturé.
-- Temporairement invalider les tokens SwitchBot pour forcer le mode fallback local (sans headers) et s'assurer que le compteur s'incrémente malgré l'absence de headers de quota.
+1. **Compteur normal + fallback local**
+   - Déclencher plusieurs actions manuelles (`Run once`, `Aircon ON/OFF`) et vérifier que `api_requests_total` dans `state.json` s'incrémente après chaque appel API réussi, même en l'absence d'headers (`AutomationService._record_local_quota_fallback` s'exécute alors automatiquement).
+   - Forcer l'absence d'headers (ex : couper temporairement Internet ou invalider les tokens) et confirmer que le compteur continue d'augmenter grâce au fallback local.
+2. **Réinitialisation à minuit UTC**
+   - Modifier `api_quota_day` dans `state.json` pour une date passée, redémarrer le serveur et déclencher un appel API. Vérifier que `api_requests_total` repart de 1 et que `api_quota_day` se met à jour avec la date du jour (UTC).
+3. **Affichage UI**
+   - Ouvrir l'UI juste après un appel API pour constater la mise à jour du bandeau "Quota API quotidien" (restantes/utilisées).
+   - Vérifier l'état "N/A" si aucune requête n'a encore été effectuée depuis le démarrage, puis constater la transition vers des chiffres réels après un appel.
+4. **Seuil d’alerte opérateur**
+   - Enchaîner des actions jusqu'à descendre sous 200 requêtes restantes (simulation possible via la modification de `api_requests_remaining`). La vignette doit refléter ce niveau bas, incitant à ralentir les actions manuelles ou à augmenter `poll_interval_seconds`.
 
 ### 5. Backend de stockage (filesystem vs Redis)
 
