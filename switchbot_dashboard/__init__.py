@@ -191,8 +191,16 @@ def create_app() -> Flask:
     except Exception as exc:  # pragma: no cover - defensive safeguard
         app.logger.warning("Initial meter poll failed: %s", exc)
 
+    scheduler_enabled = os.environ.get("SCHEDULER_ENABLED", "true").strip().lower()
     debug = os.environ.get("FLASK_DEBUG", "0") == "1"
-    if not debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-        scheduler_service.start()
+    
+    if scheduler_enabled == "true":
+        if not debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+            scheduler_service.start()
+            app.logger.info("[scheduler] APScheduler enabled and started")
+        else:
+            app.logger.info("[scheduler] Skipping start in Flask debug reload worker")
+    else:
+        app.logger.info("[scheduler] APScheduler disabled via SCHEDULER_ENABLED=false")
 
     return app
