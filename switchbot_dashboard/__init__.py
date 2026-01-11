@@ -172,6 +172,7 @@ def create_app() -> Flask:
     scheduler_service = SchedulerService(
         settings_store=settings_store,
         tick_callable=automation_service.run_once,
+        logger=app.logger,
     )
 
     app.extensions["settings_store"] = settings_store

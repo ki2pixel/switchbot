@@ -212,3 +212,48 @@ def test_run_once_emits_detailed_logs(caplog: Any) -> None:
     assert any("Temperature evaluation" in message for message in messages)
     assert any("Winter mode: below min threshold" in message for message in messages)
     assert any("Automation tick finished" in message and "outcome='winter_on'" in message for message in messages)
+
+
+def test_winter_mode_above_max_temp_triggers_off_action() -> None:
+    """Test que le mode hiver déclenche l'action OFF quand température > max_temp + hysteresis."""
+    settings = _default_settings()
+    settings["winter"]["min_temp"] = 24.0
+    settings["winter"]["max_temp"] = 27.0
+    settings["hysteresis_celsius"] = 0.3
+    
+    service, client, _settings_store, state_store = _build_service(
+        settings=settings,
+        temperature=28.1,  # Dépasse max_temp (27.0) + hysteresis (0.3) = 27.3
+    )
+
+    service.run_once()
+
+    # Vérifie que la scène OFF a été appelée
+    assert client.run_scene_calls == ["scene-off"]
+    state = state_store.read()
+    assert state["assumed_aircon_power"] == "off"
+    assert "automation_winter_off" in state["last_action"]
+
+
+def test_winter_mode_above_max_within_hysteresis_no_action() -> None:
+    """Test qu'aucune action n'est prise si température entre max_temp et max_temp + hysteresis."""
+    settings = _default_settings()
+    settings["winter"]["min_temp"] = 24.0
+    settings["winter"]["max_temp"] = 27.0
+    settings["hysteresis_celsius"] = 0.5
+    
+    service, client, _settings_store, state_store = _build_service(
+        settings=settings,
+        temperature=27.2,  # Entre max_temp (27.0) et max_temp + hysteresis (27.5)
+    )
+
+    service.run_once()
+
+    # Aucune action ne doit être déclenchée (hystérésis)
+    assert client.run_scene_calls == []
+    assert client.send_command_calls == []
+    state = state_store.read()
+    # last_action ne devrait pas contenir winter_off ou winter_on
+    last_action = state.get("last_action", "")
+    assert "winter_off" not in str(last_action)
+    assert "winter_on" not in str(last_action)

@@ -40,3 +40,5 @@ node_modules/
 
 # Docker / compose overrides (generated)
 **/.docker-compose.override.yml
+
+debug/

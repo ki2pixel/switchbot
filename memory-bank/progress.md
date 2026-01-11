@@ -127,11 +127,18 @@
 [2026-01-10 20:40:00] - Harmonisation totale des templates UI en français (index.html, devices.html, quota.html) : traductions des labels, boutons, badges et métadonnées selon la terminologie UI.
 [2026-01-10 20:42:00] - Traduction complète des messages flash/alertes en français dans routes.py pour cohérence avec l'interface.
 [2026-01-10 20:50:00] - Session question température redeploy et implémentation flag stale
-- Analyse du comportement de récupération de température lors d’un redeploy Render (~1 min) avec Redis.
+- Analyse du comportement de récupération de température lors d'un redeploy Render (~1 min) avec Redis.
 - Implémentation du flag `last_temperature_stale` pour signaler une température potentiellement obsolète.
 - Marquage à `true` au démarrage (`create_app()`), reset à `false` après premier `poll_meter()`.
 - Mise à jour de la documentation (`docs/configuration.md`).
 - Ajout de test (`tests/test_app_init.py`) et validation pytest (18 tests passed).
+[2026-01-11 15:00:00] - Intégration complète des webhooks IFTTT avec fallback cascade
+- Création du module IFTTTWebhookClient avec validation HTTPS et gestion erreurs
+- Remplacement de la logique scènes par webhooks avec fallback vers scènes puis commandes directes
+- Mise à jour de l'interface utilisateur pour configuration des webhooks IFTTT
+- Création de 16 tests unitaires complets pour la nouvelle logique IFTTT
+- Suite pytest complète passée (36/36 tests)
+- Documentation complète (ifttt-integration.md, configuration.md, README.md mis à jour)
 
 ## En cours
 - Aucune tâche active.

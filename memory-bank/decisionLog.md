@@ -120,3 +120,18 @@
 - Décision : Ajouter `last_temperature_stale` et `last_temperature_stale_reason` dans `state.json` pour signaler explicitement une température potentiellement périmée après un redeploy Render (~1 min).
 - Motivation : Éliminer la "zone grise" où l'automatisation pourrait agir sur une valeur obsolète issue de Redis, en marquant la température comme stale au démarrage et en la rafraîchissant immédiatement via un `poll_meter()` initial.
 - Implication : `create_app()` force le flag à `true` (`reason="app_start"`), puis appelle `poll_meter()` pour le remettre à `false`. En cas d'erreur API, le flag repasse à `true` (`reason="api_error"`). Documentation mise à jour, test ajouté (`tests/test_app_init.py`), pytest validé.
+
+[2026-01-11 15:35:00] - Intégration complète des webhooks IFTTT avec système de fallback cascade
+- Décision : Implémenter un système à trois niveaux pour déclencher les actions de climatisation : 1) Webhooks IFTTT (priorité), 2) Scènes SwitchBot (fallback), 3) Commandes directes (fallback ultime).
+- Motivation : Contourner les limitations de l'API SwitchBot native pour l'exécution de scènes, réduire la consommation de quota API (webhooks ne comptent pas), offrir plus de flexibilité via les applets IFTTT complexes (notifications, logs, enchaînements), et garantir la fiabilité grâce au mécanisme de fallback automatique.
+- Architecture implémentée :
+  - Création du module `IFTTTWebhookClient` avec validation HTTPS stricte, timeout configurable et gestion d'erreurs détaillée
+  - Refactoring de `AutomationService._trigger_aircon_action()` pour prioriser les webhooks avec fallback séquentiel
+  - Injection du client IFTTT dans l'application Flask via `create_app()`
+  - Mise à jour de l'interface utilisateur avec section dédiée à la configuration des 4 webhooks (winter/summer/fan/off)
+- Avantages :
+  - ✅ Fiabilité accrue : les webhooks IFTTT déclenchent les scènes via le cloud, contournant les bugs API
+  - ✅ Économique : pas de consommation du quota SwitchBot (10 000/jour)
+  - ✅ Flexible : possibilité de créer des applets IFTTT complexes (multi-actions, notifications, logs)
+  - ✅ Résilient : cascade automatique en cas d'échec (webhook → scène → commande directe)
+- Implication : Configuration utilisateur plus complexe (création d'applets IFTTT), dépendance à un service externe (IFTTT), sécurité renforcée (URLs HTTPS uniquement), tests unitaires complets (16 nouveaux tests), documentation exhaustive mise à jour.

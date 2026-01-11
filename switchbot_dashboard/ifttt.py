@@ -28,6 +28,7 @@ def validate_webhook_url(url: str) -> bool:
 
 
 def extract_ifttt_webhooks(settings: dict[str, Any]) -> dict[str, str]:
+    """Return a normalized mapping of configured IFTTT webhook URLs."""
     raw_webhooks = settings.get("ifttt_webhooks", {})
     if not isinstance(raw_webhooks, dict):
         raw_webhooks = {}
