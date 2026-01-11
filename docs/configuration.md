@@ -38,7 +38,9 @@ Ce fichier contient les réglages métier persistés :
   "automation_enabled": true,
   "mode": "summer",
   "poll_interval_seconds": 60,
-  "command_cooldown_seconds": 30,
+  "command_cooldown_seconds": 60,
+  "action_on_cooldown_seconds": 300,
+  "action_off_cooldown_seconds": 60,
   "hysteresis_celsius": 0.5,
   "meter_device_id": "C271111EC0AB",
   "aircon_device_id": "02-202008110034-13",
@@ -357,6 +359,48 @@ FAN_SPEED_CHOICES = [...]
 - Vitesses : 1 (Auto), 2 (Low), 3 (Medium), 4 (High)
 
 > 📝 Les helpers `_as_bool`, `_as_int`, `_as_float` garantissent la cohérence entre UI et stockage JSON. Décision documentée dans `memory-bank/decisionLog.md` (2026-01-09 16:21).
+
+### Cooldown adaptatif
+
+Le système de cooldown empêche les commandes répétées trop rapprochées. Le **cooldown adaptatif** (introduit le 2026-01-11) différencie le délai selon le type d'action :
+
+**Nouveaux paramètres** :
+- `action_on_cooldown_seconds` : Durée de blocage après un **démarrage** (chauffage/climatisation ON)
+  - Recommandé : `300` (5 minutes) pour laisser le climatiseur monter en température
+- `action_off_cooldown_seconds` : Durée de blocage après un **arrêt** (climatisation OFF)
+  - Recommandé : `60` (1 minute) car l'arrêt est instantané
+- `command_cooldown_seconds` : Valeur par défaut (rétro-compatibilité) si les paramètres adaptatifs ne sont pas définis
+
+**Comportement** :
+
+Scénario hiver (température < min_temp) :
+```
+1. Tick à 14:00:00 : Lance "winter" → assumed_aircon_power="on"
+2. Tick à 14:01:00 : Température encore < min_temp
+   → Cooldown ON actif (1min < 5min) → Aucune action
+   → Log : [automation] Cooldown active (ON action) | remaining_time='4m0s'
+3. Ticks suivants : Cooldowns actifs pendant 5 minutes
+   → Laisse le temps au climatiseur de diffuser la chaleur
+4. Tick à 14:05:01 : Cooldown expiré (5min01s > 5min) 
+   → Nouvelle action possible si nécessaire
+```
+
+**Rationale** :
+- ✅ **5 minutes après démarrage** : Latence physique de la pompe à chaleur (~5min pour diffuser aux splits intérieurs)
+- ✅ **1 minute après arrêt** : Réactivité maintenue car l'arrêt est instantané
+- ✅ **Économie de quotas API** : Évite les appels inutiles pendant la stabilisation
+- ✅ **Logs explicites** : Affiche le type de cooldown (ON/OFF/default) et le temps restant
+
+**Configuration recommandée** :
+```json
+{
+  "command_cooldown_seconds": 60,
+  "action_on_cooldown_seconds": 300,
+  "action_off_cooldown_seconds": 60
+}
+```
+
+**Rétro-compatibilité** : Si les paramètres adaptatifs ne sont pas définis, le système utilise `command_cooldown_seconds` pour toutes les actions.
 
 ## État opérationnel (`config/state.json`)
 

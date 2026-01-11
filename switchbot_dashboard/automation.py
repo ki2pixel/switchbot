@@ -203,9 +203,23 @@ class AutomationService:
 
     def _cooldown_active(self, now: dt.datetime) -> bool:
         state = self._state_store.read()
-        cooldown_seconds = int(self._settings_store.read().get("command_cooldown_seconds", 0) or 0)
+        settings = self._settings_store.read()
+        
+        assumed_power = state.get("assumed_aircon_power", "")
+        
+        if assumed_power == "on":
+            cooldown_seconds = int(settings.get("action_on_cooldown_seconds", 0) or 0)
+            cooldown_type = "ON"
+        else:
+            cooldown_seconds = int(settings.get("action_off_cooldown_seconds", 0) or 0)
+            cooldown_type = "OFF"
+        
         if cooldown_seconds <= 0:
-            return False
+            default_cooldown = int(settings.get("command_cooldown_seconds", 0) or 0)
+            if default_cooldown <= 0:
+                return False
+            cooldown_seconds = default_cooldown
+            cooldown_type = "default"
 
         last_action_at = state.get("last_action_at")
         if not isinstance(last_action_at, str) or not last_action_at:
@@ -220,7 +234,20 @@ class AutomationService:
             last = last.replace(tzinfo=dt.timezone.utc)
 
         now_utc = now.astimezone(dt.timezone.utc)
-        return (now_utc - last) < dt.timedelta(seconds=cooldown_seconds)
+        elapsed = now_utc - last
+        remaining = dt.timedelta(seconds=cooldown_seconds) - elapsed
+        
+        if remaining > dt.timedelta(0):
+            remaining_minutes = int(remaining.total_seconds() / 60)
+            remaining_seconds = int(remaining.total_seconds() % 60)
+            self._debug(
+                f"Cooldown active ({cooldown_type} action)",
+                remaining_time=f"{remaining_minutes}m{remaining_seconds}s",
+                cooldown_seconds=cooldown_seconds,
+            )
+            return True
+        
+        return False
 
     def _send_aircon_off(self, aircon_device_id: str, *, trigger: str, reason: str) -> None:
         aircon_device_id = aircon_device_id.strip()
