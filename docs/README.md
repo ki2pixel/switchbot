@@ -76,6 +76,7 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - [Guide d'installation](setup.md) - Configuration détaillée
 - [Guide de l'utilisateur](ui-guide.md) - Utilisation de l'interface
 - [Référence de configuration](configuration.md) - Options avancées
+- [Intégration IFTTT](ifttt-integration.md) - Configuration des webhooks IFTTT
 - [Guide de déploiement](deployment.md) - Mise en production
 
 ## 🚦 Statut du projet

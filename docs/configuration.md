@@ -85,52 +85,66 @@ Ce fichier contient les réglages métier persistés :
   - Configurable via l'interface utilisateur ou directement dans `settings.json`
   - Se réinitialise à minuit UTC avec le compteur de quota
 
-#### Scènes SwitchBot (automatisation + boutons rapides)
+#### Webhooks IFTTT (priorité) + Scènes SwitchBot (fallback)
 
-La configuration des scènes permet de déclencher des actions complexes pré-configurées dans l'application SwitchBot officielle. Chaque scène est identifiée par un UUID unique.
+Le dashboard implémente un système de **cascade à trois niveaux** pour déclencher vos actions de climatisation :
 
-**Configuration des scènes :**
+1. **Webhooks IFTTT** (priorité) → déclenche un applet IFTTT qui exécute une scène SwitchBot
+2. **Scènes SwitchBot** (fallback 1) → appelle directement l'API SwitchBot `/scenes/{id}/execute`
+3. **Commandes directes** (fallback 2) → utilise `turnOff` ou `setAll` sur le device IR
 
-- **Scènes disponibles :**
-  - `winter` : Mode chauffage (scène personnalisable dans l'application SwitchBot)
-  - `summer` : Mode climatisation (scène personnalisable)
-  - `fan` : Mode ventilation (scène personnalisable)
-  - `off` : Arrêt du climatiseur (scène personnalisable)
+**Configuration dans `settings.json` :**
 
-- **Comportement :**
-  - Les boutons de l'interface déclenchent directement les scènes correspondantes
-  - **L'Automation utilise ces scènes en priorité** : 
-    - Lorsque la température franchit les seuils définis, `AutomationService` tente d'exécuter les scènes `winter`/`summer`
-    - Si `turn_off_outside_windows` est activé, la scène `off` est utilisée en dehors des plages horaires configurées
-  - **Fallback aux commandes bas niveau :**
-    - Si une scène n'est pas configurée, le système utilise automatiquement les commandes `setAll`/`turnOff`
-    - Un `aircon_device_id` valide est nécessaire pour ce mode de secours
-    - L'interface affiche un avertissement si des scènes obligatoires sont manquantes
-    - Les boutons correspondants aux scènes manquantes sont désactivés dans l'interface
-  - **Gestion de l'état :**
-    - La scène `off` est utilisée par le bouton "Quick off" pour un arrêt contrôlé
-    - L'état des scènes est vérifié au démarrage et après chaque modification des paramètres
-    - Les erreurs d'exécution des scènes sont journalisées et affichées dans l'interface
-    - L'état de l'appareil est suivi via `assumed_aircon_power` dans l'état de l'application
-    - L'interface affiche des indicateurs visuels pour chaque scène (configurée/manquante)
+```json
+{
+  "ifttt_webhooks": {
+    "winter": "https://maker.ifttt.com/trigger/switchbot_winter/with/key/YOUR_KEY",
+    "summer": "https://maker.ifttt.com/trigger/switchbot_summer/with/key/YOUR_KEY",
+    "fan": "https://maker.ifttt.com/trigger/switchbot_fan/with/key/YOUR_KEY",
+    "off": "https://maker.ifttt.com/trigger/switchbot_off/with/key/YOUR_KEY"
+  },
+  "aircon_scenes": {
+    "winter": "SCENE_WINTER_UUID",
+    "summer": "SCENE_SUMMER_UUID",
+    "fan": "SCENE_FAN_UUID",
+    "off": "SCENE_OFF_UUID"
+  }
+}
+```
+
+**Avantages des webhooks IFTTT :**
+- ✅ **Fiabilité accrue** : contourne les bugs de l'API SwitchBot native pour l'exécution de scènes
+- ✅ **Flexibilité** : créez des applets complexes (notifications, logs, chaînes d'actions)
+- ✅ **Pas de quota** : les appels IFTTT ne consomment pas le quota d'API SwitchBot
+- ✅ **Fallback automatique** : bascule sur les scènes natives si IFTTT échoue
 
 **Configuration recommandée :**
-1. Créez les scènes dans l'application SwitchBot officielle
-2. Récupérez les UUID via l'API (`GET /v1.1/scenes`)
-3. Saisissez les UUID dans l'interface d'administration ou directement dans `settings.json`
-4. Activez `turn_off_outside_windows` pour une gestion automatique de l'arrêt en dehors des plages horaires
+1. **IFTTT** : Créez des applets IFTTT (Webhooks → SwitchBot Scene) - voir [docs/ifttt-integration.md](./ifttt-integration.md)
+2. **Scènes** : Configurez les UUID de scènes SwitchBot comme fallback
+3. **Device ID** : Définissez `aircon_device_id` pour le fallback ultime (commandes directes)
 
-### Dépannage des scènes
+**Comportement de l'automatisation :**
+- L'`AutomationService` privilégie **toujours** les webhooks IFTTT
+- En cas d'échec (timeout, erreur HTTP), bascule sur la scène SwitchBot
+- Si la scène échoue ou est absente, utilise `setAll`/`turnOff` (action `off` uniquement)
 
-Si une scène ne fonctionne pas comme prévu :
-1. Vérifiez que l'UUID est correct dans les paramètres
-2. Testez la scène directement depuis l'application SwitchBot
-3. Consultez les logs de l'application pour les erreurs d'exécution
-4. Si nécessaire, activez le mode debug avec `LOG_LEVEL=debug` pour plus de détails
+### Dépannage des webhooks et scènes
 
-> ⚠️ **Remarque :** Un `aircon_device_id` valide reste nécessaire pour le mode de secours (fallback) des commandes `setAll`/`turnOff` lorsque les scènes ne sont pas configurées. Sans configuration, un message d'avertissement s'affiche dans l'interface.
+**Si un webhook ne fonctionne pas :**
+1. Vérifiez que l'URL commence par `https://` (HTTP non autorisé)
+2. Testez l'URL dans votre navigateur ou avec `curl`
+3. Consultez les logs : `[ifttt] Triggering IFTTT webhook`
+4. Vérifiez l'historique de l'applet dans IFTTT
 
-> ℹ️ **Historique :** La logique `aircon_presets` a été remplacée par ce système de scènes plus flexible. Voir `memory-bank/decisionLog.md` pour plus de détails.
+**Si une scène ne fonctionne pas :**
+1. Vérifiez l'UUID dans les paramètres
+2. Testez la scène depuis l'application SwitchBot
+3. Activez `LOG_LEVEL=debug` pour voir les détails
+4. Consultez les logs : `[automation] Using SwitchBot scene (webhook unavailable)`
+
+> ⚠️ **Sécurité** : Ne partagez jamais votre clé webhook IFTTT publiquement. Si elle est compromise, régénérez-la dans IFTTT → Webhooks → Settings.
+
+> 📚 **Documentation complète** : Consultez [docs/ifttt-integration.md](./ifttt-integration.md) pour un guide pas-à-pas de l'intégration IFTTT.
 
 ### Dépannage de l'automatisation
 

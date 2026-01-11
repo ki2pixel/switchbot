@@ -6,8 +6,9 @@ from typing import Any
 
 from flask import has_request_context, request
 
-from .aircon import AIRCON_SCENE_LABELS, extract_aircon_scenes
+from .aircon import AIRCON_IFTTT_LABELS, AIRCON_SCENE_LABELS, extract_aircon_scenes
 from .config_store import BaseStore
+from .ifttt import IFTTTWebhookClient, IFTTTWebhookError, extract_ifttt_webhooks
 from .switchbot_api import SwitchBotApiError, SwitchBotClient
 
 
@@ -92,12 +93,14 @@ class AutomationService:
         settings_store: BaseStore,
         state_store: BaseStore,
         switchbot_client: SwitchBotClient,
+        ifttt_client: IFTTTWebhookClient,
         *,
         logger: logging.Logger | None = None,
     ) -> None:
         self._settings_store = settings_store
         self._state_store = state_store
         self._client = switchbot_client
+        self._ifttt_client = ifttt_client
         self._logger = logger or logging.getLogger(__name__)
 
     def _update_state(self, **updates: Any) -> None:
@@ -300,52 +303,98 @@ class AutomationService:
             last_error=None,
         )
 
-    def _run_aircon_scene(
+    def _trigger_aircon_action(
         self,
-        scene_id: str,
         *,
-        scene_key: str,
+        action_key: str,
         state_reason: str,
         assumed_power: str,
         trigger: str,
+        webhooks: dict[str, str],
+        scenes: dict[str, str],
+        aircon_device_id: str = "",
     ) -> bool:
-        friendly = AIRCON_SCENE_LABELS.get(scene_key, scene_key)
-        scene_id = str(scene_id or "").strip()
-        if not scene_id:
-            self._update_state(last_error=f"Missing scene id for {friendly}")
-            self._warning("Skipping automation scene: not configured", trigger=trigger, scene_key=scene_key)
-            return False
+        webhook_url = webhooks.get(action_key, "").strip()
+        scene_id = scenes.get(action_key, "").strip()
+        aircon_device_id = aircon_device_id.strip()
+        
+        friendly_webhook = AIRCON_IFTTT_LABELS.get(action_key, action_key)
+        friendly_scene = AIRCON_SCENE_LABELS.get(action_key, action_key)
 
-        self._debug(
-            "Requesting aircon scene",
-            trigger=trigger,
-            scene_key=scene_key,
-            scene_id=scene_id,
-            state_reason=state_reason,
-        )
-        try:
-            self._client.run_scene(scene_id)
-        except SwitchBotApiError as exc:
-            self._update_state(last_error=str(exc))
-            self._error(
-                "Scene execution failed",
+        if webhook_url:
+            self._debug(
+                "Triggering IFTTT webhook",
                 trigger=trigger,
-                scene_key=scene_key,
-                scene_id=scene_id,
-                error=str(exc),
+                action_key=action_key,
+                state_reason=state_reason,
             )
-            return False
+            try:
+                self._ifttt_client.trigger_webhook(webhook_url)
+                self._update_state(
+                    assumed_aircon_power=assumed_power,
+                    assumed_aircon_mode=None,
+                    assumed_aircon_parameter=None,
+                    last_action=f"ifttt_webhook({action_key}) ({state_reason})",
+                    last_action_at=_utc_now_iso(),
+                    last_error=None,
+                )
+                return True
+            except IFTTTWebhookError as exc:
+                self._error(
+                    "IFTTT webhook failed",
+                    trigger=trigger,
+                    action_key=action_key,
+                    error=str(exc),
+                )
+                self._warning("Falling back to SwitchBot scene", trigger=trigger, action_key=action_key)
 
-        self._log_quota_snapshot(context=f"scene_{scene_key}")
-        self._update_state(
-            assumed_aircon_power=assumed_power,
-            assumed_aircon_mode=None,
-            assumed_aircon_parameter=None,
-            last_action=f"scene({scene_id}) ({state_reason})",
-            last_action_at=_utc_now_iso(),
-            last_error=None,
-        )
-        return True
+        if scene_id:
+            self._debug(
+                "Using SwitchBot scene (webhook unavailable)",
+                trigger=trigger,
+                action_key=action_key,
+                scene_id=scene_id,
+                state_reason=state_reason,
+            )
+            try:
+                self._client.run_scene(scene_id)
+                self._log_quota_snapshot(context=f"scene_{action_key}")
+                self._update_state(
+                    assumed_aircon_power=assumed_power,
+                    assumed_aircon_mode=None,
+                    assumed_aircon_parameter=None,
+                    last_action=f"scene({scene_id}) ({state_reason})",
+                    last_action_at=_utc_now_iso(),
+                    last_error=None,
+                )
+                return True
+            except SwitchBotApiError as exc:
+                self._error(
+                    "Scene execution failed",
+                    trigger=trigger,
+                    action_key=action_key,
+                    scene_id=scene_id,
+                    error=str(exc),
+                )
+                if aircon_device_id:
+                    self._warning(
+                        "Falling back to direct command",
+                        trigger=trigger,
+                        action_key=action_key,
+                    )
+                else:
+                    self._update_state(last_error=str(exc))
+                    return False
+
+        if not webhook_url and not scene_id:
+            self._update_state(last_error=f"Missing webhook and scene for {friendly_webhook}")
+            self._warning(
+                "Skipping automation: no webhook or scene configured",
+                trigger=trigger,
+                action_key=action_key,
+            )
+
+        return False
 
     def run_once(self) -> None:
         trigger = self._detect_trigger_source()
@@ -384,6 +433,7 @@ class AutomationService:
         )
 
         scenes = extract_aircon_scenes(settings)
+        webhooks = extract_ifttt_webhooks(settings)
         aircon_id = str(settings.get("aircon_device_id", "")).strip()
 
         if not in_window:
@@ -394,27 +444,21 @@ class AutomationService:
                     self._debug("Cooldown active, skipping off automation outside window", trigger=trigger)
                 else:
                     try:
-                        off_scene_id = scenes.get("off", "")
-                        handled = False
-                        if off_scene_id:
-                            handled = self._run_aircon_scene(
-                                off_scene_id,
-                                scene_key="off",
-                                state_reason="automation_off_outside_window",
-                                assumed_power="off",
+                        handled = self._trigger_aircon_action(
+                            action_key="off",
+                            state_reason="automation_off_outside_window",
+                            assumed_power="off",
+                            trigger=trigger,
+                            webhooks=webhooks,
+                            scenes=scenes,
+                            aircon_device_id=aircon_id,
+                        )
+                        if not handled and aircon_id:
+                            self._send_aircon_off(
+                                aircon_id,
                                 trigger=trigger,
+                                reason="outside_window",
                             )
-                        if not handled:
-                            if aircon_id:
-                                self._send_aircon_off(
-                                    aircon_id,
-                                    trigger=trigger,
-                                    reason="outside_window",
-                                )
-                            else:
-                                self._update_state(
-                                    last_error="Missing OFF scene and aircon_device_id"
-                                )
                     except SwitchBotApiError as exc:
                         self._update_state(last_error=str(exc))
                         self._error(
@@ -490,111 +534,87 @@ class AutomationService:
             if mode == "winter":
                 if current_temp <= (min_temp - hysteresis):
                     self._debug("Winter mode: below min threshold", trigger=trigger, threshold=min_temp - hysteresis)
-                    scene_id = scenes.get("winter", "")
-                    executed = False
-                    if scene_id:
-                        executed = self._run_aircon_scene(
-                            scene_id,
-                            scene_key="winter",
-                            state_reason="automation_winter_on",
-                            assumed_power="on",
+                    executed = self._trigger_aircon_action(
+                        action_key="winter",
+                        state_reason="automation_winter_on",
+                        assumed_power="on",
+                        trigger=trigger,
+                        webhooks=webhooks,
+                        scenes=scenes,
+                        aircon_device_id=aircon_id,
+                    )
+                    if not executed and aircon_id:
+                        self._send_aircon_setall(
+                            aircon_id,
+                            temperature=target_temp,
+                            mode=ac_mode,
+                            fan_speed=fan_speed,
+                            power_state="on",
                             trigger=trigger,
+                            reason="automation_winter_on",
                         )
-                    if not executed:
-                        if aircon_id:
-                            self._send_aircon_setall(
-                                aircon_id,
-                                temperature=target_temp,
-                                mode=ac_mode,
-                                fan_speed=fan_speed,
-                                power_state="on",
-                                trigger=trigger,
-                                reason="automation_winter_on",
-                            )
-                        else:
-                            self._update_state(
-                                last_error="Missing winter scene and aircon_device_id"
-                            )
                     decision_taken = True
                     outcome = "winter_on"
                 elif current_temp >= (max_temp + hysteresis):
                     self._debug("Winter mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
-                    off_scene_id = scenes.get("off", "")
-                    turned_off = False
-                    if off_scene_id:
-                        turned_off = self._run_aircon_scene(
-                            off_scene_id,
-                            scene_key="off",
-                            state_reason="automation_winter_off",
-                            assumed_power="off",
+                    turned_off = self._trigger_aircon_action(
+                        action_key="off",
+                        state_reason="automation_winter_off",
+                        assumed_power="off",
+                        trigger=trigger,
+                        webhooks=webhooks,
+                        scenes=scenes,
+                        aircon_device_id=aircon_id,
+                    )
+                    if not turned_off and aircon_id:
+                        self._send_aircon_off(
+                            aircon_id,
                             trigger=trigger,
+                            reason="automation_winter_off",
                         )
-                    if not turned_off:
-                        if aircon_id:
-                            self._send_aircon_off(
-                                aircon_id,
-                                trigger=trigger,
-                                reason="automation_winter_off",
-                            )
-                        else:
-                            self._update_state(
-                                last_error="Missing OFF scene and aircon_device_id"
-                            )
                     decision_taken = True
                     outcome = "winter_off"
             elif mode == "summer":
                 if current_temp >= (max_temp + hysteresis):
                     self._debug("Summer mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
-                    scene_id = scenes.get("summer", "")
-                    executed = False
-                    if scene_id:
-                        executed = self._run_aircon_scene(
-                            scene_id,
-                            scene_key="summer",
-                            state_reason="automation_summer_on",
-                            assumed_power="on",
+                    executed = self._trigger_aircon_action(
+                        action_key="summer",
+                        state_reason="automation_summer_on",
+                        assumed_power="on",
+                        trigger=trigger,
+                        webhooks=webhooks,
+                        scenes=scenes,
+                        aircon_device_id=aircon_id,
+                    )
+                    if not executed and aircon_id:
+                        self._send_aircon_setall(
+                            aircon_id,
+                            temperature=target_temp,
+                            mode=ac_mode,
+                            fan_speed=fan_speed,
+                            power_state="on",
                             trigger=trigger,
+                            reason="automation_summer_on",
                         )
-                    if not executed:
-                        if aircon_id:
-                            self._send_aircon_setall(
-                                aircon_id,
-                                temperature=target_temp,
-                                mode=ac_mode,
-                                fan_speed=fan_speed,
-                                power_state="on",
-                                trigger=trigger,
-                                reason="automation_summer_on",
-                            )
-                        else:
-                            self._update_state(
-                                last_error="Missing summer scene and aircon_device_id"
-                            )
                     decision_taken = True
                     outcome = "summer_on"
                 elif current_temp <= (min_temp - hysteresis):
                     self._debug("Summer mode: below min threshold", trigger=trigger, threshold=min_temp - hysteresis)
-                    off_scene_id = scenes.get("off", "")
-                    turned_off = False
-                    if off_scene_id:
-                        turned_off = self._run_aircon_scene(
-                            off_scene_id,
-                            scene_key="off",
-                            state_reason="automation_summer_off",
-                            assumed_power="off",
+                    turned_off = self._trigger_aircon_action(
+                        action_key="off",
+                        state_reason="automation_summer_off",
+                        assumed_power="off",
+                        trigger=trigger,
+                        webhooks=webhooks,
+                        scenes=scenes,
+                        aircon_device_id=aircon_id,
+                    )
+                    if not turned_off and aircon_id:
+                        self._send_aircon_off(
+                            aircon_id,
                             trigger=trigger,
+                            reason="automation_summer_off",
                         )
-                    if not turned_off:
-                        if aircon_id:
-                            self._send_aircon_off(
-                                aircon_id,
-                                trigger=trigger,
-                                reason="automation_summer_off",
-                            )
-                        else:
-                            self._update_state(
-                                last_error="Missing OFF scene and aircon_device_id"
-                            )
                     decision_taken = True
                     outcome = "summer_off"
             else:

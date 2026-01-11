@@ -10,6 +10,7 @@ from redis.exceptions import RedisError
 
 from .automation import AutomationService
 from .config_store import BaseStore, JsonStore, RedisJsonStore, StoreError
+from .ifttt import IFTTTWebhookClient
 from .routes import dashboard_bp
 from .scheduler import SchedulerService
 from .quota import ApiQuotaTracker
@@ -159,10 +160,13 @@ def create_app() -> Flask:
         quota_tracker=quota_tracker,
     )
 
+    ifttt_client = IFTTTWebhookClient(timeout=10.0, logger_instance=app.logger)
+
     automation_service = AutomationService(
         settings_store=settings_store,
         state_store=state_store,
         switchbot_client=client,
+        ifttt_client=ifttt_client,
     )
 
     scheduler_service = SchedulerService(
@@ -173,6 +177,7 @@ def create_app() -> Flask:
     app.extensions["settings_store"] = settings_store
     app.extensions["state_store"] = state_store
     app.extensions["switchbot_client"] = client
+    app.extensions["ifttt_client"] = ifttt_client
     app.extensions["automation_service"] = automation_service
     app.extensions["scheduler_service"] = scheduler_service
     app.extensions["quota_tracker"] = quota_tracker

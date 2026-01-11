@@ -311,9 +311,34 @@
 
                 <hr class="my-4" />
 
-                <h2 class="h6">Scènes favorites SwitchBot</h2>
+                <h2 class="h6">Webhooks IFTTT (Priorité)</h2>
                 <p class="small text-muted">
-                  Renseignez les IDs des scènes favorites (SwitchBot → Scenes). Elles alimentent les boutons rapides hiver/été/ventilateur.
+                  Renseignez les URLs des webhooks IFTTT pour déclencher vos scènes via le cloud. Les webhooks sont prioritaires sur les scènes SwitchBot natives.
+                </p>
+                <div class="row g-3 mb-4">
+                  {% for key in aircon_scene_keys %}
+                    <div class="col-12 col-md-6">
+                      <label class="form-label" for="webhook_{{ key }}_url">{{ aircon_scene_labels[key] }}</label>
+                      <input
+                        class="form-control"
+                        id="webhook_{{ key }}_url"
+                        name="webhook_{{ key }}_url"
+                        value="{{ ifttt_webhooks[key] }}"
+                        placeholder="https://maker.ifttt.com/trigger/..."
+                        type="url"
+                      />
+                      {% if missing_webhooks[key] %}
+                        <div class="form-text text-warning">Non configuré (fallback vers scène SwitchBot)</div>
+                      {% else %}
+                        <div class="form-text text-success">Prêt</div>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+
+                <h2 class="h6">Scènes favorites SwitchBot (Fallback)</h2>
+                <p class="small text-muted">
+                  Renseignez les IDs des scènes favorites (SwitchBot → Scenes). Elles servent de fallback si les webhooks IFTTT échouent ou ne sont pas configurés.
                 </p>
                 <div class="row g-3">
                   {% for key in aircon_scene_keys %}
@@ -357,6 +382,11 @@
                   {% else %}
                     Aucune
                   {% endif %}
+                </dd>
+
+                <dt class="col-7">Webhooks IFTTT</dt>
+                <dd class="col-5 text-end">
+                  {{ configured_webhooks_count }} / {{ aircon_scene_keys | length }}
                 </dd>
 
                 <dt class="col-7">Scènes configurées</dt>

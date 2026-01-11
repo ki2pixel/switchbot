@@ -61,6 +61,14 @@ class DummyClient:
         return self.last_quota_snapshot
 
 
+class DummyIFTTTClient:
+    def __init__(self) -> None:
+        self.webhook_calls: list[str] = []
+
+    def trigger_webhook(self, webhook_url: str, *, event_data: dict | None = None) -> None:
+        self.webhook_calls.append(webhook_url)
+
+
 def _default_settings() -> dict[str, Any]:
     return {
         "automation_enabled": True,
@@ -105,7 +113,8 @@ def _build_service(
     state_store = MemoryStore(initial_state or {})
     quota_tracker = ApiQuotaTracker(state_store)
     client = DummyClient(temperature=temperature, quota_tracker=quota_tracker)
-    service = AutomationService(settings_store, state_store, client)
+    ifttt_client = DummyIFTTTClient()
+    service = AutomationService(settings_store, state_store, client, ifttt_client)
     return service, client, settings_store, state_store
 
 

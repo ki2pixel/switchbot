@@ -28,6 +28,12 @@
     "fan": "2988f98c-ed4a-437c-9faa-fa62ccc38bc8",
     "off": "bd52478c-37a0-4607-9ab9-3e9749ecf0df"
   },
+  "ifttt_webhooks": {
+    "winter": "https://maker.ifttt.com/trigger/switchbot_winter/with/key/k6QOrDiDeXrNxOhN94s3b",
+    "summer": "https://maker.ifttt.com/trigger/switchbot_summer/with/key/k6QOrDiDeXrNxOhN94s3b",
+    "fan": "https://maker.ifttt.com/trigger/switchbot_fan/with/key/k6QOrDiDeXrNxOhN94s3b",
+    "off": "https://maker.ifttt.com/trigger/switchbot_off/with/key/k6QOrDiDeXrNxOhN94s3b"
+  },
   "time_windows": [
     {
       "days": [0, 1, 2, 3, 4, 5, 6],

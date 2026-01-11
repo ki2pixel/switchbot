@@ -72,6 +72,14 @@ class DummyClient:
         )
 
 
+class DummyIFTTTClient:
+    def __init__(self) -> None:
+        self.webhook_calls: list[str] = []
+
+    def trigger_webhook(self, webhook_url: str, *, event_data: dict | None = None) -> None:
+        self.webhook_calls.append(webhook_url)
+
+
 def _today_iso() -> str:
     return dt.datetime.utcnow().date().isoformat()
 
@@ -97,6 +105,7 @@ def _build_app(
     if isinstance(client, DummyClient):
         client.attach_quota_tracker(quota_tracker)
     app.extensions["switchbot_client"] = client or object()
+    app.extensions["ifttt_client"] = DummyIFTTTClient()
     app.extensions["automation_service"] = object()
     app.extensions["scheduler_service"] = scheduler
     app.extensions["quota_tracker"] = quota_tracker
@@ -203,7 +212,7 @@ def test_aircon_on_winter_runs_scene_and_updates_state() -> None:
     assert response.status_code == 302
     assert dummy_client.scene_calls == ["scene-w"]
     state = _assert_quota_usage(state_store, expected_used=1)
-    assert state["assumed_aircon_power"] == "unknown"
+    assert state["assumed_aircon_power"] == "on"
     assert state["last_action"].startswith("scene(scene-w)")
 
 
