@@ -109,18 +109,47 @@
                     <div class="form-text">Recommandé : 300 s (5 min) pour laisser la pompe chauffer.</div>
                   </div>
 
-                    <div class="col-12 col-md-4">
-                      <label class="form-label" for="action_off_cooldown_seconds">Cooldown après arrêt (s)</label>
-                      <input
-                        class="form-control"
-                        id="action_off_cooldown_seconds"
-                        name="action_off_cooldown_seconds"
-                        value="{{ settings.get('action_off_cooldown_seconds') }}"
-                        inputmode="numeric"
-                      />
-                      <div class="form-text">Recommandé : 60 s pour garder un arrêt réactif.</div>
-                    </div>
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="action_off_cooldown_seconds">Cooldown après arrêt (s)</label>
+                    <input
+                      class="form-control"
+                      id="action_off_cooldown_seconds"
+                      name="action_off_cooldown_seconds"
+                      value="{{ settings.get('action_off_cooldown_seconds') }}"
+                      inputmode="numeric"
+                    />
+                    <div class="form-text">Recommandé : 60 s pour garder un arrêt réactif.</div>
                   </div>
+                </div>
+
+                <div class="row g-3">
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="off_repeat_count">Répétitions arrêt OFF</label>
+                    <input
+                      class="form-control"
+                      id="off_repeat_count"
+                      name="off_repeat_count"
+                      value="{{ settings.get('off_repeat_count', 1) }}"
+                      inputmode="numeric"
+                      min="1"
+                      max="10"
+                    />
+                    <div class="form-text">Nombre total d'ordres OFF envoyés (1 = aucune répétition).</div>
+                  </div>
+
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="off_repeat_interval_seconds">Intervalle entre OFF (s)</label>
+                    <input
+                      class="form-control"
+                      id="off_repeat_interval_seconds"
+                      name="off_repeat_interval_seconds"
+                      value="{{ settings.get('off_repeat_interval_seconds', 10) }}"
+                      inputmode="numeric"
+                      min="1"
+                    />
+                    <div class="form-text">Délai entre deux OFF successifs (ex. 10 s).</div>
+                  </div>
+                </div>
 
                   <div class="col-12 col-md-6">
                     <label class="form-label" for="hysteresis_celsius">Hystérésis (°C)</label>

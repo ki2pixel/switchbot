@@ -4,7 +4,9 @@ import copy
 import logging
 from typing import Any
 
-from switchbot_dashboard.automation import AutomationService
+import datetime as dt
+
+from switchbot_dashboard.automation import AutomationService, OFF_REPEAT_STATE_KEY
 from switchbot_dashboard.quota import ApiQuotaTracker
 
 
@@ -77,6 +79,8 @@ def _default_settings() -> dict[str, Any]:
         "aircon_device_id": "aircon-1",
         "hysteresis_celsius": 0.5,
         "command_cooldown_seconds": 0,
+        "off_repeat_count": 1,
+        "off_repeat_interval_seconds": 10,
         "time_windows": [
             {"days": [0, 1, 2, 3, 4, 5, 6], "start": "00:00", "end": "23:59"}
         ],

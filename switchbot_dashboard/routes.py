@@ -405,6 +405,18 @@ def update_settings() -> Any:
         minimum=0,
         maximum=3600,
     )
+    settings["off_repeat_count"] = _as_int(
+        request.form.get("off_repeat_count"),
+        default=int(settings.get("off_repeat_count", 1) or 1),
+        minimum=1,
+        maximum=10,
+    )
+    settings["off_repeat_interval_seconds"] = _as_int(
+        request.form.get("off_repeat_interval_seconds"),
+        default=int(settings.get("off_repeat_interval_seconds", 10) or 10),
+        minimum=1,
+        maximum=600,
+    )
 
     settings["turn_off_outside_windows"] = _as_bool(request.form.get("turn_off_outside_windows"))
     settings["api_quota_warning_threshold"] = _as_int(

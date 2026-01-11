@@ -58,7 +58,14 @@ def _utc_now_iso() -> str:
     return dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc).isoformat()
 
 
+def _ensure_utc(value: dt.datetime) -> dt.datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=dt.timezone.utc)
+    return value.astimezone(dt.timezone.utc)
+
+
 logger = logging.getLogger(__name__)
+OFF_REPEAT_STATE_KEY = "pending_off_repeat"
 
 
 def _format_details(details: dict[str, Any]) -> str:
@@ -249,17 +256,17 @@ class AutomationService:
         
         return False
 
-    def _send_aircon_off(self, aircon_device_id: str, *, trigger: str, reason: str) -> None:
+    def _send_aircon_off(self, aircon_device_id: str, *, trigger: str, reason: str, force: bool = False) -> bool:
         aircon_device_id = aircon_device_id.strip()
         if not aircon_device_id:
             self._warning("Cannot send turnOff: missing aircon_device_id", trigger=trigger, reason=reason)
             self._update_state(last_error="Missing aircon_device_id for turnOff command")
-            return
+            return False
 
         state = self._state_store.read()
-        if state.get("assumed_aircon_power") == "off":
+        if not force and state.get("assumed_aircon_power") == "off":
             self._debug("Skipping turnOff: already assumed off", trigger=trigger, reason=reason)
-            return
+            return False
 
         self._debug("Requesting aircon turnOff", trigger=trigger, aircon_device_id=aircon_device_id, reason=reason)
         self._client.send_command(aircon_device_id, command="turnOff", parameter="default")
@@ -270,6 +277,7 @@ class AutomationService:
             last_action_at=_utc_now_iso(),
             last_error=None,
         )
+        return True
 
     def _send_aircon_setall(
         self,
@@ -329,6 +337,164 @@ class AutomationService:
             last_action_at=_utc_now_iso(),
             last_error=None,
         )
+
+    def _clear_off_repeat_task(self) -> None:
+        state = self._state_store.read()
+        if state.pop(OFF_REPEAT_STATE_KEY, None) is not None:
+            self._state_store.write(state)
+            self._debug("Cleared pending off repeat task")
+
+    def _schedule_off_repeat_task(self, now: dt.datetime, *, state_reason: str) -> None:
+        settings = self._settings_store.read()
+        repeat_count = int(settings.get("off_repeat_count", 1) or 1)
+        if repeat_count <= 1:
+            self._clear_off_repeat_task()
+            return
+
+        interval_seconds = int(settings.get("off_repeat_interval_seconds", 10) or 10)
+        if interval_seconds < 1:
+            interval_seconds = 1
+
+        remaining = repeat_count - 1
+        next_run_at = (_ensure_utc(now) + dt.timedelta(seconds=interval_seconds)).isoformat()
+
+        state = self._state_store.read()
+        state[OFF_REPEAT_STATE_KEY] = {
+            "remaining": remaining,
+            "interval_seconds": interval_seconds,
+            "next_run_at": next_run_at,
+            "state_reason": state_reason,
+        }
+        self._state_store.write(state)
+        self._debug(
+            "Scheduled repeated off action",
+            pending_repeats=remaining,
+            interval_seconds=interval_seconds,
+            state_reason=state_reason,
+        )
+
+    def _process_off_repeat_task(
+        self,
+        now: dt.datetime,
+        *,
+        trigger: str,
+        webhooks: dict[str, str],
+        scenes: dict[str, str],
+        aircon_device_id: str,
+    ) -> None:
+        state = self._state_store.read()
+        task = state.get(OFF_REPEAT_STATE_KEY)
+        if not isinstance(task, dict):
+            return
+
+        remaining = int(task.get("remaining", 0) or 0)
+        if remaining <= 0:
+            self._clear_off_repeat_task()
+            return
+
+        next_run_raw = task.get("next_run_at")
+        if not isinstance(next_run_raw, str):
+            self._clear_off_repeat_task()
+            return
+
+        try:
+            next_run_at = dt.datetime.fromisoformat(next_run_raw.replace("Z", "+00:00"))
+        except ValueError:
+            self._clear_off_repeat_task()
+            return
+
+        now_utc = _ensure_utc(now)
+        if now_utc < _ensure_utc(next_run_at):
+            return
+
+        state_reason = str(task.get("state_reason", "automation_off_repeat")).strip() or "automation_off_repeat"
+        interval_seconds = int(task.get("interval_seconds", 10) or 10)
+        if interval_seconds < 1:
+            interval_seconds = 1
+
+        self._debug(
+            "Executing scheduled off repeat",
+            trigger=trigger,
+            state_reason=state_reason,
+            remaining_before=remaining,
+        )
+
+        success = self._perform_off_action(
+            trigger=trigger,
+            webhooks=webhooks,
+            scenes=scenes,
+            aircon_device_id=aircon_device_id,
+            state_reason=state_reason,
+            force_direct=True,
+        )
+
+        if not success:
+            self._warning("Off repeat action failed; clearing schedule", trigger=trigger, state_reason=state_reason)
+            self._clear_off_repeat_task()
+            return
+
+        remaining -= 1
+        if remaining <= 0:
+            self._clear_off_repeat_task()
+            return
+
+        next_run_at = (now_utc + dt.timedelta(seconds=interval_seconds)).isoformat()
+        state = self._state_store.read()
+        state[OFF_REPEAT_STATE_KEY] = {
+            "remaining": remaining,
+            "interval_seconds": interval_seconds,
+            "next_run_at": next_run_at,
+            "state_reason": state_reason,
+        }
+        self._state_store.write(state)
+        self._debug(
+            "Off repeat rescheduled",
+            trigger=trigger,
+            remaining=remaining,
+            next_run_at=next_run_at,
+        )
+
+    def _perform_off_action(
+        self,
+        *,
+        trigger: str,
+        webhooks: dict[str, str],
+        scenes: dict[str, str],
+        aircon_device_id: str,
+        state_reason: str,
+        force_direct: bool = False,
+    ) -> bool:
+        handled = self._trigger_aircon_action(
+            action_key="off",
+            state_reason=state_reason,
+            assumed_power="off",
+            trigger=trigger,
+            webhooks=webhooks,
+            scenes=scenes,
+            aircon_device_id=aircon_device_id,
+        )
+        if handled:
+            return True
+
+        if not aircon_device_id:
+            return False
+
+        try:
+            return self._send_aircon_off(
+                aircon_device_id,
+                trigger=trigger,
+                reason=state_reason,
+                force=force_direct,
+            )
+        except SwitchBotApiError as exc:
+            self._update_state(last_error=str(exc))
+            self._error(
+                "SwitchBot API error during direct turnOff",
+                trigger=trigger,
+                error=str(exc),
+                state_reason=state_reason,
+            )
+            return False
 
     def _trigger_aircon_action(
         self,
@@ -432,11 +598,23 @@ class AutomationService:
         automation_enabled = bool(settings.get("automation_enabled", False))
         outcome = "noop"
 
+        scenes = extract_aircon_scenes(settings)
+        webhooks = extract_ifttt_webhooks(settings)
+        aircon_id = str(settings.get("aircon_device_id", "")).strip()
+
         self._debug(
             "Automation tick started",
             trigger=trigger,
             poll_interval_seconds=poll_interval,
             automation_enabled=automation_enabled,
+        )
+
+        self._process_off_repeat_task(
+            now,
+            trigger=trigger,
+            webhooks=webhooks,
+            scenes=scenes,
+            aircon_device_id=aircon_id,
         )
 
         if not automation_enabled:
@@ -459,10 +637,6 @@ class AutomationService:
             turn_off_outside_windows=bool(settings.get("turn_off_outside_windows", False)),
         )
 
-        scenes = extract_aircon_scenes(settings)
-        webhooks = extract_ifttt_webhooks(settings)
-        aircon_id = str(settings.get("aircon_device_id", "")).strip()
-
         if not in_window:
             self._debug("Outside configured window — polling meter", trigger=trigger)
             self.poll_meter()
@@ -470,30 +644,15 @@ class AutomationService:
                 if self._cooldown_active(now):
                     self._debug("Cooldown active, skipping off automation outside window", trigger=trigger)
                 else:
-                    try:
-                        handled = self._trigger_aircon_action(
-                            action_key="off",
-                            state_reason="automation_off_outside_window",
-                            assumed_power="off",
-                            trigger=trigger,
-                            webhooks=webhooks,
-                            scenes=scenes,
-                            aircon_device_id=aircon_id,
-                        )
-                        if not handled and aircon_id:
-                            self._send_aircon_off(
-                                aircon_id,
-                                trigger=trigger,
-                                reason="outside_window",
-                            )
-                    except SwitchBotApiError as exc:
-                        self._update_state(last_error=str(exc))
-                        self._error(
-                            "SwitchBot API error while turning off outside window",
-                            trigger=trigger,
-                            error=str(exc),
-                        )
-                    else:
+                    handled = self._perform_off_action(
+                        trigger=trigger,
+                        webhooks=webhooks,
+                        scenes=scenes,
+                        aircon_device_id=aircon_id,
+                        state_reason="automation_off_outside_window",
+                    )
+                    if handled:
+                        self._schedule_off_repeat_task(now, state_reason="automation_off_outside_window")
                         outcome = "turned_off_outside_window"
             else:
                 outcome = "outside_window"
@@ -584,23 +743,17 @@ class AutomationService:
                     outcome = "winter_on"
                 elif current_temp >= (max_temp + hysteresis):
                     self._debug("Winter mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
-                    turned_off = self._trigger_aircon_action(
-                        action_key="off",
-                        state_reason="automation_winter_off",
-                        assumed_power="off",
+                    turned_off = self._perform_off_action(
                         trigger=trigger,
                         webhooks=webhooks,
                         scenes=scenes,
                         aircon_device_id=aircon_id,
+                        state_reason="automation_winter_off",
                     )
-                    if not turned_off and aircon_id:
-                        self._send_aircon_off(
-                            aircon_id,
-                            trigger=trigger,
-                            reason="automation_winter_off",
-                        )
-                    decision_taken = True
-                    outcome = "winter_off"
+                    if turned_off:
+                        self._schedule_off_repeat_task(now, state_reason="automation_winter_off")
+                        decision_taken = True
+                        outcome = "winter_off"
             elif mode == "summer":
                 if current_temp >= (max_temp + hysteresis):
                     self._debug("Summer mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
@@ -627,23 +780,17 @@ class AutomationService:
                     outcome = "summer_on"
                 elif current_temp <= (min_temp - hysteresis):
                     self._debug("Summer mode: below min threshold", trigger=trigger, threshold=min_temp - hysteresis)
-                    turned_off = self._trigger_aircon_action(
-                        action_key="off",
-                        state_reason="automation_summer_off",
-                        assumed_power="off",
+                    turned_off = self._perform_off_action(
                         trigger=trigger,
                         webhooks=webhooks,
                         scenes=scenes,
                         aircon_device_id=aircon_id,
+                        state_reason="automation_summer_off",
                     )
-                    if not turned_off and aircon_id:
-                        self._send_aircon_off(
-                            aircon_id,
-                            trigger=trigger,
-                            reason="automation_summer_off",
-                        )
-                    decision_taken = True
-                    outcome = "summer_off"
+                    if turned_off:
+                        self._schedule_off_repeat_task(now, state_reason="automation_summer_off")
+                        decision_taken = True
+                        outcome = "summer_off"
             else:
                 self._update_state(last_error=f"Unknown mode: {mode}")
                 self._error("Unknown automation mode", trigger=trigger, mode=mode)
