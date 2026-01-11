@@ -129,7 +129,6 @@
 [2026-01-10 20:50:00] - Session question température redeploy et implémentation flag stale
 - Analyse du comportement de récupération de température lors d'un redeploy Render (~1 min) avec Redis.
 - Implémentation du flag `last_temperature_stale` pour signaler une température potentiellement obsolète.
-- Marquage à `true` au démarrage (`create_app()`), reset à `false` après premier `poll_meter()`.
 - Mise à jour de la documentation (`docs/configuration.md`).
 - Ajout de test (`tests/test_app_init.py`) et validation pytest (18 tests passed).
 [2026-01-11 15:00:00] - Intégration complète des webhooks IFTTT avec fallback cascade
@@ -139,18 +138,17 @@
 - Création de 16 tests unitaires complets pour la nouvelle logique IFTTT
 - Suite pytest complète passée (36/36 tests)
 - Documentation complète (ifttt-integration.md, configuration.md, README.md mis à jour)
-
 [2026-01-11 20:55:00] - Répétition OFF paramétrable et tests associés
 - Ajout des paramètres `off_repeat_count` et `off_repeat_interval_seconds` (validation backend + formulaire UI)
 - Extension d'`AutomationService` avec état `pending_off_repeat`, planification différée et exécution forcée des OFF répétés
 - Ajout de tests unitaires couvrant la file de répétitions et la purge automatique
 - Mise à jour de la documentation et vérification via pytest ciblé (`tests/test_automation_service.py`)
+[2026-01-11 23:00:00] - Diagnostic et correction des problèmes scheduler
+- Diagnostic du warning "Cannot schedule job: scheduler is None" lors des POST /settings
+- Implémentation d'un guard dans reschedule() pour gérer gracieusement les appels sur scheduler non démarré
+- Diagnostic et correction du scheduler skippé sur Render à cause de FLASK_DEBUG=1 avec Gunicorn
+- Amélioration de la détection mode debug pour distinguer Flask dev reloader de Gunicorn
+- Tests validés (53/53 passés), correction appliquée sans régression
 
 ## En cours
 - Aucune tâche active.
-
-[2026-01-11 02:15:00] - Debug scènes SwitchBot: exécution sans effet physique
-- Correction de `SwitchBotClient.run_scene()` : envoi explicite d'un body JSON `{}` sur `POST /v1.1/scenes/{scene_id}/execute` (alignement doc SwitchBot), afin d'éviter les faux succès HTTP 200 sans action.
-- Ajout d'un log DEBUG minimal `SwitchBot API payload parsed` (statusCode/message/path) pour diagnostiquer rapidement les réponses non-`100`.
-- Ajout de `SwitchBotClient.get_scenes()` (GET `/v1.1/scenes`) pour faciliter les diagnostics et la vérification des UUID.
-- Suite Pytest exécutée : 20 tests passés.

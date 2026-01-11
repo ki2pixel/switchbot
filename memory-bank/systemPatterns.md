@@ -47,6 +47,11 @@
 - La commande privilégie les **scènes SwitchBot** (`aircon_scenes`, helper `aircon.py`) avec fallback `setAll`/`turnOff` si l’ID de scène manque.  
 - Cooldown et état supposé (`assumed_aircon_*`) évitent les doublons; toutes les erreurs sont reflétées dans `state`.
 - Flag de fraîcheur : `last_temperature_stale` / `last_temperature_stale_reason` signalent une température potentiellement obsolète (redeploys, erreurs API). `create_app()` marque à `true` au démarrage, puis `poll_meter()` le remet à `false` après lecture fraîche.
+- **Scheduler robuste** : Démarrage conditionnel uniquement si `SCHEDULER_ENABLED=true` et pas en mode Flask dev reloader. Détection précise via `SERVER_SOFTWARE` pour distinguer Gunicorn de `flask run`. `reschedule()` gère gracieusement les appels sur scheduler non démarré.
+
+## Gestion des erreurs & retries
+- `SwitchBotClient` encapsule la signature HMAC, gère les retries sur HTTP 429/5xx et sur `statusCode` 190.  
+- Les exceptions remontent en `SwitchBotApiError` pour être loguées proprement, et les métriques de quota sont mises à jour même en fallback.
 
 ## Gestion des erreurs & retries
 - `SwitchBotClient` encapsule la signature HMAC, gère les retries sur HTTP 429/5xx et sur `statusCode` 190.  

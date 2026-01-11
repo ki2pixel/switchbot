@@ -649,7 +649,14 @@ class AutomationService:
             self._debug("Outside configured window — polling meter", trigger=trigger)
             self.poll_meter()
             if settings.get("turn_off_outside_windows", False):
-                if self._cooldown_active(now):
+                state = self._state_store.read()
+                if state.get("assumed_aircon_power") == "off":
+                    self._debug(
+                        "Skipping off automation outside window: already assumed off",
+                        trigger=trigger,
+                    )
+                    outcome = "already_off"
+                elif self._cooldown_active(now):
                     self._debug("Cooldown active, skipping off automation outside window", trigger=trigger)
                 else:
                     handled = self._perform_off_action(
@@ -728,6 +735,7 @@ class AutomationService:
             if mode == "winter":
                 if current_temp <= (min_temp - hysteresis):
                     self._debug("Winter mode: below min threshold", trigger=trigger, threshold=min_temp - hysteresis)
+                    self._clear_off_repeat_task()
                     executed = self._trigger_aircon_action(
                         action_key="winter",
                         state_reason="automation_winter_on",
@@ -751,7 +759,14 @@ class AutomationService:
                     outcome = "winter_on"
                 elif current_temp >= (max_temp + hysteresis):
                     self._debug("Winter mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
-                    if self._has_pending_off_repeat():
+                    state = self._state_store.read()
+                    if state.get("assumed_aircon_power") == "off":
+                        self._debug(
+                            "Skipping winter_off: already assumed off",
+                            trigger=trigger,
+                        )
+                        outcome = "already_off"
+                    elif self._has_pending_off_repeat():
                         self._debug(
                             "Skipping winter_off: off repeat already pending",
                             trigger=trigger,
@@ -772,6 +787,7 @@ class AutomationService:
             elif mode == "summer":
                 if current_temp >= (max_temp + hysteresis):
                     self._debug("Summer mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
+                    self._clear_off_repeat_task()
                     executed = self._trigger_aircon_action(
                         action_key="summer",
                         state_reason="automation_summer_on",
@@ -795,7 +811,14 @@ class AutomationService:
                     outcome = "summer_on"
                 elif current_temp <= (min_temp - hysteresis):
                     self._debug("Summer mode: below min threshold", trigger=trigger, threshold=min_temp - hysteresis)
-                    if self._has_pending_off_repeat():
+                    state = self._state_store.read()
+                    if state.get("assumed_aircon_power") == "off":
+                        self._debug(
+                            "Skipping summer_off: already assumed off",
+                            trigger=trigger,
+                        )
+                        outcome = "already_off"
+                    elif self._has_pending_off_repeat():
                         self._debug(
                             "Skipping summer_off: off repeat already pending",
                             trigger=trigger,

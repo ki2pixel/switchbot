@@ -168,3 +168,13 @@
   - Dernier recours vers les commandes directes `setAll`/`turnOff` si nécessaire
   - Logs détaillés pour tracer le chemin d'exécution choisi
   - Mise à jour de toute la documentation (configuration, UI guide, testing, README)
+
+[2026-01-11 23:15:00] - Correction du warning scheduler reschedule
+- Décision : Modifier SchedulerService.reschedule() pour gérer gracieusement les appels quand le scheduler n'est pas démarré, en loguant un DEBUG au lieu d'un WARNING.
+- Motivation : Éliminer les faux positifs alarmants dans les logs quand SCHEDULER_ENABLED=false ou en mode debug, tout en gardant la fonction opérationnelle.
+- Implication : Amélioration de la robustesse et réduction du bruit dans les logs Render.
+
+[2026-01-11 23:30:00] - Correction du scheduler skippé sur Render
+- Décision : Améliorer la détection du mode debug pour ne skipper le scheduler que dans Flask dev reloader (flask run), pas avec Gunicorn. Ajout de vérification SERVER_SOFTWARE.
+- Motivation : FLASK_DEBUG=1 défini sur Render empêchait le démarrage du scheduler malgré Gunicorn, causant l'absence de polling automatique.
+- Implication : Scheduler démarre correctement en production, automation fonctionne toutes les 15 secondes configurées.

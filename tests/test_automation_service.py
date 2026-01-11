@@ -297,3 +297,37 @@ def test_winter_off_skipped_when_repeat_pending() -> None:
     # La répétition doit toujours être en attente
     assert state.get("pending_off_repeat") is not None
     assert state["pending_off_repeat"]["remaining"] == 1
+
+
+def test_winter_off_skipped_when_already_assumed_off() -> None:
+    """Test que winter_off ne se déclenche pas si la clim est déjà supposée OFF.
+
+    Cela évite une rafale de OFF toutes les ~N secondes (cooldown) tant que la
+    température reste au-dessus de max_temp + hysteresis.
+    """
+    settings = _default_settings()
+    settings["winter"]["min_temp"] = 24.0
+    settings["winter"]["max_temp"] = 27.0
+    settings["hysteresis_celsius"] = 0.3
+    settings["off_repeat_count"] = 2
+    settings["off_repeat_interval_seconds"] = 10
+
+    initial_state = {
+        "assumed_aircon_power": "off",
+        "last_action": "manual_off",
+        "last_action_at": "2000-01-01T00:00:00Z",
+    }
+
+    service, client, _settings_store, state_store = _build_service(
+        settings=settings,
+        temperature=27.7,
+        initial_state=initial_state,
+    )
+
+    service.run_once()
+
+    assert client.run_scene_calls == []
+    assert client.send_command_calls == []
+
+    state = state_store.read()
+    assert state.get("pending_off_repeat") is None
