@@ -71,6 +71,10 @@ class SchedulerService:
 
     def reschedule(self) -> None:
         with self._lock:
+            if self._scheduler is None:
+                self._logger.debug("[scheduler] Reschedule called but scheduler not started (normal if SCHEDULER_ENABLED=false)")
+                return
+            
             self._logger.info("[scheduler] Rescheduling automation job")
             self._schedule_or_reschedule_locked()
 

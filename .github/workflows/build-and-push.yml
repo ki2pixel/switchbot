@@ -39,22 +39,16 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Trigger Render deployment (webhook + API fallback)
+      - name: Trigger Render deployment (API only)
         env:
-          WEBHOOK_URL: ${{ secrets.RENDER_DEPLOY_WEBHOOK_URL }}
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
           IMAGE_TAG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
         run: |
           set -euo pipefail
 
-          if [ -z "${WEBHOOK_URL}" ]; then
-            echo "WEBHOOK_URL is required."
-            exit 1
-          fi
-
           if [ -z "${RENDER_API_KEY}" ] || [ -z "${RENDER_SERVICE_ID}" ]; then
-            echo "Render API fallback requires RENDER_API_KEY and RENDER_SERVICE_ID."
+            echo "Render API deploy requires RENDER_API_KEY and RENDER_SERVICE_ID."
             exit 1
           fi
 
@@ -63,19 +57,7 @@ jobs:
             --arg image "${IMAGE_TAG}" \
             '{source:"github-actions", sha:$sha, image:$image}')
 
-          echo "Triggering Render webhook..."
-          http_code=$(curl -sS -o /tmp/webhook-response.txt -w "%{http_code}" \
-            -X POST "${WEBHOOK_URL}" \
-            -H "Content-Type: application/json" \
-            -d "${payload}")
-
-          cat /tmp/webhook-response.txt || true
-          if [ "${http_code}" -ge 200 ] && [ "${http_code}" -lt 300 ]; then
-            echo "Webhook accepted by Render (status ${http_code})."
-            exit 0
-          fi
-
-          echo "Webhook failed with status ${http_code}. Falling back to Render API..."
+          echo "Triggering Render deployment via API..."
           api_response=$(curl -sS -o /tmp/render-response.txt -w "%{http_code}" \
             -X POST "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" \
             -H "Authorization: Bearer ${RENDER_API_KEY}" \

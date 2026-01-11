@@ -1,1042 +1,191 @@
-2026-01-11T20:38:02.244188906Z [2026-01-11 20:38:02 +0000] [25] [DEBUG] HEAD /healthz
-2026-01-11T20:38:02.246634619Z 127.0.0.1 - - [11/Jan/2026:20:38:02 +0000] "HEAD /healthz HTTP/1.1" 200 0 "https://switchbot-latest.onrender.com/healthz" "Mozilla/5.0+(compatible; UptimeRobot/2.0; http://www.uptimerobot.com/)"
-2026-01-11T20:38:03.379205689Z [2026-01-11 20:38:03,378] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:38:03.379230011Z [2026-01-11 20:38:03,379] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:38:03.380474239Z [2026-01-11 20:38:03,379] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:38:03.853778486Z [2026-01-11 20:38:03,853] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:38:03 GMT', 'switchbot-request-id': '47498ef0-87b2-4f6e-ab57-d229b070c85a'}
-2026-01-11T20:38:03.855428749Z [2026-01-11 20:38:03,855] DEBUG in quota: [quota] fallback increment recorded: used=950 remaining=9050 limit=10000
-2026-01-11T20:38:03.855489273Z [2026-01-11 20:38:03,855] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:38:03.855589109Z [2026-01-11 20:38:03,855] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:38:03.857916544Z [2026-01-11 20:38:03,857] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9050 | api_requests_total=950 | context='meter_status'
-2026-01-11T20:38:03.859323572Z [2026-01-11 20:38:03,859] DEBUG in automation: [automation] Meter reading stored | humidity=35 | temperature=23.9 | trigger='scheduler'
-2026-01-11T20:38:03.859380946Z [2026-01-11 20:38:03,859] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:38:04.979530052Z [2026-01-11 20:38:04 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:09.978452892Z [2026-01-11 20:38:09 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:14.979429503Z [2026-01-11 20:38:14 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:18.379118931Z [2026-01-11 20:38:18,378] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:38:18.379155533Z [2026-01-11 20:38:18,378] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:38:18.379987585Z [2026-01-11 20:38:18,379] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:38:18.849248851Z [2026-01-11 20:38:18,849] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:38:18 GMT', 'switchbot-request-id': '09797e80-a1bf-4fa8-a213-c6129b437a70'}
-2026-01-11T20:38:18.850986709Z [2026-01-11 20:38:18,850] DEBUG in quota: [quota] fallback increment recorded: used=951 remaining=9049 limit=10000
-2026-01-11T20:38:18.851089786Z [2026-01-11 20:38:18,850] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:38:18.851214894Z [2026-01-11 20:38:18,851] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:38:18.853941134Z [2026-01-11 20:38:18,853] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9049 | api_requests_total=951 | context='meter_status'
-2026-01-11T20:38:18.855525113Z [2026-01-11 20:38:18,855] DEBUG in automation: [automation] Meter reading stored | humidity=36 | temperature=23.5 | trigger='scheduler'
-2026-01-11T20:38:18.855615798Z [2026-01-11 20:38:18,855] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:38:19.97952621Z [2026-01-11 20:38:19 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:24.978491388Z [2026-01-11 20:38:24 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:25.383326786Z ==> Starting service...
-2026-01-11T20:38:29.978261657Z [2026-01-11 20:38:29 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:29.97895349Z [2026-01-11 20:38:29 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:33.378438389Z [2026-01-11 20:38:33,378] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:38:33.378465101Z [2026-01-11 20:38:33,378] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:38:33.3792556Z [2026-01-11 20:38:33,379] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:38:33.852729929Z [2026-01-11 20:38:33,852] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:38:33 GMT', 'switchbot-request-id': '51933bca-4e1b-4d51-b175-77c3899e4c96'}
-2026-01-11T20:38:33.854729104Z [2026-01-11 20:38:33,854] DEBUG in quota: [quota] fallback increment recorded: used=952 remaining=9048 limit=10000
-2026-01-11T20:38:33.854749995Z [2026-01-11 20:38:33,854] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:38:33.854855282Z [2026-01-11 20:38:33,854] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:38:33.856675215Z [2026-01-11 20:38:33,856] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9048 | api_requests_total=952 | context='meter_status'
-2026-01-11T20:38:33.857917313Z [2026-01-11 20:38:33,857] DEBUG in automation: [automation] Meter reading stored | humidity=36 | temperature=23.5 | trigger='scheduler'
-2026-01-11T20:38:33.857965736Z [2026-01-11 20:38:33,857] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:38:34.97789971Z [2026-01-11 20:38:34 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:39.977826303Z [2026-01-11 20:38:39 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:41.218517559Z [2026-01-11 20:38:41 +0000] [1] [DEBUG] Current configuration:
-2026-01-11T20:38:41.218570172Z   config: gunicorn.conf.py
-2026-01-11T20:38:41.218574022Z   wsgi_app: None
-2026-01-11T20:38:41.218577222Z   bind: ['0.0.0.0:10000']
-2026-01-11T20:38:41.218579883Z   backlog: 2048
-2026-01-11T20:38:41.218605374Z   workers: 1
-2026-01-11T20:38:41.218608864Z   worker_class: sync
-2026-01-11T20:38:41.218611594Z   threads: 2
-2026-01-11T20:38:41.218613745Z   worker_connections: 1000
-2026-01-11T20:38:41.218615834Z   max_requests: 0
-2026-01-11T20:38:41.218618105Z   max_requests_jitter: 0
-2026-01-11T20:38:41.218620335Z   timeout: 120
-2026-01-11T20:38:41.218622325Z   graceful_timeout: 30
-2026-01-11T20:38:41.218624375Z   keepalive: 2
-2026-01-11T20:38:41.218626555Z   limit_request_line: 4094
-2026-01-11T20:38:41.218628575Z   limit_request_fields: 100
-2026-01-11T20:38:41.218630745Z   limit_request_field_size: 8190
-2026-01-11T20:38:41.218632706Z   reload: False
-2026-01-11T20:38:41.218634716Z   reload_engine: auto
-2026-01-11T20:38:41.218636876Z   reload_extra_files: []
-2026-01-11T20:38:41.218638936Z   spew: False
-2026-01-11T20:38:41.218640916Z   check_config: False
-2026-01-11T20:38:41.218642916Z   print_config: False
-2026-01-11T20:38:41.218644906Z   preload_app: False
-2026-01-11T20:38:41.218646866Z   sendfile: None
-2026-01-11T20:38:41.218648856Z   reuse_port: False
-2026-01-11T20:38:41.218650816Z   chdir: /app
-2026-01-11T20:38:41.218652827Z   daemon: False
-2026-01-11T20:38:41.218654887Z   raw_env: []
-2026-01-11T20:38:41.218656857Z   pidfile: None
-2026-01-11T20:38:41.218658917Z   worker_tmp_dir: None
-2026-01-11T20:38:41.218660887Z   user: 100
-2026-01-11T20:38:41.218662857Z   group: 101
-2026-01-11T20:38:41.218664827Z   umask: 0
-2026-01-11T20:38:41.218666857Z   initgroups: False
-2026-01-11T20:38:41.218668837Z   tmp_upload_dir: None
-2026-01-11T20:38:41.218671428Z   secure_scheme_headers: {'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}
-2026-01-11T20:38:41.218675158Z   forwarded_allow_ips: ['127.0.0.1']
-2026-01-11T20:38:41.218677118Z   accesslog: -
-2026-01-11T20:38:41.218679118Z   disable_redirect_access_to_syslog: False
-2026-01-11T20:38:41.218681468Z   access_log_format: %(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
-2026-01-11T20:38:41.218683449Z   errorlog: -
-2026-01-11T20:38:41.218685558Z   loglevel: debug
-2026-01-11T20:38:41.218687599Z   capture_output: False
-2026-01-11T20:38:41.218689619Z   logger_class: gunicorn.glogging.Logger
-2026-01-11T20:38:41.218692159Z   logconfig: None
-2026-01-11T20:38:41.218694269Z   logconfig_dict: {}
-2026-01-11T20:38:41.218696259Z   logconfig_json: None
-2026-01-11T20:38:41.218698209Z   syslog_addr: udp://localhost:514
-2026-01-11T20:38:41.218700189Z   syslog: False
-2026-01-11T20:38:41.21870219Z   syslog_prefix: None
-2026-01-11T20:38:41.21870422Z   syslog_facility: user
-2026-01-11T20:38:41.21870615Z   enable_stdio_inheritance: False
-2026-01-11T20:38:41.21870834Z   statsd_host: None
-2026-01-11T20:38:41.21871043Z   dogstatsd_tags:
-2026-01-11T20:38:41.21871238Z   statsd_prefix:
-2026-01-11T20:38:41.2187143Z   proc_name: None
-2026-01-11T20:38:41.21871661Z   default_proc_name: switchbot_dashboard:create_app()
-2026-01-11T20:38:41.21871858Z   pythonpath: None
-2026-01-11T20:38:41.21872056Z   paste: None
-2026-01-11T20:38:41.218722641Z   on_starting: <function OnStarting.on_starting at 0x77beb470ce00>
-2026-01-11T20:38:41.218724671Z   on_reload: <function OnReload.on_reload at 0x77beb470cf40>
-2026-01-11T20:38:41.218726771Z   when_ready: <function WhenReady.when_ready at 0x77beb470d080>
-2026-01-11T20:38:41.218736832Z   pre_fork: <function Prefork.pre_fork at 0x77beb470d1c0>
-2026-01-11T20:38:41.218739292Z   post_fork: <function Postfork.post_fork at 0x77beb470d300>
-2026-01-11T20:38:41.218741402Z   post_worker_init: <function PostWorkerInit.post_worker_init at 0x77beb470d440>
-2026-01-11T20:38:41.218743652Z   worker_int: <function WorkerInt.worker_int at 0x77beb470d580>
-2026-01-11T20:38:41.218746102Z   worker_abort: <function WorkerAbort.worker_abort at 0x77beb470d6c0>
-2026-01-11T20:38:41.218748152Z   pre_exec: <function PreExec.pre_exec at 0x77beb470d800>
-2026-01-11T20:38:41.218750162Z   pre_request: <function PreRequest.pre_request at 0x77beb470d940>
-2026-01-11T20:38:41.218752212Z   post_request: <function PostRequest.post_request at 0x77beb470d9e0>
-2026-01-11T20:38:41.218754522Z   child_exit: <function ChildExit.child_exit at 0x77beb470db20>
-2026-01-11T20:38:41.218756553Z   worker_exit: <function WorkerExit.worker_exit at 0x77beb470dc60>
-2026-01-11T20:38:41.218759113Z   nworkers_changed: <function NumWorkersChanged.nworkers_changed at 0x77beb470dda0>
-2026-01-11T20:38:41.218761173Z   on_exit: <function OnExit.on_exit at 0x77beb470dee0>
-2026-01-11T20:38:41.218763193Z   ssl_context: <function NewSSLContext.ssl_context at 0x77beb470e0c0>
-2026-01-11T20:38:41.218765313Z   proxy_protocol: False
-2026-01-11T20:38:41.218767473Z   proxy_allow_ips: ['127.0.0.1']
-2026-01-11T20:38:41.218769543Z   keyfile: None
-2026-01-11T20:38:41.218771614Z   certfile: None
-2026-01-11T20:38:41.218773754Z   ssl_version: 2
-2026-01-11T20:38:41.218775844Z   cert_reqs: 0
-2026-01-11T20:38:41.218777914Z   ca_certs: None
-2026-01-11T20:38:41.218780024Z   suppress_ragged_eofs: True
-2026-01-11T20:38:41.218782054Z   do_handshake_on_connect: False
-2026-01-11T20:38:41.218784194Z   ciphers: None
-2026-01-11T20:38:41.218786284Z   raw_paste_global_conf: []
-2026-01-11T20:38:41.218788395Z   strip_header_spaces: False
-2026-01-11T20:38:41.218938713Z [2026-01-11 20:38:41 +0000] [1] [INFO] Starting gunicorn 21.2.0
-2026-01-11T20:38:41.219899138Z [2026-01-11 20:38:41 +0000] [1] [DEBUG] Arbiter booted
-2026-01-11T20:38:41.21991838Z [2026-01-11 20:38:41 +0000] [1] [INFO] Listening at: http://0.0.0.0:10000 (1)
-2026-01-11T20:38:41.219974283Z [2026-01-11 20:38:41 +0000] [1] [INFO] Using worker: gthread
-2026-01-11T20:38:41.223528768Z [2026-01-11 20:38:41 +0000] [25] [INFO] Booting worker with pid: 25
-2026-01-11T20:38:41.2351858Z [2026-01-11 20:38:41 +0000] [1] [DEBUG] 1 workers
-2026-01-11T20:38:44.227221208Z [2026-01-11 20:38:44,226] INFO in __init__: Using Redis backend for settings store (key=switchbot_dashboard:settings)
-2026-01-11T20:38:44.326875772Z [2026-01-11 20:38:44,326] INFO in __init__: Using Redis backend for state store (key=switchbot_dashboard:state)
-2026-01-11T20:38:44.417037878Z [2026-01-11 20:38:44,416] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:38:44.978214185Z [2026-01-11 20:38:44 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:44.981903945Z [2026-01-11 20:38:44,981] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:38:44 GMT', 'switchbot-request-id': '6eb1e8ce-1cec-48d3-8406-0ca78b030a30'}
-2026-01-11T20:38:44.984168735Z [2026-01-11 20:38:44,984] DEBUG in quota: [quota] fallback increment recorded: used=953 remaining=9047 limit=10000
-2026-01-11T20:38:44.984180376Z [2026-01-11 20:38:44,984] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:38:44.985459319Z [2026-01-11 20:38:44,984] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:38:44.98685325Z [2026-01-11 20:38:44,986] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9047 | api_requests_total=953 | context='meter_status'
-2026-01-11T20:38:44.989246748Z [2026-01-11 20:38:44,988] DEBUG in automation: [automation] Meter reading stored | humidity=36 | temperature=23.5 | trigger='scheduler'
-2026-01-11T20:38:44.998490201Z [2026-01-11 20:38:44,998] INFO in scheduler: [scheduler] BackgroundScheduler started successfully
-2026-01-11T20:38:45.000534498Z [2026-01-11 20:38:45,000] INFO in scheduler: [scheduler] Job scheduled with interval=15 seconds
-2026-01-11T20:38:45.000604232Z [2026-01-11 20:38:45,000] INFO in scheduler: [scheduler] Triggering immediate first tick
-2026-01-11T20:38:45.004719569Z [2026-01-11 20:38:45,004] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:38:45.005756439Z [2026-01-11 20:38:45,005] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:38:45.00697888Z [2026-01-11 20:38:45,006] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:38:45.490557771Z [2026-01-11 20:38:45,490] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:38:45 GMT', 'switchbot-request-id': '44e46340-2951-4c63-bdc4-fda4406d02e9'}
-2026-01-11T20:38:45.493209924Z [2026-01-11 20:38:45,493] DEBUG in quota: [quota] fallback increment recorded: used=954 remaining=9046 limit=10000
-2026-01-11T20:38:45.493235596Z [2026-01-11 20:38:45,493] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:38:45.49331745Z [2026-01-11 20:38:45,493] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:38:45.495960342Z [2026-01-11 20:38:45,495] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9046 | api_requests_total=954 | context='meter_status'
-2026-01-11T20:38:45.498398663Z [2026-01-11 20:38:45,498] DEBUG in automation: [automation] Meter reading stored | humidity=36 | temperature=23.5 | trigger='scheduler'
-2026-01-11T20:38:45.498424024Z [2026-01-11 20:38:45,498] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:38:45.498504779Z [2026-01-11 20:38:45,498] INFO in __init__: [scheduler] APScheduler enabled and started
-2026-01-11T20:38:45.499644875Z [2026-01-11 20:38:45 +0000] [25] [DEBUG] HEAD /
-2026-01-11T20:38:45.515936844Z 127.0.0.1 - - [11/Jan/2026:20:38:45 +0000] "HEAD / HTTP/1.1" 200 0 "-" "Go-http-client/1.1"
-2026-01-11T20:38:45.871935472Z [2026-01-11 20:38:45 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:45.97565162Z [2026-01-11 20:38:45 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:46.176041552Z [2026-01-11 20:38:46 +0000] [1] [INFO] Handling signal: term
-2026-01-11T20:38:46.200187574Z ==> Your service is live 🎉
-2026-01-11T20:38:46.228120881Z ==>
-2026-01-11T20:38:46.254785978Z ==> ///////////////////////////////////////////////////////////
-2026-01-11T20:38:46.281241975Z ==>
-2026-01-11T20:38:46.308573392Z ==> Available at your primary URL https://switchbot-latest.onrender.com
-2026-01-11T20:38:46.339102099Z ==>
-2026-01-11T20:38:46.373159055Z ==> ///////////////////////////////////////////////////////////
-2026-01-11T20:38:46.980627676Z [2026-01-11 20:38:46 +0000] [25] [INFO] Worker exiting (pid: 25)
-2026-01-11T20:38:47.290990185Z [2026-01-11 20:38:47 +0000] [1] [INFO] Shutting down: Master
-2026-01-11T20:38:47.328223596Z [2026-01-11 20:38:47 +0000] [25] [DEBUG] GET /
-2026-01-11T20:38:47.331390769Z 127.0.0.1 - - [11/Jan/2026:20:38:47 +0000] "GET / HTTP/1.1" 200 9476 "-" "Go-http-client/2.0"
-2026-01-11T20:38:50.880458152Z [2026-01-11 20:38:50 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:55.871863635Z [2026-01-11 20:38:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:55.872218476Z [2026-01-11 20:38:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:38:57.036108717Z [2026-01-11 20:38:57 +0000] [25] [DEBUG] GET /
-2026-01-11T20:38:57.039815211Z 127.0.0.1 - - [11/Jan/2026:20:38:57 +0000] "GET / HTTP/1.1" 200 9476 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:38:57.330026977Z [2026-01-11 20:38:57 +0000] [25] [DEBUG] GET /static/js/alerts.js
-2026-01-11T20:38:57.331943218Z 127.0.0.1 - - [11/Jan/2026:20:38:57 +0000] "GET /static/js/alerts.js HTTP/1.1" 200 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:38:57.346096483Z [2026-01-11 20:38:57 +0000] [25] [DEBUG] GET /static/css/index.css
-2026-01-11T20:38:57.34743367Z 127.0.0.1 - - [11/Jan/2026:20:38:57 +0000] "GET /static/css/index.css HTTP/1.1" 200 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:38:57.680842427Z [2026-01-11 20:38:57 +0000] [25] [DEBUG] GET /static/css/theme.css
-2026-01-11T20:38:57.68212172Z 127.0.0.1 - - [11/Jan/2026:20:38:57 +0000] "GET /static/css/theme.css HTTP/1.1" 200 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:38:59.012505338Z [2026-01-11 20:38:59 +0000] [25] [DEBUG] GET /reglages
-2026-01-11T20:38:59.210775865Z 127.0.0.1 - - [11/Jan/2026:20:38:59 +0000] "GET /reglages HTTP/1.1" 200 66267 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:38:59.457416521Z [2026-01-11 20:38:59 +0000] [25] [DEBUG] GET /static/js/alerts.js
-2026-01-11T20:38:59.458601229Z 127.0.0.1 - - [11/Jan/2026:20:38:59 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:38:59.78722921Z [2026-01-11 20:38:59 +0000] [25] [DEBUG] GET /static/css/theme.css
-2026-01-11T20:38:59.788368215Z 127.0.0.1 - - [11/Jan/2026:20:38:59 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:38:59.856551925Z [2026-01-11 20:38:59 +0000] [25] [DEBUG] GET /static/css/settings.css
-2026-01-11T20:38:59.857662139Z 127.0.0.1 - - [11/Jan/2026:20:38:59 +0000] "GET /static/css/settings.css HTTP/1.1" 200 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:39:00.004373645Z [2026-01-11 20:39:00,004] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:39:00.005317709Z [2026-01-11 20:39:00,005] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:39:00.006453215Z [2026-01-11 20:39:00,006] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:39:00.583027646Z [2026-01-11 20:39:00,582] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:39:00 GMT', 'switchbot-request-id': '5e9553c2-243b-410f-86ce-09ec73231b80'}
-2026-01-11T20:39:00.585424134Z [2026-01-11 20:39:00,585] DEBUG in quota: [quota] fallback increment recorded: used=955 remaining=9045 limit=10000
-2026-01-11T20:39:00.585439145Z [2026-01-11 20:39:00,585] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:39:00.585500858Z [2026-01-11 20:39:00,585] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:39:00.588049116Z [2026-01-11 20:39:00,587] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9045 | api_requests_total=955 | context='meter_status'
-2026-01-11T20:39:00.590100584Z [2026-01-11 20:39:00,589] DEBUG in automation: [automation] Meter reading stored | humidity=36 | temperature=23.5 | trigger='scheduler'
-2026-01-11T20:39:00.590145786Z [2026-01-11 20:39:00,590] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:39:00.871996371Z [2026-01-11 20:39:00 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:39:05.871299899Z [2026-01-11 20:39:05 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:39:10.871766384Z [2026-01-11 20:39:10 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:39:15.004141276Z [2026-01-11 20:39:15,003] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:39:15.005027337Z [2026-01-11 20:39:15,004] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:39:15.006058196Z [2026-01-11 20:39:15,005] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:39:15.489428795Z [2026-01-11 20:39:15,489] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:39:15 GMT', 'switchbot-request-id': '31032633-d4ab-4398-a51b-990f4c897b56'}
-2026-01-11T20:39:15.49176163Z [2026-01-11 20:39:15,491] DEBUG in quota: [quota] fallback increment recorded: used=956 remaining=9044 limit=10000
-2026-01-11T20:39:15.491785301Z [2026-01-11 20:39:15,491] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:39:15.491852565Z [2026-01-11 20:39:15,491] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:39:15.494077194Z [2026-01-11 20:39:15,493] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9044 | api_requests_total=956 | context='meter_status'
-2026-01-11T20:39:15.496166164Z [2026-01-11 20:39:15,496] DEBUG in automation: [automation] Meter reading stored | humidity=36 | temperature=23.5 | trigger='scheduler'
-2026-01-11T20:39:15.496182185Z [2026-01-11 20:39:15,496] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:39:15.871932771Z [2026-01-11 20:39:15 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:39:20.871009966Z [2026-01-11 20:39:20 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:39:25.871531414Z [2026-01-11 20:39:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:39:25.871769428Z [2026-01-11 20:39:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:39:30.004094036Z [2026-01-11 20:39:30,003] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:39:30.004954796Z [2026-01-11 20:39:30,004] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:39:30.005943673Z [2026-01-11 20:39:30,005] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:39:30.479954463Z [2026-01-11 20:39:30,479] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:39:30 GMT', 'switchbot-request-id': '15481d4e-d3ef-4387-9986-af71b8677b77'}
-2026-01-11T20:39:30.482170821Z [2026-01-11 20:39:30,482] DEBUG in quota: [quota] fallback increment recorded: used=957 remaining=9043 limit=10000
-2026-01-11T20:39:30.482193982Z [2026-01-11 20:39:30,482] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:39:30.482303198Z [2026-01-11 20:39:30,482] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:39:30.484465213Z [2026-01-11 20:39:30,484] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9043 | api_requests_total=957 | context='meter_status'
-2026-01-11T20:39:30.486449537Z [2026-01-11 20:39:30,486] DEBUG in automation: [automation] Meter reading stored | humidity=36 | temperature=23.5 | trigger='scheduler'
-2026-01-11T20:39:30.4864998Z [2026-01-11 20:39:30,486] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:39:30.871103337Z [2026-01-11 20:39:30 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:39:35.872675195Z [2026-01-11 20:39:35 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:39:40.871558727Z [2026-01-11 20:39:40 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:39:45.003979521Z [2026-01-11 20:39:45,003] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:39:45.004914455Z [2026-01-11 20:39:45,004] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:39:45.005999497Z [2026-01-11 20:39:45,005] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:39:45.492772873Z [2026-01-11 20:39:45,492] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:39:45 GMT', 'switchbot-request-id': 'e7c94769-1017-4e35-9405-3ae9bb795964'}
-2026-01-11T20:39:45.495297549Z [2026-01-11 20:39:45,495] DEBUG in quota: [quota] fallback increment recorded: used=958 remaining=9042 limit=10000
-2026-01-11T20:39:45.495368242Z [2026-01-11 20:39:45,495] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:39:45.495382593Z [2026-01-11 20:39:45,495] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:39:45.498156383Z [2026-01-11 20:39:45,498] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9042 | api_requests_total=958 | context='meter_status'
-2026-01-11T20:39:45.500227343Z [2026-01-11 20:39:45,500] DEBUG in automation: [automation] Meter reading stored | humidity=36 | temperature=23.5 | trigger='scheduler'
-2026-01-11T20:39:45.500286786Z [2026-01-11 20:39:45,500] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:39:45.870936479Z [2026-01-11 20:39:45 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:39:50.871649587Z [2026-01-11 20:39:50 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:39:55.871981743Z [2026-01-11 20:39:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:39:55.872233227Z [2026-01-11 20:39:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:39:59.131380709Z [2026-01-11 20:39:59 +0000] [25] [DEBUG] POST /settings
-2026-01-11T20:39:59.13537926Z [2026-01-11 20:39:59,135] INFO in scheduler: [scheduler] Rescheduling automation job
-2026-01-11T20:39:59.136491544Z [2026-01-11 20:39:59,136] DEBUG in scheduler: [scheduler] Removing existing job before rescheduling
-2026-01-11T20:39:59.136953171Z [2026-01-11 20:39:59,136] INFO in scheduler: [scheduler] Job scheduled with interval=15 seconds
-2026-01-11T20:39:59.138070615Z 127.0.0.1 - - [11/Jan/2026:20:39:59 +0000] "POST /settings HTTP/1.1" 302 189 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:39:59.364443872Z [2026-01-11 20:39:59 +0000] [25] [DEBUG] GET /
-2026-01-11T20:39:59.367852188Z 127.0.0.1 - - [11/Jan/2026:20:39:59 +0000] "GET / HTTP/1.1" 200 9780 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:40:00.871829401Z [2026-01-11 20:40:00 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:40:01.997527951Z [2026-01-11 20:40:01 +0000] [25] [DEBUG] GET /static/css/theme.css
-2026-01-11T20:40:01.998740171Z 127.0.0.1 - - [11/Jan/2026:20:40:01 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:40:02.020974152Z [2026-01-11 20:40:02 +0000] [25] [DEBUG] GET /static/css/index.css
-2026-01-11T20:40:02.021952598Z 127.0.0.1 - - [11/Jan/2026:20:40:02 +0000] "GET /static/css/index.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:40:02.02233446Z [2026-01-11 20:40:02 +0000] [25] [DEBUG] GET /static/js/alerts.js
-2026-01-11T20:40:02.023080594Z 127.0.0.1 - - [11/Jan/2026:20:40:02 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:40:05.00313073Z [2026-01-11 20:40:05 +0000] [25] [DEBUG] GET /reglages
-2026-01-11T20:40:05.007720204Z 127.0.0.1 - - [11/Jan/2026:20:40:05 +0000] "GET /reglages HTTP/1.1" 200 66267 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:40:05.264414199Z [2026-01-11 20:40:05 +0000] [25] [DEBUG] GET /static/css/settings.css
-2026-01-11T20:40:05.265442088Z 127.0.0.1 - - [11/Jan/2026:20:40:05 +0000] "GET /static/css/settings.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:40:05.276000026Z [2026-01-11 20:40:05 +0000] [25] [DEBUG] GET /static/css/theme.css
-2026-01-11T20:40:05.277155853Z 127.0.0.1 - - [11/Jan/2026:20:40:05 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:40:05.310942151Z [2026-01-11 20:40:05 +0000] [25] [DEBUG] GET /static/js/alerts.js
-2026-01-11T20:40:05.312011332Z 127.0.0.1 - - [11/Jan/2026:20:40:05 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:40:05.871760174Z [2026-01-11 20:40:05 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:40:10.871754019Z [2026-01-11 20:40:10 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:40:14.140683485Z [2026-01-11 20:40:14,140] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:40:14.141686713Z [2026-01-11 20:40:14,141] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:40:14.14302271Z [2026-01-11 20:40:14,142] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:40:14.830568227Z [2026-01-11 20:40:14,830] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:40:14 GMT', 'switchbot-request-id': '53c5553f-668b-4d0e-a81b-db9ec3eac46b'}
-2026-01-11T20:40:14.833093452Z [2026-01-11 20:40:14,832] DEBUG in quota: [quota] fallback increment recorded: used=959 remaining=9041 limit=10000
-2026-01-11T20:40:14.833122274Z [2026-01-11 20:40:14,833] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:40:14.833210309Z [2026-01-11 20:40:14,833] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:40:14.835649459Z [2026-01-11 20:40:14,835] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9041 | api_requests_total=959 | context='meter_status'
-2026-01-11T20:40:14.837871927Z [2026-01-11 20:40:14,837] DEBUG in automation: [automation] Meter reading stored | humidity=36 | temperature=23.5 | trigger='scheduler'
-2026-01-11T20:40:14.83790738Z [2026-01-11 20:40:14,837] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:40:15.871734325Z [2026-01-11 20:40:15 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:40:20.870964597Z [2026-01-11 20:40:20 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:40:25.871562397Z [2026-01-11 20:40:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:40:25.871937469Z [2026-01-11 20:40:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:40:29.140715325Z [2026-01-11 20:40:29,140] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:40:29.141681011Z [2026-01-11 20:40:29,141] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:40:29.142773014Z [2026-01-11 20:40:29,142] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:40:29.620346799Z [2026-01-11 20:40:29,620] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:40:29 GMT', 'switchbot-request-id': '7958d098-1135-4e82-a009-f17e950ca7d6'}
-2026-01-11T20:40:29.622739307Z [2026-01-11 20:40:29,622] DEBUG in quota: [quota] fallback increment recorded: used=960 remaining=9040 limit=10000
-2026-01-11T20:40:29.622812541Z [2026-01-11 20:40:29,622] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:40:29.622881635Z [2026-01-11 20:40:29,622] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:40:29.624968195Z [2026-01-11 20:40:29,624] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9040 | api_requests_total=960 | context='meter_status'
-2026-01-11T20:40:29.626986072Z [2026-01-11 20:40:29,626] DEBUG in automation: [automation] Meter reading stored | humidity=36 | temperature=23.5 | trigger='scheduler'
-2026-01-11T20:40:29.627041055Z [2026-01-11 20:40:29,626] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:40:30.87099416Z [2026-01-11 20:40:30 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:40:35.871689466Z [2026-01-11 20:40:35 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:40:40.871906475Z [2026-01-11 20:40:40 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:40:44.140753295Z [2026-01-11 20:40:44,140] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:40:44.14170073Z [2026-01-11 20:40:44,141] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:40:44.142771681Z [2026-01-11 20:40:44,142] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:40:44.625566647Z [2026-01-11 20:40:44,625] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:40:44 GMT', 'switchbot-request-id': '4574b91a-c5ca-4599-bae4-382131f80081'}
-2026-01-11T20:40:44.627810256Z [2026-01-11 20:40:44,627] DEBUG in quota: [quota] fallback increment recorded: used=961 remaining=9039 limit=10000
-2026-01-11T20:40:44.627832328Z [2026-01-11 20:40:44,627] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:40:44.627932754Z [2026-01-11 20:40:44,627] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:40:44.629896437Z [2026-01-11 20:40:44,629] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9039 | api_requests_total=961 | context='meter_status'
-2026-01-11T20:40:44.631924044Z [2026-01-11 20:40:44,631] DEBUG in automation: [automation] Meter reading stored | humidity=36 | temperature=23.5 | trigger='scheduler'
-2026-01-11T20:40:44.631976407Z [2026-01-11 20:40:44,631] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:40:45.870732743Z [2026-01-11 20:40:45 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:40:49.906448381Z [2026-01-11 20:40:49 +0000] [25] [DEBUG] GET /quota
-2026-01-11T20:40:49.916190383Z 127.0.0.1 - - [11/Jan/2026:20:40:49 +0000] "GET /quota HTTP/1.1" 200 3304 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:40:50.164806301Z [2026-01-11 20:40:50 +0000] [25] [DEBUG] GET /static/css/theme.css
-2026-01-11T20:40:50.165894174Z 127.0.0.1 - - [11/Jan/2026:20:40:50 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/quota" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:40:50.576632077Z [2026-01-11 20:40:50 +0000] [25] [DEBUG] GET /static/js/alerts.js
-2026-01-11T20:40:50.577910601Z 127.0.0.1 - - [11/Jan/2026:20:40:50 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/quota" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:40:50.875669392Z [2026-01-11 20:40:50 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:40:55.871470316Z [2026-01-11 20:40:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:40:55.871859528Z [2026-01-11 20:40:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:40:59.140875088Z [2026-01-11 20:40:59,140] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:40:59.141840813Z [2026-01-11 20:40:59,141] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:40:59.142905795Z [2026-01-11 20:40:59,142] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:40:59.629751114Z [2026-01-11 20:40:59,629] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:40:59 GMT', 'switchbot-request-id': 'db81242e-99eb-40ec-a568-0e713878cc52'}
-2026-01-11T20:40:59.632275819Z [2026-01-11 20:40:59,632] DEBUG in quota: [quota] fallback increment recorded: used=962 remaining=9038 limit=10000
-2026-01-11T20:40:59.632303561Z [2026-01-11 20:40:59,632] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:40:59.632411047Z [2026-01-11 20:40:59,632] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:40:59.635175097Z [2026-01-11 20:40:59,635] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9038 | api_requests_total=962 | context='meter_status'
-2026-01-11T20:40:59.638426394Z [2026-01-11 20:40:59,638] DEBUG in automation: [automation] Meter reading stored | humidity=36 | temperature=23.5 | trigger='scheduler'
-2026-01-11T20:40:59.638563772Z [2026-01-11 20:40:59,638] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:41:00.871441509Z [2026-01-11 20:41:00 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:41:05.871476536Z [2026-01-11 20:41:05 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:41:10.871563906Z [2026-01-11 20:41:10 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:41:14.141422044Z [2026-01-11 20:41:14,141] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:41:14.142351678Z [2026-01-11 20:41:14,142] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:41:14.143685035Z [2026-01-11 20:41:14,143] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:41:14.622811809Z [2026-01-11 20:41:14,622] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:41:14 GMT', 'switchbot-request-id': '9ba7ffc4-8d9e-4aa9-9894-0509460e8d2b'}
-2026-01-11T20:41:14.625133573Z [2026-01-11 20:41:14,625] DEBUG in quota: [quota] fallback increment recorded: used=963 remaining=9037 limit=10000
-2026-01-11T20:41:14.625156984Z [2026-01-11 20:41:14,625] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:41:14.625237309Z [2026-01-11 20:41:14,625] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:41:14.627407104Z [2026-01-11 20:41:14,627] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9037 | api_requests_total=963 | context='meter_status'
-2026-01-11T20:41:14.629499134Z [2026-01-11 20:41:14,629] DEBUG in automation: [automation] Meter reading stored | humidity=36 | temperature=23.5 | trigger='scheduler'
-2026-01-11T20:41:14.629524906Z [2026-01-11 20:41:14,629] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:41:15.871908841Z [2026-01-11 20:41:15 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:41:20.871321982Z [2026-01-11 20:41:20 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:41:25.87227232Z [2026-01-11 20:41:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:41:25.872849493Z [2026-01-11 20:41:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:41:29.140819513Z [2026-01-11 20:41:29,140] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:41:29.142095076Z [2026-01-11 20:41:29,141] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:41:29.142884081Z [2026-01-11 20:41:29,142] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:41:29.612083964Z [2026-01-11 20:41:29,611] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:41:29 GMT', 'switchbot-request-id': 'c36fab08-f5ea-4b16-b1c7-a5e217ababe2'}
-2026-01-11T20:41:29.614117841Z [2026-01-11 20:41:29,613] DEBUG in quota: [quota] fallback increment recorded: used=964 remaining=9036 limit=10000
-2026-01-11T20:41:29.614155423Z [2026-01-11 20:41:29,614] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:41:29.614257439Z [2026-01-11 20:41:29,614] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:41:29.61653157Z [2026-01-11 20:41:29,616] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9036 | api_requests_total=964 | context='meter_status'
-2026-01-11T20:41:29.618561697Z [2026-01-11 20:41:29,618] DEBUG in automation: [automation] Meter reading stored | humidity=37 | temperature=23.8 | trigger='scheduler'
-2026-01-11T20:41:29.618634921Z [2026-01-11 20:41:29,618] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:41:30.871270287Z [2026-01-11 20:41:30 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:41:35.871528886Z [2026-01-11 20:41:35 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:41:40.87570222Z [2026-01-11 20:41:40 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:41:44.141325114Z [2026-01-11 20:41:44,141] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:41:44.142519673Z [2026-01-11 20:41:44,142] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:41:44.143770235Z [2026-01-11 20:41:44,143] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:41:44.630792435Z [2026-01-11 20:41:44,630] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:41:44 GMT', 'switchbot-request-id': '93ae9d43-70ea-4841-99c8-56fae9579bea'}
-2026-01-11T20:41:44.633781887Z [2026-01-11 20:41:44,633] DEBUG in quota: [quota] fallback increment recorded: used=965 remaining=9035 limit=10000
-2026-01-11T20:41:44.633804748Z [2026-01-11 20:41:44,633] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:41:44.633821519Z [2026-01-11 20:41:44,633] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:41:44.636853374Z [2026-01-11 20:41:44,636] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9035 | api_requests_total=965 | context='meter_status'
-2026-01-11T20:41:44.639602952Z [2026-01-11 20:41:44,639] DEBUG in automation: [automation] Meter reading stored | humidity=37 | temperature=23.8 | trigger='scheduler'
-2026-01-11T20:41:44.639620213Z [2026-01-11 20:41:44,639] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:41:45.871027995Z [2026-01-11 20:41:45 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:41:50.871545429Z [2026-01-11 20:41:50 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:41:55.871265157Z [2026-01-11 20:41:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:41:55.871628158Z [2026-01-11 20:41:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:41:59.141112023Z [2026-01-11 20:41:59,140] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:41:59.141985744Z [2026-01-11 20:41:59,141] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:41:59.142996532Z [2026-01-11 20:41:59,142] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:41:59.620097849Z [2026-01-11 20:41:59,619] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:41:59 GMT', 'switchbot-request-id': '7bd1cb28-1de9-467b-9adf-cf1f32e21f71'}
-2026-01-11T20:41:59.625721364Z [2026-01-11 20:41:59,625] DEBUG in quota: [quota] fallback increment recorded: used=966 remaining=9034 limit=10000
-2026-01-11T20:41:59.625917115Z [2026-01-11 20:41:59,625] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:41:59.626075754Z [2026-01-11 20:41:59,626] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:41:59.62879131Z [2026-01-11 20:41:59,628] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9034 | api_requests_total=966 | context='meter_status'
-2026-01-11T20:41:59.631064491Z [2026-01-11 20:41:59,630] DEBUG in automation: [automation] Meter reading stored | humidity=37 | temperature=23.8 | trigger='scheduler'
-2026-01-11T20:41:59.63122507Z [2026-01-11 20:41:59,631] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:42:00.871240189Z [2026-01-11 20:42:00 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:42:05.871122985Z [2026-01-11 20:42:05 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:42:10.871774646Z [2026-01-11 20:42:10 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:42:13.658082264Z [2026-01-11 20:42:13 +0000] [25] [DEBUG] GET /
-2026-01-11T20:42:13.661566385Z 127.0.0.1 - - [11/Jan/2026:20:42:13 +0000] "GET / HTTP/1.1" 200 9476 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:13.929782093Z [2026-01-11 20:42:13 +0000] [25] [DEBUG] GET /static/css/theme.css
-2026-01-11T20:42:13.930686986Z 127.0.0.1 - - [11/Jan/2026:20:42:13 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:13.969394097Z [2026-01-11 20:42:13 +0000] [25] [DEBUG] GET /static/js/alerts.js
-2026-01-11T20:42:13.970243146Z 127.0.0.1 - - [11/Jan/2026:20:42:13 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:14.140566332Z [2026-01-11 20:42:14,140] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:42:14.141440622Z [2026-01-11 20:42:14,141] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:42:14.142471782Z [2026-01-11 20:42:14,142] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:42:14.322239333Z [2026-01-11 20:42:14 +0000] [25] [DEBUG] GET /static/css/index.css
-2026-01-11T20:42:14.323304834Z 127.0.0.1 - - [11/Jan/2026:20:42:14 +0000] "GET /static/css/index.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:14.618876109Z [2026-01-11 20:42:14,618] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:42:14 GMT', 'switchbot-request-id': 'cc3d711a-84c6-450c-9abc-aa0b78c7ad7f'}
-2026-01-11T20:42:14.621216644Z [2026-01-11 20:42:14,621] DEBUG in quota: [quota] fallback increment recorded: used=967 remaining=9033 limit=10000
-2026-01-11T20:42:14.621247696Z [2026-01-11 20:42:14,621] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:42:14.62132248Z [2026-01-11 20:42:14,621] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:42:14.623677016Z [2026-01-11 20:42:14,623] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9033 | api_requests_total=967 | context='meter_status'
-2026-01-11T20:42:14.626157819Z [2026-01-11 20:42:14,626] DEBUG in automation: [automation] Meter reading stored | humidity=37 | temperature=24.2 | trigger='scheduler'
-2026-01-11T20:42:14.62617722Z [2026-01-11 20:42:14,626] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:42:15.871717916Z [2026-01-11 20:42:15 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:42:20.676756342Z [2026-01-11 20:42:20 +0000] [25] [DEBUG] GET /
-2026-01-11T20:42:20.679883962Z 127.0.0.1 - - [11/Jan/2026:20:42:20 +0000] "GET / HTTP/1.1" 200 9476 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:20.870971186Z [2026-01-11 20:42:20 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:42:20.909802784Z [2026-01-11 20:42:20 +0000] [25] [DEBUG] GET /static/css/index.css
-2026-01-11T20:42:20.910744138Z 127.0.0.1 - - [11/Jan/2026:20:42:20 +0000] "GET /static/css/index.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:20.914935549Z [2026-01-11 20:42:20 +0000] [25] [DEBUG] GET /static/js/alerts.js
-2026-01-11T20:42:20.915790089Z 127.0.0.1 - - [11/Jan/2026:20:42:20 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:20.929774045Z [2026-01-11 20:42:20 +0000] [25] [DEBUG] GET /static/css/theme.css
-2026-01-11T20:42:20.931029857Z 127.0.0.1 - - [11/Jan/2026:20:42:20 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:25.442057778Z [2026-01-11 20:42:25 +0000] [25] [DEBUG] GET /reglages
-2026-01-11T20:42:25.447396736Z 127.0.0.1 - - [11/Jan/2026:20:42:25 +0000] "GET /reglages HTTP/1.1" 200 66267 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:25.68448572Z [2026-01-11 20:42:25 +0000] [25] [DEBUG] GET /static/js/alerts.js
-2026-01-11T20:42:25.685502489Z 127.0.0.1 - - [11/Jan/2026:20:42:25 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:25.688826441Z [2026-01-11 20:42:25 +0000] [25] [DEBUG] GET /static/css/theme.css
-2026-01-11T20:42:25.689758024Z 127.0.0.1 - - [11/Jan/2026:20:42:25 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:25.690232102Z [2026-01-11 20:42:25 +0000] [25] [DEBUG] GET /static/css/settings.css
-2026-01-11T20:42:25.691024507Z 127.0.0.1 - - [11/Jan/2026:20:42:25 +0000] "GET /static/css/settings.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:25.871505679Z [2026-01-11 20:42:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:42:25.871630017Z [2026-01-11 20:42:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:42:29.14056243Z [2026-01-11 20:42:29,140] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:42:29.14142406Z [2026-01-11 20:42:29,141] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:42:29.142716604Z [2026-01-11 20:42:29,142] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:42:29.621671979Z [2026-01-11 20:42:29,621] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:42:29 GMT', 'switchbot-request-id': 'e050b723-dbb9-4810-b0c9-ce34d9e346be'}
-2026-01-11T20:42:29.624057856Z [2026-01-11 20:42:29,623] DEBUG in quota: [quota] fallback increment recorded: used=968 remaining=9032 limit=10000
-2026-01-11T20:42:29.624087358Z [2026-01-11 20:42:29,624] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:42:29.624139681Z [2026-01-11 20:42:29,624] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:42:29.626051931Z [2026-01-11 20:42:29,625] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9032 | api_requests_total=968 | context='meter_status'
-2026-01-11T20:42:29.628209115Z [2026-01-11 20:42:29,628] DEBUG in automation: [automation] Meter reading stored | humidity=37 | temperature=24.2 | trigger='scheduler'
-2026-01-11T20:42:29.628238527Z [2026-01-11 20:42:29,628] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:42:30.871235087Z [2026-01-11 20:42:30 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:42:35.871570029Z [2026-01-11 20:42:35 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:42:40.870994058Z [2026-01-11 20:42:40 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:42:43.17779427Z [2026-01-11 20:42:43 +0000] [25] [DEBUG] POST /settings
-2026-01-11T20:42:43.180617042Z [2026-01-11 20:42:43,180] INFO in scheduler: [scheduler] Rescheduling automation job
-2026-01-11T20:42:43.181659522Z [2026-01-11 20:42:43,181] DEBUG in scheduler: [scheduler] Removing existing job before rescheduling
-2026-01-11T20:42:43.182008753Z [2026-01-11 20:42:43,181] INFO in scheduler: [scheduler] Job scheduled with interval=15 seconds
-2026-01-11T20:42:43.182917375Z 127.0.0.1 - - [11/Jan/2026:20:42:43 +0000] "POST /settings HTTP/1.1" 302 189 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:43.400314875Z [2026-01-11 20:42:43 +0000] [25] [DEBUG] GET /
-2026-01-11T20:42:43.403842488Z 127.0.0.1 - - [11/Jan/2026:20:42:43 +0000] "GET / HTTP/1.1" 200 9780 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:45.870907656Z [2026-01-11 20:42:45 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:42:46.217111119Z [2026-01-11 20:42:46 +0000] [25] [DEBUG] GET /static/css/theme.css
-2026-01-11T20:42:46.218220393Z 127.0.0.1 - - [11/Jan/2026:20:42:46 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:46.223498787Z [2026-01-11 20:42:46 +0000] [25] [DEBUG] GET /static/css/index.css
-2026-01-11T20:42:46.224304703Z 127.0.0.1 - - [11/Jan/2026:20:42:46 +0000] "GET /static/css/index.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:46.23777159Z [2026-01-11 20:42:46 +0000] [25] [DEBUG] GET /static/js/alerts.js
-2026-01-11T20:42:46.239640247Z 127.0.0.1 - - [11/Jan/2026:20:42:46 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:42:50.87146228Z [2026-01-11 20:42:50 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:42:55.870966114Z [2026-01-11 20:42:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:42:55.871321504Z [2026-01-11 20:42:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:42:58.185806998Z [2026-01-11 20:42:58,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:42:58.186773544Z [2026-01-11 20:42:58,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:42:58.187855096Z [2026-01-11 20:42:58,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:42:58.675117139Z [2026-01-11 20:42:58,674] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:42:58 GMT', 'switchbot-request-id': '7a61790c-19e9-4421-933a-e8b39f515e35'}
-2026-01-11T20:42:58.677316576Z [2026-01-11 20:42:58,677] DEBUG in quota: [quota] fallback increment recorded: used=969 remaining=9031 limit=10000
-2026-01-11T20:42:58.677348518Z [2026-01-11 20:42:58,677] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:42:58.677444403Z [2026-01-11 20:42:58,677] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:42:58.679832601Z [2026-01-11 20:42:58,679] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9031 | api_requests_total=969 | context='meter_status'
-2026-01-11T20:42:58.681935592Z [2026-01-11 20:42:58,681] DEBUG in automation: [automation] Meter reading stored | humidity=37 | temperature=24.6 | trigger='scheduler'
-2026-01-11T20:42:58.682005566Z [2026-01-11 20:42:58,681] DEBUG in automation: [automation] Temperature evaluation | current_temp=24.6 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:42:58.684147319Z [2026-01-11 20:42:58,684] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:42:58.6841587Z [2026-01-11 20:42:58,684] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:43:00.871713019Z [2026-01-11 20:43:00 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:43:05.871464736Z [2026-01-11 20:43:05 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:43:07.267386279Z [2026-01-11 20:43:07 +0000] [25] [DEBUG] HEAD /healthz
-2026-01-11T20:43:07.270436305Z 127.0.0.1 - - [11/Jan/2026:20:43:07 +0000] "HEAD /healthz HTTP/1.1" 200 0 "https://switchbot-latest.onrender.com/healthz" "Mozilla/5.0+(compatible; UptimeRobot/2.0; http://www.uptimerobot.com/)"
-2026-01-11T20:43:10.871253876Z [2026-01-11 20:43:10 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:43:13.186179515Z [2026-01-11 20:43:13,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:43:13.187614218Z [2026-01-11 20:43:13,187] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:43:13.190365577Z [2026-01-11 20:43:13,188] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:43:13.767739253Z [2026-01-11 20:43:13,767] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '185', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:43:13 GMT', 'switchbot-request-id': '542f6f43-637f-4690-ad17-87c03a55f209'}
-2026-01-11T20:43:13.769956461Z [2026-01-11 20:43:13,769] DEBUG in quota: [quota] fallback increment recorded: used=970 remaining=9030 limit=10000
-2026-01-11T20:43:13.769980142Z [2026-01-11 20:43:13,769] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:43:13.770044406Z [2026-01-11 20:43:13,769] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:43:13.772317767Z [2026-01-11 20:43:13,772] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9030 | api_requests_total=970 | context='meter_status'
-2026-01-11T20:43:13.774349964Z [2026-01-11 20:43:13,774] DEBUG in automation: [automation] Meter reading stored | humidity=37 | temperature=25 | trigger='scheduler'
-2026-01-11T20:43:13.774411608Z [2026-01-11 20:43:13,774] DEBUG in automation: [automation] Temperature evaluation | current_temp=25.0 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:43:13.776338649Z [2026-01-11 20:43:13,776] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:43:13.7763611Z [2026-01-11 20:43:13,776] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:43:15.87163169Z [2026-01-11 20:43:15 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:43:20.871224798Z [2026-01-11 20:43:20 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:43:25.871447332Z [2026-01-11 20:43:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:43:25.871734818Z [2026-01-11 20:43:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:43:28.18634995Z [2026-01-11 20:43:28,186] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:43:28.187281513Z [2026-01-11 20:43:28,187] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:43:28.188375496Z [2026-01-11 20:43:28,188] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:43:28.67340105Z [2026-01-11 20:43:28,673] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '185', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:43:28 GMT', 'switchbot-request-id': 'f94dc987-f2b3-4e13-b1b2-26e7521fa17c'}
-2026-01-11T20:43:28.675614968Z [2026-01-11 20:43:28,675] DEBUG in quota: [quota] fallback increment recorded: used=971 remaining=9029 limit=10000
-2026-01-11T20:43:28.67565488Z [2026-01-11 20:43:28,675] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:43:28.675774977Z [2026-01-11 20:43:28,675] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:43:28.678147414Z [2026-01-11 20:43:28,678] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9029 | api_requests_total=971 | context='meter_status'
-2026-01-11T20:43:28.680100457Z [2026-01-11 20:43:28,680] DEBUG in automation: [automation] Meter reading stored | humidity=37 | temperature=25 | trigger='scheduler'
-2026-01-11T20:43:28.680184212Z [2026-01-11 20:43:28,680] DEBUG in automation: [automation] Temperature evaluation | current_temp=25.0 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:43:28.682042699Z [2026-01-11 20:43:28,681] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:43:28.68206657Z [2026-01-11 20:43:28,682] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:43:30.097626425Z [2026-01-11 20:43:30 +0000] [25] [DEBUG] GET /
-2026-01-11T20:43:30.10102192Z 127.0.0.1 - - [11/Jan/2026:20:43:30 +0000] "GET / HTTP/1.1" 200 9474 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:43:30.391562575Z [2026-01-11 20:43:30 +0000] [25] [DEBUG] GET /static/css/theme.css
-2026-01-11T20:43:30.392543572Z 127.0.0.1 - - [11/Jan/2026:20:43:30 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:43:30.394851105Z [2026-01-11 20:43:30 +0000] [25] [DEBUG] GET /static/js/alerts.js
-2026-01-11T20:43:30.395756507Z 127.0.0.1 - - [11/Jan/2026:20:43:30 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:43:30.412474231Z [2026-01-11 20:43:30 +0000] [25] [DEBUG] GET /static/css/index.css
-2026-01-11T20:43:30.41349626Z 127.0.0.1 - - [11/Jan/2026:20:43:30 +0000] "GET /static/css/index.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:43:30.871475795Z [2026-01-11 20:43:30 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:43:35.871816046Z [2026-01-11 20:43:35 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:43:40.871389642Z [2026-01-11 20:43:40 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:43:43.186081868Z [2026-01-11 20:43:43,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:43:43.187006191Z [2026-01-11 20:43:43,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:43:43.188061172Z [2026-01-11 20:43:43,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:43:43.760793111Z [2026-01-11 20:43:43,760] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:43:43 GMT', 'switchbot-request-id': '62b7e41f-982f-4b1a-80a4-cee1f6668029'}
-2026-01-11T20:43:43.763058581Z [2026-01-11 20:43:43,762] DEBUG in quota: [quota] fallback increment recorded: used=972 remaining=9028 limit=10000
-2026-01-11T20:43:43.763077112Z [2026-01-11 20:43:43,763] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:43:43.763158997Z [2026-01-11 20:43:43,763] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:43:43.765222176Z [2026-01-11 20:43:43,765] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9028 | api_requests_total=972 | context='meter_status'
-2026-01-11T20:43:43.767161168Z [2026-01-11 20:43:43,767] DEBUG in automation: [automation] Meter reading stored | humidity=37 | temperature=25.4 | trigger='scheduler'
-2026-01-11T20:43:43.767323317Z [2026-01-11 20:43:43,767] DEBUG in automation: [automation] Temperature evaluation | current_temp=25.4 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:43:43.769083308Z [2026-01-11 20:43:43,768] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:43:43.769099289Z [2026-01-11 20:43:43,769] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:43:45.871521871Z [2026-01-11 20:43:45 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:43:50.877543689Z [2026-01-11 20:43:50 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:43:54.115480568Z ==> Detected service running on port 10000
-2026-01-11T20:43:54.207583565Z ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
-2026-01-11T20:43:55.87182423Z [2026-01-11 20:43:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:43:55.87200024Z [2026-01-11 20:43:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:43:58.185781773Z [2026-01-11 20:43:58,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:43:58.186763559Z [2026-01-11 20:43:58,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:43:58.187803919Z [2026-01-11 20:43:58,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:43:58.699289038Z [2026-01-11 20:43:58,699] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:43:58 GMT', 'switchbot-request-id': '02d6a78b-1fe8-4d4f-af68-8a93cc66a269'}
-2026-01-11T20:43:58.701421041Z [2026-01-11 20:43:58,701] DEBUG in quota: [quota] fallback increment recorded: used=973 remaining=9027 limit=10000
-2026-01-11T20:43:58.701440932Z [2026-01-11 20:43:58,701] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:43:58.701542998Z [2026-01-11 20:43:58,701] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:43:58.703958088Z [2026-01-11 20:43:58,703] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9027 | api_requests_total=973 | context='meter_status'
-2026-01-11T20:43:58.705962133Z [2026-01-11 20:43:58,705] DEBUG in automation: [automation] Meter reading stored | humidity=37 | temperature=25.4 | trigger='scheduler'
-2026-01-11T20:43:58.706040497Z [2026-01-11 20:43:58,705] DEBUG in automation: [automation] Temperature evaluation | current_temp=25.4 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:43:58.708246115Z [2026-01-11 20:43:58,708] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:43:58.708262125Z [2026-01-11 20:43:58,708] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:44:00.871329111Z [2026-01-11 20:44:00 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:44:05.871155341Z [2026-01-11 20:44:05 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:44:10.871260998Z [2026-01-11 20:44:10 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:44:13.185613493Z [2026-01-11 20:44:13,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:44:13.186489674Z [2026-01-11 20:44:13,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:44:13.187599238Z [2026-01-11 20:44:13,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:44:13.773202448Z [2026-01-11 20:44:13,772] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:44:13 GMT', 'switchbot-request-id': 'eed16212-9ca3-4fe7-91c6-44056852a10f'}
-2026-01-11T20:44:13.775597126Z [2026-01-11 20:44:13,775] DEBUG in quota: [quota] fallback increment recorded: used=974 remaining=9026 limit=10000
-2026-01-11T20:44:13.775688282Z [2026-01-11 20:44:13,775] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:44:13.775773037Z [2026-01-11 20:44:13,775] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:44:13.77826915Z [2026-01-11 20:44:13,778] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9026 | api_requests_total=974 | context='meter_status'
-2026-01-11T20:44:13.780394873Z [2026-01-11 20:44:13,780] DEBUG in automation: [automation] Meter reading stored | humidity=37 | temperature=25.8 | trigger='scheduler'
-2026-01-11T20:44:13.780442316Z [2026-01-11 20:44:13,780] DEBUG in automation: [automation] Temperature evaluation | current_temp=25.8 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:44:13.782396488Z [2026-01-11 20:44:13,782] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:44:13.782413549Z [2026-01-11 20:44:13,782] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:44:15.871333502Z [2026-01-11 20:44:15 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:44:20.8711237Z [2026-01-11 20:44:20 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:44:25.871821881Z [2026-01-11 20:44:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:44:25.871941047Z [2026-01-11 20:44:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:44:28.186054829Z [2026-01-11 20:44:28,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:44:28.187177413Z [2026-01-11 20:44:28,187] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:44:28.188277957Z [2026-01-11 20:44:28,188] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:44:28.670189582Z [2026-01-11 20:44:28,670] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:44:28 GMT', 'switchbot-request-id': 'd2929770-da44-4589-a2c6-09cd728469f8'}
-2026-01-11T20:44:28.672500575Z [2026-01-11 20:44:28,672] DEBUG in quota: [quota] fallback increment recorded: used=975 remaining=9025 limit=10000
-2026-01-11T20:44:28.672531066Z [2026-01-11 20:44:28,672] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:44:28.672617662Z [2026-01-11 20:44:28,672] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:44:28.674646728Z [2026-01-11 20:44:28,674] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9025 | api_requests_total=975 | context='meter_status'
-2026-01-11T20:44:28.676646074Z [2026-01-11 20:44:28,676] DEBUG in automation: [automation] Meter reading stored | humidity=37 | temperature=25.8 | trigger='scheduler'
-2026-01-11T20:44:28.676715368Z [2026-01-11 20:44:28,676] DEBUG in automation: [automation] Temperature evaluation | current_temp=25.8 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:44:28.678602436Z [2026-01-11 20:44:28,678] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:44:28.67865623Z [2026-01-11 20:44:28,678] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:44:30.871357393Z [2026-01-11 20:44:30 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:44:35.871901134Z [2026-01-11 20:44:35 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:44:40.880717451Z [2026-01-11 20:44:40 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:44:43.185917929Z [2026-01-11 20:44:43,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:44:43.187016203Z [2026-01-11 20:44:43,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:44:43.188096545Z [2026-01-11 20:44:43,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:44:43.794264131Z [2026-01-11 20:44:43,794] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:44:43 GMT', 'switchbot-request-id': 'a0562016-68c1-476f-8fed-cb4d3cae6797'}
-2026-01-11T20:44:43.796572624Z [2026-01-11 20:44:43,796] DEBUG in quota: [quota] fallback increment recorded: used=976 remaining=9024 limit=10000
-2026-01-11T20:44:43.796630557Z [2026-01-11 20:44:43,796] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:44:43.796738944Z [2026-01-11 20:44:43,796] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:44:43.799352734Z [2026-01-11 20:44:43,799] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9024 | api_requests_total=976 | context='meter_status'
-2026-01-11T20:44:43.801390761Z [2026-01-11 20:44:43,801] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=26.3 | trigger='scheduler'
-2026-01-11T20:44:43.801452295Z [2026-01-11 20:44:43,801] DEBUG in automation: [automation] Temperature evaluation | current_temp=26.3 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:44:43.803422578Z [2026-01-11 20:44:43,803] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:44:43.80344414Z [2026-01-11 20:44:43,803] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:44:45.871769016Z [2026-01-11 20:44:45 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:44:50.871245065Z [2026-01-11 20:44:50 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:44:55.871422134Z [2026-01-11 20:44:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:44:55.8715266Z [2026-01-11 20:44:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:44:58.185889886Z [2026-01-11 20:44:58,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:44:58.186857311Z [2026-01-11 20:44:58,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:44:58.187912562Z [2026-01-11 20:44:58,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:44:58.667270119Z [2026-01-11 20:44:58,666] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:44:58 GMT', 'switchbot-request-id': '35172384-13cf-4396-a73e-0c3f204f6874'}
-2026-01-11T20:44:58.669685809Z [2026-01-11 20:44:58,669] DEBUG in quota: [quota] fallback increment recorded: used=977 remaining=9023 limit=10000
-2026-01-11T20:44:58.669855918Z [2026-01-11 20:44:58,669] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:44:58.670037309Z [2026-01-11 20:44:58,669] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:44:58.672404525Z [2026-01-11 20:44:58,672] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9023 | api_requests_total=977 | context='meter_status'
-2026-01-11T20:44:58.674349327Z [2026-01-11 20:44:58,674] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=26.3 | trigger='scheduler'
-2026-01-11T20:44:58.674370108Z [2026-01-11 20:44:58,674] DEBUG in automation: [automation] Temperature evaluation | current_temp=26.3 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:44:58.676518522Z [2026-01-11 20:44:58,676] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:44:58.676698343Z [2026-01-11 20:44:58,676] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:45:00.871963744Z [2026-01-11 20:45:00 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:45:05.871796034Z [2026-01-11 20:45:05 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:45:10.87089568Z [2026-01-11 20:45:10 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:45:13.185611536Z [2026-01-11 20:45:13,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:45:13.186539739Z [2026-01-11 20:45:13,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:45:13.187565459Z [2026-01-11 20:45:13,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:45:13.667228534Z [2026-01-11 20:45:13,667] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:45:13 GMT', 'switchbot-request-id': 'a9eeb95e-f755-4061-bcbc-13623c959322'}
-2026-01-11T20:45:13.669406299Z [2026-01-11 20:45:13,669] DEBUG in quota: [quota] fallback increment recorded: used=978 remaining=9022 limit=10000
-2026-01-11T20:45:13.66942124Z [2026-01-11 20:45:13,669] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:45:13.669490684Z [2026-01-11 20:45:13,669] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:45:13.671474998Z [2026-01-11 20:45:13,671] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9022 | api_requests_total=978 | context='meter_status'
-2026-01-11T20:45:13.673374548Z [2026-01-11 20:45:13,673] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=26.3 | trigger='scheduler'
-2026-01-11T20:45:13.67340883Z [2026-01-11 20:45:13,673] DEBUG in automation: [automation] Temperature evaluation | current_temp=26.3 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:45:13.675444497Z [2026-01-11 20:45:13,675] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:45:13.675462718Z [2026-01-11 20:45:13,675] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:45:15.871501424Z [2026-01-11 20:45:15 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:45:20.871775358Z [2026-01-11 20:45:20 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:45:25.871039934Z [2026-01-11 20:45:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:45:25.871296259Z [2026-01-11 20:45:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:45:28.185652324Z [2026-01-11 20:45:28,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:45:28.18662436Z [2026-01-11 20:45:28,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:45:28.187981538Z [2026-01-11 20:45:28,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:45:28.668086568Z [2026-01-11 20:45:28,667] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:45:28 GMT', 'switchbot-request-id': 'd3751a52-9bb7-4c71-a2b4-1c9167a330b7'}
-2026-01-11T20:45:28.670182489Z [2026-01-11 20:45:28,670] DEBUG in quota: [quota] fallback increment recorded: used=979 remaining=9021 limit=10000
-2026-01-11T20:45:28.67020738Z [2026-01-11 20:45:28,670] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:45:28.670258014Z [2026-01-11 20:45:28,670] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:45:28.672264099Z [2026-01-11 20:45:28,672] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9021 | api_requests_total=979 | context='meter_status'
-2026-01-11T20:45:28.674247133Z [2026-01-11 20:45:28,674] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=26.7 | trigger='scheduler'
-2026-01-11T20:45:28.674313317Z [2026-01-11 20:45:28,674] DEBUG in automation: [automation] Temperature evaluation | current_temp=26.7 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:45:28.676257179Z [2026-01-11 20:45:28,676] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:45:28.67627499Z [2026-01-11 20:45:28,676] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:45:30.87098547Z [2026-01-11 20:45:30 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:45:35.871526639Z [2026-01-11 20:45:35 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:45:40.871448453Z [2026-01-11 20:45:40 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:45:43.186131016Z [2026-01-11 20:45:43,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:45:43.187041198Z [2026-01-11 20:45:43,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:45:43.188198715Z [2026-01-11 20:45:43,188] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:45:43.678514484Z [2026-01-11 20:45:43,677] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:45:43 GMT', 'switchbot-request-id': '4dd18d71-b5f8-4e54-aed6-dad573f8c268'}
-2026-01-11T20:45:43.680844778Z [2026-01-11 20:45:43,680] DEBUG in quota: [quota] fallback increment recorded: used=980 remaining=9020 limit=10000
-2026-01-11T20:45:43.680943984Z [2026-01-11 20:45:43,680] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:45:43.681072071Z [2026-01-11 20:45:43,680] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:45:43.684015121Z [2026-01-11 20:45:43,683] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9020 | api_requests_total=980 | context='meter_status'
-2026-01-11T20:45:43.68624996Z [2026-01-11 20:45:43,686] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=26.7 | trigger='scheduler'
-2026-01-11T20:45:43.686386048Z [2026-01-11 20:45:43,686] DEBUG in automation: [automation] Temperature evaluation | current_temp=26.7 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:45:43.688545792Z [2026-01-11 20:45:43,688] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:45:43.688558693Z [2026-01-11 20:45:43,688] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:45:45.871828052Z [2026-01-11 20:45:45 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:45:50.871460819Z [2026-01-11 20:45:50 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:45:55.871069904Z [2026-01-11 20:45:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:45:55.871180521Z [2026-01-11 20:45:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:45:58.186034524Z [2026-01-11 20:45:58,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:45:58.186945156Z [2026-01-11 20:45:58,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:45:58.188243631Z [2026-01-11 20:45:58,188] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:45:58.680662211Z [2026-01-11 20:45:58,680] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:45:58 GMT', 'switchbot-request-id': 'a87e6aa9-e285-449b-a403-d1e01bf3e33b'}
-2026-01-11T20:45:58.682937362Z [2026-01-11 20:45:58,682] DEBUG in quota: [quota] fallback increment recorded: used=981 remaining=9019 limit=10000
-2026-01-11T20:45:58.682961563Z [2026-01-11 20:45:58,682] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:45:58.683054549Z [2026-01-11 20:45:58,682] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:45:58.685006311Z [2026-01-11 20:45:58,684] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9019 | api_requests_total=981 | context='meter_status'
-2026-01-11T20:45:58.687008267Z [2026-01-11 20:45:58,686] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=26.7 | trigger='scheduler'
-2026-01-11T20:45:58.68706265Z [2026-01-11 20:45:58,686] DEBUG in automation: [automation] Temperature evaluation | current_temp=26.7 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:45:58.688939988Z [2026-01-11 20:45:58,688] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:45:58.68898153Z [2026-01-11 20:45:58,688] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:46:00.871250672Z [2026-01-11 20:46:00 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:46:05.871178935Z [2026-01-11 20:46:05 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:46:10.87131231Z [2026-01-11 20:46:10 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:46:13.185927039Z [2026-01-11 20:46:13,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:46:13.186999041Z [2026-01-11 20:46:13,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:46:13.188105915Z [2026-01-11 20:46:13,188] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:46:13.660283968Z [2026-01-11 20:46:13,660] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:46:13 GMT', 'switchbot-request-id': '4040d63b-2b34-4d27-983d-80242f981c9f'}
-2026-01-11T20:46:13.662538948Z [2026-01-11 20:46:13,662] DEBUG in quota: [quota] fallback increment recorded: used=982 remaining=9018 limit=10000
-2026-01-11T20:46:13.662564889Z [2026-01-11 20:46:13,662] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:46:13.662717638Z [2026-01-11 20:46:13,662] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:46:13.664912765Z [2026-01-11 20:46:13,664] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9018 | api_requests_total=982 | context='meter_status'
-2026-01-11T20:46:13.667028237Z [2026-01-11 20:46:13,666] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.1 | trigger='scheduler'
-2026-01-11T20:46:13.667137353Z [2026-01-11 20:46:13,667] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.1 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:46:13.669312028Z [2026-01-11 20:46:13,669] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:46:13.669362091Z [2026-01-11 20:46:13,669] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:46:15.871570082Z [2026-01-11 20:46:15 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:46:20.871606251Z [2026-01-11 20:46:20 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:46:25.871637891Z [2026-01-11 20:46:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:46:25.871942078Z [2026-01-11 20:46:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:46:28.1860838Z [2026-01-11 20:46:28,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:46:28.186987092Z [2026-01-11 20:46:28,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:46:28.188032192Z [2026-01-11 20:46:28,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:46:28.685696714Z [2026-01-11 20:46:28,685] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:46:28 GMT', 'switchbot-request-id': '1c534283-6593-4fe2-b3ec-07f3775c843a'}
-2026-01-11T20:46:28.688192848Z [2026-01-11 20:46:28,688] DEBUG in quota: [quota] fallback increment recorded: used=983 remaining=9017 limit=10000
-2026-01-11T20:46:28.688219789Z [2026-01-11 20:46:28,688] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:46:28.688326506Z [2026-01-11 20:46:28,688] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:46:28.690744605Z [2026-01-11 20:46:28,690] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9017 | api_requests_total=983 | context='meter_status'
-2026-01-11T20:46:28.693118432Z [2026-01-11 20:46:28,693] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.1 | trigger='scheduler'
-2026-01-11T20:46:28.693166685Z [2026-01-11 20:46:28,693] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.1 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:46:28.695259435Z [2026-01-11 20:46:28,695] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:46:28.695283947Z [2026-01-11 20:46:28,695] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:46:30.87184535Z [2026-01-11 20:46:30 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:46:35.871779242Z [2026-01-11 20:46:35 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:46:40.871898646Z [2026-01-11 20:46:40 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:46:43.186213948Z [2026-01-11 20:46:43,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:46:43.187322832Z [2026-01-11 20:46:43,187] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:46:43.188287137Z [2026-01-11 20:46:43,188] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:46:43.667977994Z [2026-01-11 20:46:43,667] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:46:43 GMT', 'switchbot-request-id': '940523ed-160a-4b9a-9b4c-705e225eafb9'}
-2026-01-11T20:46:43.670275806Z [2026-01-11 20:46:43,670] DEBUG in quota: [quota] fallback increment recorded: used=984 remaining=9016 limit=10000
-2026-01-11T20:46:43.670299517Z [2026-01-11 20:46:43,670] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:46:43.670394803Z [2026-01-11 20:46:43,670] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:46:43.672757539Z [2026-01-11 20:46:43,672] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9016 | api_requests_total=984 | context='meter_status'
-2026-01-11T20:46:43.674891722Z [2026-01-11 20:46:43,674] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.1 | trigger='scheduler'
-2026-01-11T20:46:43.674959746Z [2026-01-11 20:46:43,674] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.1 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:46:43.676885997Z [2026-01-11 20:46:43,676] DEBUG in automation: [automation] No automation action needed — thresholds not crossed | trigger='scheduler'
-2026-01-11T20:46:43.676926279Z [2026-01-11 20:46:43,676] DEBUG in automation: [automation] Automation tick finished | outcome='no_action' | trigger='scheduler'
-2026-01-11T20:46:45.870920886Z [2026-01-11 20:46:45 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:46:50.871110044Z [2026-01-11 20:46:50 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:46:55.871161713Z [2026-01-11 20:46:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:46:55.871534915Z [2026-01-11 20:46:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:46:58.185902069Z [2026-01-11 20:46:58,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:46:58.186829683Z [2026-01-11 20:46:58,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:46:58.187904885Z [2026-01-11 20:46:58,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:46:58.667280543Z [2026-01-11 20:46:58,667] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:46:58 GMT', 'switchbot-request-id': '489194f0-0d41-4310-8ecf-fdc9f6dbab29'}
-2026-01-11T20:46:58.669872782Z [2026-01-11 20:46:58,669] DEBUG in quota: [quota] fallback increment recorded: used=985 remaining=9015 limit=10000
-2026-01-11T20:46:58.669902584Z [2026-01-11 20:46:58,669] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:46:58.669995559Z [2026-01-11 20:46:58,669] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:46:58.672463821Z [2026-01-11 20:46:58,672] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9015 | api_requests_total=985 | context='meter_status'
-2026-01-11T20:46:58.674531401Z [2026-01-11 20:46:58,674] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:46:58.674598984Z [2026-01-11 20:46:58,674] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.5 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:46:58.676654293Z [2026-01-11 20:46:58,676] DEBUG in automation: [automation] Winter mode: above max threshold | threshold=27.3 | trigger='scheduler'
-2026-01-11T20:46:58.677086068Z [2026-01-11 20:46:58,676] DEBUG in automation: [automation] Triggering IFTTT webhook | action_key='off' | state_reason='automation_winter_off' | trigger='scheduler'
-2026-01-11T20:46:58.677093078Z [2026-01-11 20:46:58,676] DEBUG in ifttt: [ifttt] Triggering IFTTT webhook | payload_keys=[] | url='https://maker.ifttt.com/trigger/switchbot_off/with...'
-2026-01-11T20:46:58.803651622Z [2026-01-11 20:46:58,803] INFO in ifttt: [ifttt] IFTTT webhook triggered successfully | status_code=200
-2026-01-11T20:46:58.810126766Z [2026-01-11 20:46:58,809] DEBUG in automation: [automation] Scheduled repeated off action | interval_seconds=10 | pending_repeats=1 | state_reason='automation_winter_off'
-2026-01-11T20:46:58.810147077Z [2026-01-11 20:46:58,810] DEBUG in automation: [automation] Automation tick finished | outcome='winter_off' | trigger='scheduler'
-2026-01-11T20:47:00.87169973Z [2026-01-11 20:47:00 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:47:05.871347507Z [2026-01-11 20:47:05 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:47:10.871852161Z [2026-01-11 20:47:10 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:47:13.185816402Z [2026-01-11 20:47:13,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:47:13.186778397Z [2026-01-11 20:47:13,186] DEBUG in automation: [automation] Executing scheduled off repeat | remaining_before=1 | state_reason='automation_winter_off' | trigger='scheduler'
-2026-01-11T20:47:13.186839021Z [2026-01-11 20:47:13,186] DEBUG in automation: [automation] Triggering IFTTT webhook | action_key='off' | state_reason='automation_winter_off' | trigger='scheduler'
-2026-01-11T20:47:13.186949967Z [2026-01-11 20:47:13,186] DEBUG in ifttt: [ifttt] Triggering IFTTT webhook | payload_keys=[] | url='https://maker.ifttt.com/trigger/switchbot_off/with...'
-2026-01-11T20:47:13.305340471Z [2026-01-11 20:47:13,305] INFO in ifttt: [ifttt] IFTTT webhook triggered successfully | status_code=200
-2026-01-11T20:47:13.310812196Z [2026-01-11 20:47:13,310] DEBUG in automation: [automation] Cleared pending off repeat task
-2026-01-11T20:47:13.311044289Z [2026-01-11 20:47:13,310] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:47:13.312117671Z [2026-01-11 20:47:13,312] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:47:13.803802098Z [2026-01-11 20:47:13,803] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:47:13 GMT', 'switchbot-request-id': '77fff3dd-fdfa-4d77-9443-bdc9d4a59a32'}
-2026-01-11T20:47:13.806101871Z [2026-01-11 20:47:13,805] DEBUG in quota: [quota] fallback increment recorded: used=986 remaining=9014 limit=10000
-2026-01-11T20:47:13.806136013Z [2026-01-11 20:47:13,806] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:47:13.806201817Z [2026-01-11 20:47:13,806] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:47:13.808493669Z [2026-01-11 20:47:13,808] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9014 | api_requests_total=986 | context='meter_status'
-2026-01-11T20:47:13.810722957Z [2026-01-11 20:47:13,810] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:47:13.810842094Z [2026-01-11 20:47:13,810] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.5 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:47:13.812816598Z [2026-01-11 20:47:13,812] DEBUG in automation: [automation] Cooldown active (OFF action) | cooldown_seconds=60 | remaining_time='1m0s'
-2026-01-11T20:47:13.812879842Z [2026-01-11 20:47:13,812] DEBUG in automation: [automation] Cooldown active — skipping automation | trigger='scheduler'
-2026-01-11T20:47:13.812953496Z [2026-01-11 20:47:13,812] DEBUG in automation: [automation] Automation tick finished | outcome='cooldown' | trigger='scheduler'
-2026-01-11T20:47:15.871487476Z [2026-01-11 20:47:15 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:47:20.87128364Z [2026-01-11 20:47:20 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:47:25.871663577Z [2026-01-11 20:47:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:47:25.871933633Z [2026-01-11 20:47:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:47:28.185862711Z [2026-01-11 20:47:28,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:47:28.186826937Z [2026-01-11 20:47:28,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:47:28.187859617Z [2026-01-11 20:47:28,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:47:28.665209898Z [2026-01-11 20:47:28,665] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:47:28 GMT', 'switchbot-request-id': '8e4e9b0a-5f49-4314-9620-4e24ee393ebb'}
-2026-01-11T20:47:28.667553903Z [2026-01-11 20:47:28,667] DEBUG in quota: [quota] fallback increment recorded: used=987 remaining=9013 limit=10000
-2026-01-11T20:47:28.667599186Z [2026-01-11 20:47:28,667] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:47:28.667700141Z [2026-01-11 20:47:28,667] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:47:28.669810873Z [2026-01-11 20:47:28,669] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9013 | api_requests_total=987 | context='meter_status'
-2026-01-11T20:47:28.671986928Z [2026-01-11 20:47:28,671] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:47:28.672064043Z [2026-01-11 20:47:28,671] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.5 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:47:28.673983194Z [2026-01-11 20:47:28,673] DEBUG in automation: [automation] Cooldown active (OFF action) | cooldown_seconds=60 | remaining_time='0m45s'
-2026-01-11T20:47:28.674004695Z [2026-01-11 20:47:28,673] DEBUG in automation: [automation] Cooldown active — skipping automation | trigger='scheduler'
-2026-01-11T20:47:28.674084799Z [2026-01-11 20:47:28,674] DEBUG in automation: [automation] Automation tick finished | outcome='cooldown' | trigger='scheduler'
-2026-01-11T20:47:30.871568657Z [2026-01-11 20:47:30 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:47:35.870967538Z [2026-01-11 20:47:35 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:47:40.871051028Z [2026-01-11 20:47:40 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:47:43.185713969Z [2026-01-11 20:47:43,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:47:43.186573128Z [2026-01-11 20:47:43,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:47:43.187660481Z [2026-01-11 20:47:43,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:47:43.688460694Z [2026-01-11 20:47:43,688] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:47:43 GMT', 'switchbot-request-id': '8d7dac1d-2e17-498e-bb01-56a2831d3761'}
-2026-01-11T20:47:43.690765447Z [2026-01-11 20:47:43,690] DEBUG in quota: [quota] fallback increment recorded: used=988 remaining=9012 limit=10000
-2026-01-11T20:47:43.690805549Z [2026-01-11 20:47:43,690] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:47:43.690904685Z [2026-01-11 20:47:43,690] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:47:43.693813502Z [2026-01-11 20:47:43,693] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9012 | api_requests_total=988 | context='meter_status'
-2026-01-11T20:47:43.696263134Z [2026-01-11 20:47:43,696] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:47:43.696329207Z [2026-01-11 20:47:43,696] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.5 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:47:43.698334153Z [2026-01-11 20:47:43,698] DEBUG in automation: [automation] Cooldown active (OFF action) | cooldown_seconds=60 | remaining_time='0m30s'
-2026-01-11T20:47:43.698358774Z [2026-01-11 20:47:43,698] DEBUG in automation: [automation] Cooldown active — skipping automation | trigger='scheduler'
-2026-01-11T20:47:43.698446799Z [2026-01-11 20:47:43,698] DEBUG in automation: [automation] Automation tick finished | outcome='cooldown' | trigger='scheduler'
-2026-01-11T20:47:45.871067924Z [2026-01-11 20:47:45 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:47:50.87107896Z [2026-01-11 20:47:50 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:47:55.87187554Z [2026-01-11 20:47:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:47:55.871978456Z [2026-01-11 20:47:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:47:58.185700533Z [2026-01-11 20:47:58,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:47:58.186619566Z [2026-01-11 20:47:58,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:47:58.187677377Z [2026-01-11 20:47:58,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:47:58.665545808Z [2026-01-11 20:47:58,665] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:47:58 GMT', 'switchbot-request-id': '0b4cbbda-6ea8-4fd4-99c7-a5d1912c1adf'}
-2026-01-11T20:47:58.667881502Z [2026-01-11 20:47:58,667] DEBUG in quota: [quota] fallback increment recorded: used=989 remaining=9011 limit=10000
-2026-01-11T20:47:58.667920495Z [2026-01-11 20:47:58,667] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:47:58.667994119Z [2026-01-11 20:47:58,667] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:47:58.67027614Z [2026-01-11 20:47:58,670] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9011 | api_requests_total=989 | context='meter_status'
-2026-01-11T20:47:58.672502449Z [2026-01-11 20:47:58,672] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:47:58.672568183Z [2026-01-11 20:47:58,672] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.5 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:47:58.674449061Z [2026-01-11 20:47:58,674] DEBUG in automation: [automation] Cooldown active (OFF action) | cooldown_seconds=60 | remaining_time='0m15s'
-2026-01-11T20:47:58.674466672Z [2026-01-11 20:47:58,674] DEBUG in automation: [automation] Cooldown active — skipping automation | trigger='scheduler'
-2026-01-11T20:47:58.674518395Z [2026-01-11 20:47:58,674] DEBUG in automation: [automation] Automation tick finished | outcome='cooldown' | trigger='scheduler'
-2026-01-11T20:48:00.871039297Z [2026-01-11 20:48:00 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:48:05.870767376Z [2026-01-11 20:48:05 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:48:10.871715175Z [2026-01-11 20:48:10 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:48:12.42282101Z [2026-01-11 20:48:12 +0000] [25] [DEBUG] HEAD /healthz
-2026-01-11T20:48:12.425518366Z 127.0.0.1 - - [11/Jan/2026:20:48:12 +0000] "HEAD /healthz HTTP/1.1" 200 0 "https://switchbot-latest.onrender.com/healthz" "Mozilla/5.0+(compatible; UptimeRobot/2.0; http://www.uptimerobot.com/)"
-2026-01-11T20:48:13.185918599Z [2026-01-11 20:48:13,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:48:13.187092407Z [2026-01-11 20:48:13,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:48:13.188034812Z [2026-01-11 20:48:13,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:48:13.692078611Z [2026-01-11 20:48:13,691] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:48:13 GMT', 'switchbot-request-id': '3288a014-29ae-4363-8785-f910bfee3f2d'}
-2026-01-11T20:48:13.694464968Z [2026-01-11 20:48:13,694] DEBUG in quota: [quota] fallback increment recorded: used=990 remaining=9010 limit=10000
-2026-01-11T20:48:13.694511251Z [2026-01-11 20:48:13,694] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:48:13.694599476Z [2026-01-11 20:48:13,694] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:48:13.696955882Z [2026-01-11 20:48:13,696] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9010 | api_requests_total=990 | context='meter_status'
-2026-01-11T20:48:13.699074364Z [2026-01-11 20:48:13,698] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:48:13.699109166Z [2026-01-11 20:48:13,699] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.5 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:48:13.701125543Z [2026-01-11 20:48:13,701] DEBUG in automation: [automation] Cooldown active (OFF action) | cooldown_seconds=60 | remaining_time='0m0s'
-2026-01-11T20:48:13.701205477Z [2026-01-11 20:48:13,701] DEBUG in automation: [automation] Cooldown active — skipping automation | trigger='scheduler'
-2026-01-11T20:48:13.701300242Z [2026-01-11 20:48:13,701] DEBUG in automation: [automation] Automation tick finished | outcome='cooldown' | trigger='scheduler'
-2026-01-11T20:48:15.871512058Z [2026-01-11 20:48:15 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:48:20.870821102Z [2026-01-11 20:48:20 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:48:25.871819924Z [2026-01-11 20:48:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:48:25.871964212Z [2026-01-11 20:48:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:48:28.192206565Z [2026-01-11 20:48:28,191] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:48:28.193239184Z [2026-01-11 20:48:28,192] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:48:28.195524036Z [2026-01-11 20:48:28,194] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:48:28.67900725Z [2026-01-11 20:48:28,678] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:48:28 GMT', 'switchbot-request-id': '0a01c295-e7cf-4a06-8db1-18b3b84f6361'}
-2026-01-11T20:48:28.681487683Z [2026-01-11 20:48:28,681] DEBUG in quota: [quota] fallback increment recorded: used=991 remaining=9009 limit=10000
-2026-01-11T20:48:28.681502714Z [2026-01-11 20:48:28,681] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:48:28.681508814Z [2026-01-11 20:48:28,681] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:48:28.683654228Z [2026-01-11 20:48:28,683] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9009 | api_requests_total=991 | context='meter_status'
-2026-01-11T20:48:28.685853855Z [2026-01-11 20:48:28,685] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:48:28.685910308Z [2026-01-11 20:48:28,685] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.5 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:48:28.688040611Z [2026-01-11 20:48:28,687] DEBUG in automation: [automation] Winter mode: above max threshold | threshold=27.3 | trigger='scheduler'
-2026-01-11T20:48:28.688090774Z [2026-01-11 20:48:28,688] DEBUG in automation: [automation] Triggering IFTTT webhook | action_key='off' | state_reason='automation_winter_off' | trigger='scheduler'
-2026-01-11T20:48:28.688252863Z [2026-01-11 20:48:28,688] DEBUG in ifttt: [ifttt] Triggering IFTTT webhook | payload_keys=[] | url='https://maker.ifttt.com/trigger/switchbot_off/with...'
-2026-01-11T20:48:28.819085323Z [2026-01-11 20:48:28,818] INFO in ifttt: [ifttt] IFTTT webhook triggered successfully | status_code=200
-2026-01-11T20:48:28.825478242Z [2026-01-11 20:48:28,825] DEBUG in automation: [automation] Scheduled repeated off action | interval_seconds=10 | pending_repeats=1 | state_reason='automation_winter_off'
-2026-01-11T20:48:28.825506784Z [2026-01-11 20:48:28,825] DEBUG in automation: [automation] Automation tick finished | outcome='winter_off' | trigger='scheduler'
-2026-01-11T20:48:30.871356292Z [2026-01-11 20:48:30 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:48:35.871531656Z [2026-01-11 20:48:35 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:48:40.871061802Z [2026-01-11 20:48:40 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:48:43.186134076Z [2026-01-11 20:48:43,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:48:43.186997846Z [2026-01-11 20:48:43,186] DEBUG in automation: [automation] Executing scheduled off repeat | remaining_before=1 | state_reason='automation_winter_off' | trigger='scheduler'
-2026-01-11T20:48:43.187020507Z [2026-01-11 20:48:43,186] DEBUG in automation: [automation] Triggering IFTTT webhook | action_key='off' | state_reason='automation_winter_off' | trigger='scheduler'
-2026-01-11T20:48:43.187123644Z [2026-01-11 20:48:43,187] DEBUG in ifttt: [ifttt] Triggering IFTTT webhook | payload_keys=[] | url='https://maker.ifttt.com/trigger/switchbot_off/with...'
-2026-01-11T20:48:43.307228765Z [2026-01-11 20:48:43,307] INFO in ifttt: [ifttt] IFTTT webhook triggered successfully | status_code=200
-2026-01-11T20:48:43.312785426Z [2026-01-11 20:48:43,312] DEBUG in automation: [automation] Cleared pending off repeat task
-2026-01-11T20:48:43.312816457Z [2026-01-11 20:48:43,312] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:48:43.314124993Z [2026-01-11 20:48:43,313] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:48:43.800381927Z [2026-01-11 20:48:43,800] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:48:43 GMT', 'switchbot-request-id': 'c15c31e5-ac4a-40b6-8c89-08f8982d1465'}
-2026-01-11T20:48:43.807711039Z [2026-01-11 20:48:43,805] DEBUG in quota: [quota] fallback increment recorded: used=992 remaining=9008 limit=10000
-2026-01-11T20:48:43.807734131Z [2026-01-11 20:48:43,805] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:48:43.807739571Z [2026-01-11 20:48:43,805] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:48:43.808869506Z [2026-01-11 20:48:43,808] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9008 | api_requests_total=992 | context='meter_status'
-2026-01-11T20:48:43.813470602Z [2026-01-11 20:48:43,813] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:48:43.813714376Z [2026-01-11 20:48:43,813] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.5 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:48:43.817157384Z [2026-01-11 20:48:43,817] DEBUG in automation: [automation] Cooldown active (OFF action) | cooldown_seconds=60 | remaining_time='1m0s'
-2026-01-11T20:48:43.817273751Z [2026-01-11 20:48:43,817] DEBUG in automation: [automation] Cooldown active — skipping automation | trigger='scheduler'
-2026-01-11T20:48:43.817379157Z [2026-01-11 20:48:43,817] DEBUG in automation: [automation] Automation tick finished | outcome='cooldown' | trigger='scheduler'
-2026-01-11T20:48:45.870917338Z [2026-01-11 20:48:45 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:48:50.871623572Z [2026-01-11 20:48:50 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:48:55.87205155Z [2026-01-11 20:48:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:48:55.872208169Z [2026-01-11 20:48:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:48:58.185771426Z [2026-01-11 20:48:58,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:48:58.186730871Z [2026-01-11 20:48:58,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:48:58.187819814Z [2026-01-11 20:48:58,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:48:58.669700566Z [2026-01-11 20:48:58,669] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:48:58 GMT', 'switchbot-request-id': 'e21cd386-faaa-41a2-85b3-532fd29f285c'}
-2026-01-11T20:48:58.672078643Z [2026-01-11 20:48:58,671] DEBUG in quota: [quota] fallback increment recorded: used=993 remaining=9007 limit=10000
-2026-01-11T20:48:58.672122995Z [2026-01-11 20:48:58,672] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:48:58.672234962Z [2026-01-11 20:48:58,672] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:48:58.674529624Z [2026-01-11 20:48:58,674] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9007 | api_requests_total=993 | context='meter_status'
-2026-01-11T20:48:58.676483427Z [2026-01-11 20:48:58,676] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:48:58.676557731Z [2026-01-11 20:48:58,676] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.5 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:48:58.67845147Z [2026-01-11 20:48:58,678] DEBUG in automation: [automation] Cooldown active (OFF action) | cooldown_seconds=60 | remaining_time='0m45s'
-2026-01-11T20:48:58.678512294Z [2026-01-11 20:48:58,678] DEBUG in automation: [automation] Cooldown active — skipping automation | trigger='scheduler'
-2026-01-11T20:48:58.678523034Z [2026-01-11 20:48:58,678] DEBUG in automation: [automation] Automation tick finished | outcome='cooldown' | trigger='scheduler'
-2026-01-11T20:48:59.614159728Z [2026-01-11 20:48:59 +0000] [25] [DEBUG] GET /reglages
-2026-01-11T20:48:59.622847808Z 127.0.0.1 - - [11/Jan/2026:20:48:59 +0000] "GET /reglages HTTP/1.1" 200 66274 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:48:59.878427108Z [2026-01-11 20:48:59 +0000] [25] [DEBUG] GET /static/css/settings.css
-2026-01-11T20:48:59.879691461Z 127.0.0.1 - - [11/Jan/2026:20:48:59 +0000] "GET /static/css/settings.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:49:00.201395782Z [2026-01-11 20:49:00 +0000] [25] [DEBUG] GET /static/js/alerts.js
-2026-01-11T20:49:00.202472113Z 127.0.0.1 - - [11/Jan/2026:20:49:00 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:49:00.249850864Z [2026-01-11 20:49:00 +0000] [25] [DEBUG] GET /static/css/theme.css
-2026-01-11T20:49:00.250852662Z 127.0.0.1 - - [11/Jan/2026:20:49:00 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:49:00.871845501Z [2026-01-11 20:49:00 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:49:05.871433251Z [2026-01-11 20:49:05 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:49:10.871456405Z [2026-01-11 20:49:10 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:49:13.185795297Z [2026-01-11 20:49:13,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:49:13.186645536Z [2026-01-11 20:49:13,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:49:13.187801012Z [2026-01-11 20:49:13,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:49:13.670357634Z [2026-01-11 20:49:13,670] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:49:13 GMT', 'switchbot-request-id': '669bc949-2ca8-4afb-9a1c-6670b9eeb305'}
-2026-01-11T20:49:13.672703029Z [2026-01-11 20:49:13,672] DEBUG in quota: [quota] fallback increment recorded: used=994 remaining=9006 limit=10000
-2026-01-11T20:49:13.672739871Z [2026-01-11 20:49:13,672] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:49:13.672851467Z [2026-01-11 20:49:13,672] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:49:13.67533307Z [2026-01-11 20:49:13,675] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9006 | api_requests_total=994 | context='meter_status'
-2026-01-11T20:49:13.6774184Z [2026-01-11 20:49:13,677] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:49:13.677566739Z [2026-01-11 20:49:13,677] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.5 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:49:13.679655319Z [2026-01-11 20:49:13,679] DEBUG in automation: [automation] Cooldown active (OFF action) | cooldown_seconds=60 | remaining_time='0m30s'
-2026-01-11T20:49:13.67966873Z [2026-01-11 20:49:13,679] DEBUG in automation: [automation] Cooldown active — skipping automation | trigger='scheduler'
-2026-01-11T20:49:13.679757595Z [2026-01-11 20:49:13,679] DEBUG in automation: [automation] Automation tick finished | outcome='cooldown' | trigger='scheduler'
-2026-01-11T20:49:15.871232185Z [2026-01-11 20:49:15 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:49:20.871546517Z [2026-01-11 20:49:20 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:49:25.87224683Z [2026-01-11 20:49:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:49:25.87241632Z [2026-01-11 20:49:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:49:28.185776664Z [2026-01-11 20:49:28,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:49:28.186937601Z [2026-01-11 20:49:28,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:49:28.188076517Z [2026-01-11 20:49:28,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:49:28.774157584Z [2026-01-11 20:49:28,773] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:49:28 GMT', 'switchbot-request-id': 'a8b3ac1f-bd8e-4f30-bdd7-b9d72d0dabc4'}
-2026-01-11T20:49:28.777291165Z [2026-01-11 20:49:28,777] DEBUG in quota: [quota] fallback increment recorded: used=995 remaining=9005 limit=10000
-2026-01-11T20:49:28.777312746Z [2026-01-11 20:49:28,777] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:49:28.777402231Z [2026-01-11 20:49:28,777] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:49:28.779896825Z [2026-01-11 20:49:28,779] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9005 | api_requests_total=995 | context='meter_status'
-2026-01-11T20:49:28.782508966Z [2026-01-11 20:49:28,782] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:49:28.782667265Z [2026-01-11 20:49:28,782] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.5 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:49:28.784722143Z [2026-01-11 20:49:28,784] DEBUG in automation: [automation] Cooldown active (OFF action) | cooldown_seconds=60 | remaining_time='0m15s'
-2026-01-11T20:49:28.784777226Z [2026-01-11 20:49:28,784] DEBUG in automation: [automation] Cooldown active — skipping automation | trigger='scheduler'
-2026-01-11T20:49:28.78483576Z [2026-01-11 20:49:28,784] DEBUG in automation: [automation] Automation tick finished | outcome='cooldown' | trigger='scheduler'
-2026-01-11T20:49:30.871458667Z [2026-01-11 20:49:30 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:49:35.871662621Z [2026-01-11 20:49:35 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:49:40.871646813Z [2026-01-11 20:49:40 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:49:43.185666095Z [2026-01-11 20:49:43,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:49:43.18661498Z [2026-01-11 20:49:43,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:49:43.187686512Z [2026-01-11 20:49:43,187] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:49:43.677939836Z [2026-01-11 20:49:43,677] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:49:43 GMT', 'switchbot-request-id': '9d1acd50-1095-48d4-835c-58e57fc6c32d'}
-2026-01-11T20:49:43.680368506Z [2026-01-11 20:49:43,680] DEBUG in quota: [quota] fallback increment recorded: used=996 remaining=9004 limit=10000
-2026-01-11T20:49:43.680398058Z [2026-01-11 20:49:43,680] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:49:43.680481853Z [2026-01-11 20:49:43,680] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:49:43.682886052Z [2026-01-11 20:49:43,682] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9004 | api_requests_total=996 | context='meter_status'
-2026-01-11T20:49:43.685045386Z [2026-01-11 20:49:43,684] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:49:43.685092239Z [2026-01-11 20:49:43,685] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.5 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:49:43.686974367Z [2026-01-11 20:49:43,686] DEBUG in automation: [automation] Cooldown active (OFF action) | cooldown_seconds=60 | remaining_time='0m0s'
-2026-01-11T20:49:43.687014029Z [2026-01-11 20:49:43,686] DEBUG in automation: [automation] Cooldown active — skipping automation | trigger='scheduler'
-2026-01-11T20:49:43.687051512Z [2026-01-11 20:49:43,686] DEBUG in automation: [automation] Automation tick finished | outcome='cooldown' | trigger='scheduler'
-2026-01-11T20:49:45.871412682Z [2026-01-11 20:49:45 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:49:50.87224057Z [2026-01-11 20:49:50 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:49:55.871249006Z [2026-01-11 20:49:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:49:55.8713293Z [2026-01-11 20:49:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:49:58.185922985Z [2026-01-11 20:49:58,185] DEBUG in automation: [automation] Automation tick started | automation_enabled=True | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:49:58.186913412Z [2026-01-11 20:49:58,186] DEBUG in automation: [automation] Time window evaluation | in_window=True | time_windows='[0,1,2,3,4,5,6] 10:00-01:00' | trigger='scheduler' | turn_off_outside_windows=True
-2026-01-11T20:49:58.188128221Z [2026-01-11 20:49:58,188] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:49:58.662356049Z [2026-01-11 20:49:58,662] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:49:58 GMT', 'switchbot-request-id': '3e622464-f2b6-4458-b87f-ed9be1920446'}
-2026-01-11T20:49:58.664719485Z [2026-01-11 20:49:58,664] DEBUG in quota: [quota] fallback increment recorded: used=997 remaining=9003 limit=10000
-2026-01-11T20:49:58.664749837Z [2026-01-11 20:49:58,664] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:49:58.664847672Z [2026-01-11 20:49:58,664] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:49:58.667301883Z [2026-01-11 20:49:58,667] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9003 | api_requests_total=997 | context='meter_status'
-2026-01-11T20:49:58.669534942Z [2026-01-11 20:49:58,669] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:49:58.669661079Z [2026-01-11 20:49:58,669] DEBUG in automation: [automation] Temperature evaluation | current_temp=27.5 | hysteresis=0.3 | max_temp=27.0 | min_temp=24.0 | mode='winter' | target_temp=26.0 | trigger='scheduler'
-2026-01-11T20:49:58.671668145Z [2026-01-11 20:49:58,671] DEBUG in automation: [automation] Winter mode: above max threshold | threshold=27.3 | trigger='scheduler'
-2026-01-11T20:49:58.671815043Z [2026-01-11 20:49:58,671] DEBUG in automation: [automation] Triggering IFTTT webhook | action_key='off' | state_reason='automation_winter_off' | trigger='scheduler'
-2026-01-11T20:49:58.671914929Z [2026-01-11 20:49:58,671] DEBUG in ifttt: [ifttt] Triggering IFTTT webhook | payload_keys=[] | url='https://maker.ifttt.com/trigger/switchbot_off/with...'
-2026-01-11T20:49:58.795841207Z [2026-01-11 20:49:58,795] INFO in ifttt: [ifttt] IFTTT webhook triggered successfully | status_code=200
-2026-01-11T20:49:58.802450537Z [2026-01-11 20:49:58,802] DEBUG in automation: [automation] Scheduled repeated off action | interval_seconds=10 | pending_repeats=1 | state_reason='automation_winter_off'
-2026-01-11T20:49:58.802471569Z [2026-01-11 20:49:58,802] DEBUG in automation: [automation] Automation tick finished | outcome='winter_off' | trigger='scheduler'
-2026-01-11T20:50:00.871266105Z [2026-01-11 20:50:00 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:50:05.871327827Z [2026-01-11 20:50:05 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:50:07.389786339Z [2026-01-11 20:50:07 +0000] [25] [DEBUG] POST /settings
-2026-01-11T20:50:07.392825964Z [2026-01-11 20:50:07,392] INFO in scheduler: [scheduler] Rescheduling automation job
-2026-01-11T20:50:07.393875624Z [2026-01-11 20:50:07,393] DEBUG in scheduler: [scheduler] Removing existing job before rescheduling
-2026-01-11T20:50:07.394187382Z [2026-01-11 20:50:07,394] INFO in scheduler: [scheduler] Job scheduled with interval=15 seconds
-2026-01-11T20:50:07.395062742Z 127.0.0.1 - - [11/Jan/2026:20:50:07 +0000] "POST /settings HTTP/1.1" 302 189 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:50:07.617227021Z [2026-01-11 20:50:07 +0000] [25] [DEBUG] GET /
-2026-01-11T20:50:07.62084885Z 127.0.0.1 - - [11/Jan/2026:20:50:07 +0000] "GET / HTTP/1.1" 200 9780 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:50:10.347149186Z [2026-01-11 20:50:10 +0000] [25] [DEBUG] GET /static/css/index.css
-2026-01-11T20:50:10.348298992Z 127.0.0.1 - - [11/Jan/2026:20:50:10 +0000] "GET /static/css/index.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:50:10.40302891Z [2026-01-11 20:50:10 +0000] [25] [DEBUG] GET /static/css/theme.css
-2026-01-11T20:50:10.403551481Z 127.0.0.1 - - [11/Jan/2026:20:50:10 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:50:10.731824393Z [2026-01-11 20:50:10 +0000] [25] [DEBUG] GET /static/js/alerts.js
-2026-01-11T20:50:10.732960568Z 127.0.0.1 - - [11/Jan/2026:20:50:10 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
-2026-01-11T20:50:10.871446494Z [2026-01-11 20:50:10 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:50:15.870802987Z [2026-01-11 20:50:15 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:50:20.87171269Z [2026-01-11 20:50:20 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:50:22.398119329Z [2026-01-11 20:50:22,397] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:50:22.399001029Z [2026-01-11 20:50:22,398] DEBUG in automation: [automation] Executing scheduled off repeat | remaining_before=1 | state_reason='automation_winter_off' | trigger='scheduler'
-2026-01-11T20:50:22.399029051Z [2026-01-11 20:50:22,398] DEBUG in automation: [automation] Triggering IFTTT webhook | action_key='off' | state_reason='automation_winter_off' | trigger='scheduler'
-2026-01-11T20:50:22.399131977Z [2026-01-11 20:50:22,399] DEBUG in ifttt: [ifttt] Triggering IFTTT webhook | payload_keys=[] | url='https://maker.ifttt.com/trigger/switchbot_off/with...'
-2026-01-11T20:50:22.515681041Z [2026-01-11 20:50:22,515] INFO in ifttt: [ifttt] IFTTT webhook triggered successfully | status_code=200
-2026-01-11T20:50:22.521735179Z [2026-01-11 20:50:22,521] DEBUG in automation: [automation] Cleared pending off repeat task
-2026-01-11T20:50:22.521789872Z [2026-01-11 20:50:22,521] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:50:22.522922527Z [2026-01-11 20:50:22,522] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:50:23.006943058Z [2026-01-11 20:50:23,006] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:50:22 GMT', 'switchbot-request-id': '714e9412-4c2e-4cae-8dfb-10db8dc30168'}
-2026-01-11T20:50:23.00957688Z [2026-01-11 20:50:23,009] DEBUG in quota: [quota] fallback increment recorded: used=998 remaining=9002 limit=10000
-2026-01-11T20:50:23.009622772Z [2026-01-11 20:50:23,009] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:50:23.009715388Z [2026-01-11 20:50:23,009] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:50:23.012279825Z [2026-01-11 20:50:23,012] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9002 | api_requests_total=998 | context='meter_status'
-2026-01-11T20:50:23.014556686Z [2026-01-11 20:50:23,014] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:50:23.014641151Z [2026-01-11 20:50:23,014] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:50:25.871728881Z [2026-01-11 20:50:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:50:25.872253112Z [2026-01-11 20:50:25 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:50:30.87150428Z [2026-01-11 20:50:30 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:50:35.870814213Z [2026-01-11 20:50:35 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:50:37.398161357Z [2026-01-11 20:50:37,397] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:50:37.398993165Z [2026-01-11 20:50:37,398] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:50:37.400014443Z [2026-01-11 20:50:37,399] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:50:37.894600672Z [2026-01-11 20:50:37,894] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:50:37 GMT', 'switchbot-request-id': '8c9d6e59-f065-4c43-a5a2-1bcb3f01923d'}
-2026-01-11T20:50:37.89699822Z [2026-01-11 20:50:37,896] DEBUG in quota: [quota] fallback increment recorded: used=999 remaining=9001 limit=10000
-2026-01-11T20:50:37.897021591Z [2026-01-11 20:50:37,896] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:50:37.897119207Z [2026-01-11 20:50:37,897] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:50:37.899837363Z [2026-01-11 20:50:37,899] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9001 | api_requests_total=999 | context='meter_status'
-2026-01-11T20:50:37.902002328Z [2026-01-11 20:50:37,901] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:50:37.902054771Z [2026-01-11 20:50:37,901] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:50:40.871347637Z [2026-01-11 20:50:40 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:50:45.870988289Z [2026-01-11 20:50:45 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:50:50.871435769Z [2026-01-11 20:50:50 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:50:52.398111674Z [2026-01-11 20:50:52,397] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:50:52.399127553Z [2026-01-11 20:50:52,399] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:50:52.400199505Z [2026-01-11 20:50:52,400] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:50:52.885269156Z [2026-01-11 20:50:52,885] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:50:52 GMT', 'switchbot-request-id': '294bf224-e89f-471b-8464-d52c3828bf37'}
-2026-01-11T20:50:52.887724037Z [2026-01-11 20:50:52,887] DEBUG in quota: [quota] fallback increment recorded: used=1000 remaining=9000 limit=10000
-2026-01-11T20:50:52.887754919Z [2026-01-11 20:50:52,887] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:50:52.887833354Z [2026-01-11 20:50:52,887] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:50:52.890046721Z [2026-01-11 20:50:52,889] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9000 | api_requests_total=1000 | context='meter_status'
-2026-01-11T20:50:52.89211862Z [2026-01-11 20:50:52,892] DEBUG in automation: [automation] Meter reading stored | humidity=34 | temperature=27.5 | trigger='scheduler'
-2026-01-11T20:50:52.892223336Z [2026-01-11 20:50:52,892] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:50:55.871437643Z [2026-01-11 20:50:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:50:55.871679868Z [2026-01-11 20:50:55 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:51:00.871572356Z [2026-01-11 20:51:00 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:51:05.87119725Z [2026-01-11 20:51:05 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:51:07.397906828Z [2026-01-11 20:51:07,397] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:51:07.398845822Z [2026-01-11 20:51:07,398] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:51:07.399902683Z [2026-01-11 20:51:07,399] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:51:07.878013234Z [2026-01-11 20:51:07,877] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:51:07 GMT', 'switchbot-request-id': '2c8cb031-42f7-49d4-b776-c8e5a83945e2'}
-2026-01-11T20:51:07.88019163Z [2026-01-11 20:51:07,880] DEBUG in quota: [quota] fallback increment recorded: used=1001 remaining=8999 limit=10000
-2026-01-11T20:51:07.880214021Z [2026-01-11 20:51:07,880] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:51:07.880262374Z [2026-01-11 20:51:07,880] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:51:07.882231447Z [2026-01-11 20:51:07,882] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=8999 | api_requests_total=1001 | context='meter_status'
-2026-01-11T20:51:07.8841922Z [2026-01-11 20:51:07,884] DEBUG in automation: [automation] Meter reading stored | humidity=32 | temperature=27.1 | trigger='scheduler'
-2026-01-11T20:51:07.884243173Z [2026-01-11 20:51:07,884] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
-2026-01-11T20:51:10.871774389Z [2026-01-11 20:51:10 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:51:15.871477129Z [2026-01-11 20:51:15 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:51:20.871765813Z [2026-01-11 20:51:20 +0000] [25] [DEBUG] Closing connection.
-2026-01-11T20:51:22.397983103Z [2026-01-11 20:51:22,397] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
-2026-01-11T20:51:22.398790359Z [2026-01-11 20:51:22,398] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
-2026-01-11T20:51:22.399798938Z [2026-01-11 20:51:22,399] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
-2026-01-11T20:51:22.913941482Z [2026-01-11 20:51:22,913] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 20:51:22 GMT', 'switchbot-request-id': 'd1152977-ef7a-412a-aecf-b34eb9edc223'}
-2026-01-11T20:51:22.916293217Z [2026-01-11 20:51:22,916] DEBUG in quota: [quota] fallback increment recorded: used=1002 remaining=8998 limit=10000
-2026-01-11T20:51:22.916333429Z [2026-01-11 20:51:22,916] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
-2026-01-11T20:51:22.91652512Z [2026-01-11 20:51:22,916] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
-2026-01-11T20:51:22.919166712Z [2026-01-11 20:51:22,919] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=8998 | api_requests_total=1002 | context='meter_status'
-2026-01-11T20:51:22.921140426Z [2026-01-11 20:51:22,921] DEBUG in automation: [automation] Meter reading stored | humidity=32 | temperature=27.1 | trigger='scheduler'
-2026-01-11T20:51:22.92121167Z [2026-01-11 20:51:22,921] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
+2026-01-11T22:03:04.902259215Z ==> Starting service...
+2026-01-11T22:03:07.742274738Z [2026-01-11 22:03:07 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:03:07.742394131Z [2026-01-11 22:03:07 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:03:12.741958818Z [2026-01-11 22:03:12 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:03:14.160724979Z [2026-01-11 22:03:14,160] DEBUG in automation: [automation] Automation tick started | automation_enabled=False | poll_interval_seconds=15 | trigger='scheduler'
+2026-01-11T22:03:14.161391916Z [2026-01-11 22:03:14,161] DEBUG in automation: [automation] Automation disabled — polling meter only | trigger='scheduler'
+2026-01-11T22:03:14.162189707Z [2026-01-11 22:03:14,162] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
+2026-01-11T22:03:14.652868216Z [2026-01-11 22:03:14,652] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 22:03:14 GMT', 'switchbot-request-id': 'bb09bcb2-b9e6-4e28-832a-5be37213c278'}
+2026-01-11T22:03:14.654398345Z [2026-01-11 22:03:14,654] DEBUG in quota: [quota] fallback increment recorded: used=1291 remaining=8709 limit=10000
+2026-01-11T22:03:14.654424256Z [2026-01-11 22:03:14,654] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
+2026-01-11T22:03:14.654519538Z [2026-01-11 22:03:14,654] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
+2026-01-11T22:03:14.656223922Z [2026-01-11 22:03:14,656] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=8709 | api_requests_total=1291 | context='meter_status'
+2026-01-11T22:03:14.657470504Z [2026-01-11 22:03:14,657] DEBUG in automation: [automation] Meter reading stored | humidity=35 | temperature=24.8 | trigger='scheduler'
+2026-01-11T22:03:14.657522645Z [2026-01-11 22:03:14,657] DEBUG in automation: [automation] Automation tick finished | outcome='disabled' | trigger='scheduler'
+2026-01-11T22:03:17.741974187Z [2026-01-11 22:03:17 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:03:20.678768043Z [2026-01-11 22:03:20 +0000] [1] [DEBUG] Current configuration:
+2026-01-11T22:03:20.678792854Z   config: gunicorn.conf.py
+2026-01-11T22:03:20.678795694Z   wsgi_app: None
+2026-01-11T22:03:20.678797974Z   bind: ['0.0.0.0:10000']
+2026-01-11T22:03:20.678800244Z   backlog: 2048
+2026-01-11T22:03:20.678802454Z   workers: 1
+2026-01-11T22:03:20.678804724Z   worker_class: sync
+2026-01-11T22:03:20.678806904Z   threads: 2
+2026-01-11T22:03:20.678809214Z   worker_connections: 1000
+2026-01-11T22:03:20.678811404Z   max_requests: 0
+2026-01-11T22:03:20.678813655Z   max_requests_jitter: 0
+2026-01-11T22:03:20.678816275Z   timeout: 120
+2026-01-11T22:03:20.678818435Z   graceful_timeout: 30
+2026-01-11T22:03:20.678820625Z   keepalive: 2
+2026-01-11T22:03:20.678822965Z   limit_request_line: 4094
+2026-01-11T22:03:20.678825225Z   limit_request_fields: 100
+2026-01-11T22:03:20.678827465Z   limit_request_field_size: 8190
+2026-01-11T22:03:20.678829705Z   reload: False
+2026-01-11T22:03:20.678831965Z   reload_engine: auto
+2026-01-11T22:03:20.678834185Z   reload_extra_files: []
+2026-01-11T22:03:20.678836335Z   spew: False
+2026-01-11T22:03:20.678838525Z   check_config: False
+2026-01-11T22:03:20.678840725Z   print_config: False
+2026-01-11T22:03:20.678842905Z   preload_app: False
+2026-01-11T22:03:20.678845085Z   sendfile: None
+2026-01-11T22:03:20.678847245Z   reuse_port: False
+2026-01-11T22:03:20.678849415Z   chdir: /app
+2026-01-11T22:03:20.678851575Z   daemon: False
+2026-01-11T22:03:20.678853745Z   raw_env: []
+2026-01-11T22:03:20.678855875Z   pidfile: None
+2026-01-11T22:03:20.678858045Z   worker_tmp_dir: None
+2026-01-11T22:03:20.678860225Z   user: 100
+2026-01-11T22:03:20.678862705Z   group: 101
+2026-01-11T22:03:20.678864896Z   umask: 0
+2026-01-11T22:03:20.678867146Z   initgroups: False
+2026-01-11T22:03:20.678869346Z   tmp_upload_dir: None
+2026-01-11T22:03:20.678872106Z   secure_scheme_headers: {'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}
+2026-01-11T22:03:20.678875856Z   forwarded_allow_ips: ['127.0.0.1']
+2026-01-11T22:03:20.678878056Z   accesslog: -
+2026-01-11T22:03:20.678880256Z   disable_redirect_access_to_syslog: False
+2026-01-11T22:03:20.678883126Z   access_log_format: %(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
+2026-01-11T22:03:20.678885346Z   errorlog: -
+2026-01-11T22:03:20.678887516Z   loglevel: debug
+2026-01-11T22:03:20.678889736Z   capture_output: False
+2026-01-11T22:03:20.678892026Z   logger_class: gunicorn.glogging.Logger
+2026-01-11T22:03:20.678894226Z   logconfig: None
+2026-01-11T22:03:20.678896386Z   logconfig_dict: {}
+2026-01-11T22:03:20.678898566Z   logconfig_json: None
+2026-01-11T22:03:20.678900746Z   syslog_addr: udp://localhost:514
+2026-01-11T22:03:20.678902926Z   syslog: False
+2026-01-11T22:03:20.678905046Z   syslog_prefix: None
+2026-01-11T22:03:20.678907197Z   syslog_facility: user
+2026-01-11T22:03:20.678909347Z   enable_stdio_inheritance: False
+2026-01-11T22:03:20.678911517Z   statsd_host: None
+2026-01-11T22:03:20.678913687Z   dogstatsd_tags:
+2026-01-11T22:03:20.678915857Z   statsd_prefix:
+2026-01-11T22:03:20.678918087Z   proc_name: None
+2026-01-11T22:03:20.678920347Z   default_proc_name: switchbot_dashboard:create_app()
+2026-01-11T22:03:20.678922557Z   pythonpath: None
+2026-01-11T22:03:20.678924687Z   paste: None
+2026-01-11T22:03:20.678926927Z   on_starting: <function OnStarting.on_starting at 0x77d5b688ce00>
+2026-01-11T22:03:20.678929207Z   on_reload: <function OnReload.on_reload at 0x77d5b688cf40>
+2026-01-11T22:03:20.678931477Z   when_ready: <function WhenReady.when_ready at 0x77d5b688d080>
+2026-01-11T22:03:20.678939117Z   pre_fork: <function Prefork.pre_fork at 0x77d5b688d1c0>
+2026-01-11T22:03:20.678941567Z   post_fork: <function Postfork.post_fork at 0x77d5b688d300>
+2026-01-11T22:03:20.678943967Z   post_worker_init: <function PostWorkerInit.post_worker_init at 0x77d5b688d440>
+2026-01-11T22:03:20.678946267Z   worker_int: <function WorkerInt.worker_int at 0x77d5b688d580>
+2026-01-11T22:03:20.678948427Z   worker_abort: <function WorkerAbort.worker_abort at 0x77d5b688d6c0>
+2026-01-11T22:03:20.678950638Z   pre_exec: <function PreExec.pre_exec at 0x77d5b688d800>
+2026-01-11T22:03:20.679887579Z   pre_request: <function PreRequest.pre_request at 0x77d5b688d940>
+2026-01-11T22:03:20.679897189Z   post_request: <function PostRequest.post_request at 0x77d5b688d9e0>
+2026-01-11T22:03:20.679900379Z   child_exit: <function ChildExit.child_exit at 0x77d5b688db20>
+2026-01-11T22:03:20.679902809Z   worker_exit: <function WorkerExit.worker_exit at 0x77d5b688dc60>
+2026-01-11T22:03:20.679905799Z   nworkers_changed: <function NumWorkersChanged.nworkers_changed at 0x77d5b688dda0>
+2026-01-11T22:03:20.679908009Z   on_exit: <function OnExit.on_exit at 0x77d5b688dee0>
+2026-01-11T22:03:20.679910299Z   ssl_context: <function NewSSLContext.ssl_context at 0x77d5b688e0c0>
+2026-01-11T22:03:20.679912789Z   proxy_protocol: False
+2026-01-11T22:03:20.679915479Z   proxy_allow_ips: ['127.0.0.1']
+2026-01-11T22:03:20.67993992Z   keyfile: None
+2026-01-11T22:03:20.67994282Z   certfile: None
+2026-01-11T22:03:20.67994511Z   ssl_version: 2
+2026-01-11T22:03:20.67994733Z   cert_reqs: 0
+2026-01-11T22:03:20.67994952Z   ca_certs: None
+2026-01-11T22:03:20.67995209Z   suppress_ragged_eofs: True
+2026-01-11T22:03:20.67995442Z   do_handshake_on_connect: False
+2026-01-11T22:03:20.67995664Z   ciphers: None
+2026-01-11T22:03:20.67995887Z   raw_paste_global_conf: []
+2026-01-11T22:03:20.67996115Z   strip_header_spaces: False
+2026-01-11T22:03:20.680119094Z [2026-01-11 22:03:20 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2026-01-11T22:03:20.680123074Z [2026-01-11 22:03:20 +0000] [1] [DEBUG] Arbiter booted
+2026-01-11T22:03:20.680125564Z [2026-01-11 22:03:20 +0000] [1] [INFO] Listening at: http://0.0.0.0:10000 (1)
+2026-01-11T22:03:20.680127834Z [2026-01-11 22:03:20 +0000] [1] [INFO] Using worker: gthread
+2026-01-11T22:03:20.681531925Z [2026-01-11 22:03:20 +0000] [24] [INFO] Booting worker with pid: 24
+2026-01-11T22:03:20.715918795Z [2026-01-11 22:03:20 +0000] [1] [DEBUG] 1 workers
+2026-01-11T22:03:22.741743159Z [2026-01-11 22:03:22 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:03:23.581643953Z [2026-01-11 22:03:23,581] INFO in __init__: Using Redis backend for settings store (key=switchbot_dashboard:settings)
+2026-01-11T22:03:23.679606006Z [2026-01-11 22:03:23,679] INFO in __init__: Using Redis backend for state store (key=switchbot_dashboard:state)
+2026-01-11T22:03:23.686700204Z [2026-01-11 22:03:23,686] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
+2026-01-11T22:03:24.283575231Z [2026-01-11 22:03:24,283] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 22:03:24 GMT', 'switchbot-request-id': '00c07797-79a2-4ec8-ad7b-d8065656f697'}
+2026-01-11T22:03:24.285192367Z [2026-01-11 22:03:24,285] DEBUG in quota: [quota] fallback increment recorded: used=1292 remaining=8708 limit=10000
+2026-01-11T22:03:24.285255159Z [2026-01-11 22:03:24,285] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
+2026-01-11T22:03:24.285358991Z [2026-01-11 22:03:24,285] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
+2026-01-11T22:03:24.287371716Z [2026-01-11 22:03:24,287] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=8708 | api_requests_total=1292 | context='meter_status'
+2026-01-11T22:03:24.288726266Z [2026-01-11 22:03:24,288] DEBUG in automation: [automation] Meter reading stored | humidity=35 | temperature=24.8 | trigger='scheduler'
+2026-01-11T22:03:24.288797218Z [2026-01-11 22:03:24,288] INFO in __init__: [scheduler] Skipping start in Flask debug parent process
+2026-01-11T22:03:24.289752679Z [2026-01-11 22:03:24 +0000] [24] [DEBUG] HEAD /
+2026-01-11T22:03:24.425284242Z 127.0.0.1 - - [11/Jan/2026:22:03:24 +0000] "HEAD / HTTP/1.1" 200 0 "-" "Go-http-client/1.1"
+2026-01-11T22:03:25.99415069Z [2026-01-11 22:03:25 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:03:26.72211807Z [2026-01-11 22:03:26 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:03:27.008473006Z ==> Your service is live 🎉
+2026-01-11T22:03:27.23397103Z [2026-01-11 22:03:27 +0000] [1] [INFO] Handling signal: term
+2026-01-11T22:03:27.250622382Z ==>
+2026-01-11T22:03:27.540760963Z ==> ///////////////////////////////////////////////////////////
+2026-01-11T22:03:27.741388648Z [2026-01-11 22:03:27 +0000] [24] [INFO] Worker exiting (pid: 24)
+2026-01-11T22:03:27.76955302Z ==>
+2026-01-11T22:03:27.795340907Z ==> Available at your primary URL https://switchbot-latest.onrender.com
+2026-01-11T22:03:27.823528105Z ==>
+2026-01-11T22:03:27.849656112Z ==> ///////////////////////////////////////////////////////////
+2026-01-11T22:03:28.269196558Z [2026-01-11 22:03:28 +0000] [1] [INFO] Shutting down: Master
+2026-01-11T22:03:28.677518377Z [2026-01-11 22:03:28 +0000] [24] [DEBUG] GET /
+2026-01-11T22:03:28.680052064Z 127.0.0.1 - - [11/Jan/2026:22:03:28 +0000] "GET / HTTP/1.1" 200 9476 "-" "Go-http-client/2.0"
+2026-01-11T22:03:30.993830851Z [2026-01-11 22:03:30 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:03:35.99437571Z [2026-01-11 22:03:35 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:03:35.994845991Z [2026-01-11 22:03:35 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:03:40.993584759Z [2026-01-11 22:03:40 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:03:45.993794361Z [2026-01-11 22:03:45 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:03:49.141043477Z [2026-01-11 22:03:49 +0000] [24] [DEBUG] GET /
+2026-01-11T22:03:49.144573496Z 127.0.0.1 - - [11/Jan/2026:22:03:49 +0000] "GET / HTTP/1.1" 200 9476 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T22:03:49.400140945Z [2026-01-11 22:03:49 +0000] [24] [DEBUG] GET /static/css/theme.css
+2026-01-11T22:03:49.401741841Z 127.0.0.1 - - [11/Jan/2026:22:03:49 +0000] "GET /static/css/theme.css HTTP/1.1" 200 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T22:03:49.402317494Z [2026-01-11 22:03:49 +0000] [24] [DEBUG] GET /static/css/index.css
+2026-01-11T22:03:49.403206814Z 127.0.0.1 - - [11/Jan/2026:22:03:49 +0000] "GET /static/css/index.css HTTP/1.1" 200 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T22:03:49.418603458Z [2026-01-11 22:03:49 +0000] [24] [DEBUG] GET /static/js/alerts.js
+2026-01-11T22:03:49.419776774Z 127.0.0.1 - - [11/Jan/2026:22:03:49 +0000] "GET /static/js/alerts.js HTTP/1.1" 200 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T22:03:50.994148064Z [2026-01-11 22:03:50 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:03:54.310155387Z [2026-01-11 22:03:54 +0000] [24] [DEBUG] GET /reglages
+2026-01-11T22:03:54.474806091Z 127.0.0.1 - - [11/Jan/2026:22:03:54 +0000] "GET /reglages HTTP/1.1" 200 66267 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T22:03:54.722939424Z [2026-01-11 22:03:54 +0000] [24] [DEBUG] GET /static/css/theme.css
+2026-01-11T22:03:54.724431057Z 127.0.0.1 - - [11/Jan/2026:22:03:54 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T22:03:54.725631654Z [2026-01-11 22:03:54 +0000] [24] [DEBUG] GET /static/js/alerts.js
+2026-01-11T22:03:54.726573845Z 127.0.0.1 - - [11/Jan/2026:22:03:54 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T22:03:54.729878679Z [2026-01-11 22:03:54 +0000] [24] [DEBUG] GET /static/css/settings.css
+2026-01-11T22:03:54.73081201Z 127.0.0.1 - - [11/Jan/2026:22:03:54 +0000] "GET /static/css/settings.css HTTP/1.1" 200 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T22:03:55.99417115Z [2026-01-11 22:03:55 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:04:00.866094659Z [2026-01-11 22:04:00 +0000] [24] [DEBUG] POST /settings
+2026-01-11T22:04:00.869472304Z [2026-01-11 22:04:00,869] INFO in scheduler: [scheduler] Rescheduling automation job
+2026-01-11T22:04:00.869620008Z [2026-01-11 22:04:00,869] WARNING in scheduler: [scheduler] Cannot schedule job: scheduler is None
+2026-01-11T22:04:00.870374105Z 127.0.0.1 - - [11/Jan/2026:22:04:00 +0000] "POST /settings HTTP/1.1" 302 189 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T22:04:00.994201636Z [2026-01-11 22:04:00 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:04:01.067988817Z [2026-01-11 22:04:01 +0000] [24] [DEBUG] GET /
+2026-01-11T22:04:01.071232959Z 127.0.0.1 - - [11/Jan/2026:22:04:01 +0000] "GET / HTTP/1.1" 200 9780 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T22:04:03.863265536Z [2026-01-11 22:04:03 +0000] [24] [DEBUG] GET /static/css/theme.css
+2026-01-11T22:04:03.864489204Z 127.0.0.1 - - [11/Jan/2026:22:04:03 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T22:04:03.882749952Z [2026-01-11 22:04:03 +0000] [24] [DEBUG] GET /static/css/index.css
+2026-01-11T22:04:03.883848837Z 127.0.0.1 - - [11/Jan/2026:22:04:03 +0000] "GET /static/css/index.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T22:04:03.896742705Z [2026-01-11 22:04:03 +0000] [24] [DEBUG] GET /static/js/alerts.js
+2026-01-11T22:04:03.897739378Z 127.0.0.1 - - [11/Jan/2026:22:04:03 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T22:04:05.994144918Z [2026-01-11 22:04:05 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:04:05.99465839Z [2026-01-11 22:04:05 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:04:10.994517481Z [2026-01-11 22:04:10 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:04:15.993650784Z [2026-01-11 22:04:15 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:04:19.877093852Z [2026-01-11 22:04:19 +0000] [24] [DEBUG] HEAD /healthz
+2026-01-11T22:04:19.87922739Z 127.0.0.1 - - [11/Jan/2026:22:04:19 +0000] "HEAD /healthz HTTP/1.1" 200 0 "https://switchbot-latest.onrender.com/healthz" "Mozilla/5.0+(compatible; UptimeRobot/2.0; http://www.uptimerobot.com/)"
+2026-01-11T22:04:20.99422788Z [2026-01-11 22:04:20 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:04:25.993770441Z [2026-01-11 22:04:25 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:04:30.994406057Z [2026-01-11 22:04:30 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:04:35.994651443Z [2026-01-11 22:04:35 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:04:35.994797457Z [2026-01-11 22:04:35 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:04:40.993468927Z [2026-01-11 22:04:40 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:04:45.995915651Z [2026-01-11 22:04:45 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:04:50.994143641Z [2026-01-11 22:04:50 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:04:55.994431706Z [2026-01-11 22:04:55 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:05:00.994076926Z [2026-01-11 22:05:00 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:05:05.994676107Z [2026-01-11 22:05:05 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:05:05.994712188Z [2026-01-11 22:05:05 +0000] [24] [DEBUG] Closing connection.
+2026-01-11T22:05:10.994282947Z [2026-01-11 22:05:10 +0000] [24] [DEBUG] Closing connection.
