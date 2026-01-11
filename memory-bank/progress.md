@@ -135,3 +135,9 @@
 
 ## En cours
 - Aucune tâche active.
+
+[2026-01-11 02:15:00] - Debug scènes SwitchBot: exécution sans effet physique
+- Correction de `SwitchBotClient.run_scene()` : envoi explicite d'un body JSON `{}` sur `POST /v1.1/scenes/{scene_id}/execute` (alignement doc SwitchBot), afin d'éviter les faux succès HTTP 200 sans action.
+- Ajout d'un log DEBUG minimal `SwitchBot API payload parsed` (statusCode/message/path) pour diagnostiquer rapidement les réponses non-`100`.
+- Ajout de `SwitchBotClient.get_scenes()` (GET `/v1.1/scenes`) pour faciliter les diagnostics et la vérification des UUID.
+- Suite Pytest exécutée : 20 tests passés.

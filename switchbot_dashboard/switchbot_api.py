@@ -133,6 +133,12 @@ class SwitchBotClient:
                 raise SwitchBotApiError(f"Unexpected SwitchBot response: {data!r}")
 
             status_code = data.get("statusCode")
+            logger.debug(
+                "SwitchBot API payload parsed: statusCode=%s message=%s path=%s",
+                status_code,
+                data.get("message"),
+                path,
+            )
             if status_code == 100:
                 if self._quota_tracker and not tracker_updated:
                     self._quota_tracker.record_call()
@@ -152,6 +158,9 @@ class SwitchBotClient:
 
     def get_devices(self) -> Any:
         return self._request("GET", "/v1.1/devices")
+
+    def get_scenes(self) -> Any:
+        return self._request("GET", "/v1.1/scenes")
 
     def get_device_status(self, device_id: str) -> Any:
         device_id = device_id.strip()
@@ -183,7 +192,7 @@ class SwitchBotClient:
         if not scene_id:
             raise SwitchBotApiError("Missing scene_id")
 
-        return self._request("POST", f"/v1.1/scenes/{scene_id}/execute")
+        return self._request("POST", f"/v1.1/scenes/{scene_id}/execute", json_body={})
 
     def _capture_quota_metadata(self, response: Response) -> bool:
         header_map = {key.lower(): value for key, value in response.headers.items()}
