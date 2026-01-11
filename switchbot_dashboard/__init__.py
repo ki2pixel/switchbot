@@ -194,12 +194,14 @@ def create_app() -> Flask:
     scheduler_enabled = os.environ.get("SCHEDULER_ENABLED", "true").strip().lower()
 
     if scheduler_enabled == "true":
-        flask_debug_raw = os.environ.get("FLASK_DEBUG", "").strip().lower()
-        flask_debug_enabled = flask_debug_raw not in ("", "0", "false")
-        is_reloader_child = os.environ.get("WERKZEUG_RUN_MAIN") == "true"
+        is_flask_dev_reloader_parent = (
+            os.environ.get("FLASK_DEBUG", "").strip().lower() not in ("", "0", "false")
+            and os.environ.get("WERKZEUG_RUN_MAIN") != "true"
+            and not os.environ.get("SERVER_SOFTWARE")
+        )
 
-        if flask_debug_enabled and not is_reloader_child:
-            app.logger.info("[scheduler] Skipping start in Flask debug parent process")
+        if is_flask_dev_reloader_parent:
+            app.logger.info("[scheduler] Skipping start in Flask development reloader parent process")
         else:
             scheduler_service.start()
             app.logger.info("[scheduler] APScheduler enabled and started")
