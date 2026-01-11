@@ -143,6 +143,8 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "poll_interval_seconds": 120,
         "hysteresis_celsius": 0.3,
         "command_cooldown_seconds": 180,
+        "action_on_cooldown_seconds": 0,
+        "action_off_cooldown_seconds": 0,
         "turn_off_outside_windows": False,
         "meter_device_id": "meter",
         "aircon_device_id": "aircon",
@@ -158,6 +160,8 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "poll_interval_seconds": "300",
         "hysteresis_celsius": "0.4",
         "command_cooldown_seconds": "200",
+        "action_on_cooldown_seconds": "300",
+        "action_off_cooldown_seconds": "90",
         "turn_off_outside_windows": "on",
         "meter_device_id": "meter",
         "aircon_device_id": "aircon",
@@ -190,6 +194,9 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "off": "scene-off",
     }
     assert persisted["api_quota_warning_threshold"] == 250
+    assert persisted["command_cooldown_seconds"] == 200
+    assert persisted["action_on_cooldown_seconds"] == 300
+    assert persisted["action_off_cooldown_seconds"] == 90
     assert scheduler.called is True
 
 

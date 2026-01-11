@@ -86,7 +86,7 @@
                   </div>
 
                   <div class="col-12 col-md-4">
-                    <label class="form-label" for="command_cooldown_seconds">Délai entre commandes (s)</label>
+                    <label class="form-label" for="command_cooldown_seconds">Cooldown par défaut (s)</label>
                     <input
                       class="form-control"
                       id="command_cooldown_seconds"
@@ -94,6 +94,32 @@
                       value="{{ settings.get('command_cooldown_seconds') }}"
                       inputmode="numeric"
                     />
+                    <div class="form-text">Utilisé si les champs ci-dessous sont vides.</div>
+                  </div>
+
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="action_on_cooldown_seconds">Cooldown après démarrage (s)</label>
+                    <input
+                      class="form-control"
+                      id="action_on_cooldown_seconds"
+                      name="action_on_cooldown_seconds"
+                      value="{{ settings.get('action_on_cooldown_seconds') }}"
+                      inputmode="numeric"
+                    />
+                    <div class="form-text">Recommandé : 300 s (5 min) pour laisser la pompe chauffer.</div>
+                  </div>
+
+                    <div class="col-12 col-md-4">
+                      <label class="form-label" for="action_off_cooldown_seconds">Cooldown après arrêt (s)</label>
+                      <input
+                        class="form-control"
+                        id="action_off_cooldown_seconds"
+                        name="action_off_cooldown_seconds"
+                        value="{{ settings.get('action_off_cooldown_seconds') }}"
+                        inputmode="numeric"
+                      />
+                      <div class="form-text">Recommandé : 60 s pour garder un arrêt réactif.</div>
+                    </div>
                   </div>
 
                   <div class="col-12 col-md-6">

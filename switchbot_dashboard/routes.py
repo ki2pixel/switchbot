@@ -393,6 +393,18 @@ def update_settings() -> Any:
         minimum=0,
         maximum=3600,
     )
+    settings["action_on_cooldown_seconds"] = _as_int(
+        request.form.get("action_on_cooldown_seconds"),
+        default=int(settings.get("action_on_cooldown_seconds", 0) or 0),
+        minimum=0,
+        maximum=3600,
+    )
+    settings["action_off_cooldown_seconds"] = _as_int(
+        request.form.get("action_off_cooldown_seconds"),
+        default=int(settings.get("action_off_cooldown_seconds", 0) or 0),
+        minimum=0,
+        maximum=3600,
+    )
 
     settings["turn_off_outside_windows"] = _as_bool(request.form.get("turn_off_outside_windows"))
     settings["api_quota_warning_threshold"] = _as_int(
