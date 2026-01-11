@@ -474,7 +474,7 @@ def update_settings() -> Any:
     return redirect(url_for("dashboard.index"))
 
 
-@dashboard_bp.post("/actions/run_once")
+@dashboard_bp.route("/actions/run_once", methods=["GET", "POST"])
 def run_once() -> Any:
     automation_service = current_app.extensions["automation_service"]
 
