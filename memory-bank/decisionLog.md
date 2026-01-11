@@ -121,6 +121,11 @@
 - Motivation : Éliminer la "zone grise" où l'automatisation pourrait agir sur une valeur obsolète issue de Redis, en marquant la température comme stale au démarrage et en la rafraîchissant immédiatement via un `poll_meter()` initial.
 - Implication : `create_app()` force le flag à `true` (`reason="app_start"`), puis appelle `poll_meter()` pour le remettre à `false`. En cas d'erreur API, le flag repasse à `true` (`reason="api_error"`). Documentation mise à jour, test ajouté (`tests/test_app_init.py`), pytest validé.
 
+[2026-01-11 17:40:00] - Stratégie Scheduler documentée + configuration Gunicorn dédiée
+- Décision : Documenter officiellement l'exécution d'APScheduler avec un worker unique, fournir `gunicorn.conf.py` (1 worker, 2 threads) et introduire la variable `SCHEDULER_ENABLED` pour désactiver proprement le scheduler lorsqu'un cron externe pilote `run_once`.
+- Motivation : Éviter les ticks dupliqués en production, clarifier le besoin de `WEB_CONCURRENCY=1` et permettre aux opérateurs de basculer temporairement vers un déclencheur externe sans modifier le code.
+- Implication : `create_app()` vérifie `SCHEDULER_ENABLED` avant de lancer le scheduler et loggue l'état, le Dockerfile délègue la configuration à Gunicorn, et `docs/scheduler.md` décrit les bonnes pratiques (workers, threads, variables d'environnement, troubleshooting).
+
 [2026-01-11 15:35:00] - Intégration complète des webhooks IFTTT avec système de fallback cascade
 - Décision : Implémenter un système à trois niveaux pour déclencher les actions de climatisation : 1) Webhooks IFTTT (priorité), 2) Scènes SwitchBot (fallback), 3) Commandes directes (fallback ultime).
 - Motivation : Contourner les limitations de l'API SwitchBot native pour l'exécution de scènes, réduire la consommation de quota API (webhooks ne comptent pas), offrir plus de flexibilité via les applets IFTTT complexes (notifications, logs, enchaînements), et garantir la fiabilité grâce au mécanisme de fallback automatique.

@@ -1,0 +1,175 @@
+2026-01-11T16:42:24.835546005Z ==> Starting service...
+2026-01-11T16:42:27.886600934Z [2026-01-11 16:42:27 +0000] [26] [DEBUG] Closing connection.
+2026-01-11T16:42:27.886743048Z [2026-01-11 16:42:27 +0000] [26] [DEBUG] Closing connection.
+2026-01-11T16:42:32.885985412Z [2026-01-11 16:42:32 +0000] [26] [DEBUG] Closing connection.
+2026-01-11T16:42:37.887970088Z [2026-01-11 16:42:37 +0000] [26] [DEBUG] Closing connection.
+2026-01-11T16:42:39.096145593Z [2026-01-11 16:42:39 +0000] [1] [DEBUG] Current configuration:
+2026-01-11T16:42:39.096181164Z   config: gunicorn.conf.py
+2026-01-11T16:42:39.096184614Z   wsgi_app: None
+2026-01-11T16:42:39.096186384Z   bind: ['0.0.0.0:10000']
+2026-01-11T16:42:39.096188184Z   backlog: 2048
+2026-01-11T16:42:39.096189954Z   workers: 1
+2026-01-11T16:42:39.096194344Z   worker_class: sync
+2026-01-11T16:42:39.096196174Z   threads: 2
+2026-01-11T16:42:39.096197844Z   worker_connections: 1000
+2026-01-11T16:42:39.096199594Z   max_requests: 0
+2026-01-11T16:42:39.096201234Z   max_requests_jitter: 0
+2026-01-11T16:42:39.096202894Z   timeout: 120
+2026-01-11T16:42:39.096204544Z   graceful_timeout: 30
+2026-01-11T16:42:39.096206214Z   keepalive: 2
+2026-01-11T16:42:39.096207914Z   limit_request_line: 4094
+2026-01-11T16:42:39.096209714Z   limit_request_fields: 100
+2026-01-11T16:42:39.096211445Z   limit_request_field_size: 8190
+2026-01-11T16:42:39.096213105Z   reload: False
+2026-01-11T16:42:39.096214794Z   reload_engine: auto
+2026-01-11T16:42:39.096216485Z   reload_extra_files: []
+2026-01-11T16:42:39.096218455Z   spew: False
+2026-01-11T16:42:39.096220115Z   check_config: False
+2026-01-11T16:42:39.096221735Z   print_config: False
+2026-01-11T16:42:39.096223395Z   preload_app: False
+2026-01-11T16:42:39.096254446Z   sendfile: None
+2026-01-11T16:42:39.096263566Z   reuse_port: False
+2026-01-11T16:42:39.096266216Z   chdir: /app
+2026-01-11T16:42:39.096268576Z   daemon: False
+2026-01-11T16:42:39.096271136Z   raw_env: []
+2026-01-11T16:42:39.096273476Z   pidfile: None
+2026-01-11T16:42:39.096275846Z   worker_tmp_dir: None
+2026-01-11T16:42:39.096278336Z   user: 100
+2026-01-11T16:42:39.096280806Z   group: 101
+2026-01-11T16:42:39.096283206Z   umask: 0
+2026-01-11T16:42:39.096285646Z   initgroups: False
+2026-01-11T16:42:39.096287976Z   tmp_upload_dir: None
+2026-01-11T16:42:39.096293136Z   secure_scheme_headers: {'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}
+2026-01-11T16:42:39.096300187Z   forwarded_allow_ips: ['127.0.0.1']
+2026-01-11T16:42:39.096303237Z   accesslog: -
+2026-01-11T16:42:39.096305777Z   disable_redirect_access_to_syslog: False
+2026-01-11T16:42:39.096308897Z   access_log_format: %(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
+2026-01-11T16:42:39.096311217Z   errorlog: -
+2026-01-11T16:42:39.096313497Z   loglevel: debug
+2026-01-11T16:42:39.096315967Z   capture_output: False
+2026-01-11T16:42:39.096318757Z   logger_class: gunicorn.glogging.Logger
+2026-01-11T16:42:39.096321197Z   logconfig: None
+2026-01-11T16:42:39.096323727Z   logconfig_dict: {}
+2026-01-11T16:42:39.096326527Z   logconfig_json: None
+2026-01-11T16:42:39.096329077Z   syslog_addr: udp://localhost:514
+2026-01-11T16:42:39.096331557Z   syslog: False
+2026-01-11T16:42:39.096334007Z   syslog_prefix: None
+2026-01-11T16:42:39.096336437Z   syslog_facility: user
+2026-01-11T16:42:39.096338848Z   enable_stdio_inheritance: False
+2026-01-11T16:42:39.096341597Z   statsd_host: None
+2026-01-11T16:42:39.096344117Z   dogstatsd_tags:
+2026-01-11T16:42:39.096346578Z   statsd_prefix:
+2026-01-11T16:42:39.096349068Z   proc_name: None
+2026-01-11T16:42:39.096351788Z   default_proc_name: switchbot_dashboard:create_app()
+2026-01-11T16:42:39.096354278Z   pythonpath: None
+2026-01-11T16:42:39.096356688Z   paste: None
+2026-01-11T16:42:39.096359388Z   on_starting: <function OnStarting.on_starting at 0x7476c865ce00>
+2026-01-11T16:42:39.096361748Z   on_reload: <function OnReload.on_reload at 0x7476c865cf40>
+2026-01-11T16:42:39.096364198Z   when_ready: <function WhenReady.when_ready at 0x7476c865d080>
+2026-01-11T16:42:39.096373898Z   pre_fork: <function Prefork.pre_fork at 0x7476c865d1c0>
+2026-01-11T16:42:39.096376628Z   post_fork: <function Postfork.post_fork at 0x7476c865d300>
+2026-01-11T16:42:39.096379209Z   post_worker_init: <function PostWorkerInit.post_worker_init at 0x7476c865d440>
+2026-01-11T16:42:39.096381718Z   worker_int: <function WorkerInt.worker_int at 0x7476c865d580>
+2026-01-11T16:42:39.096384269Z   worker_abort: <function WorkerAbort.worker_abort at 0x7476c865d6c0>
+2026-01-11T16:42:39.096386989Z   pre_exec: <function PreExec.pre_exec at 0x7476c865d800>
+2026-01-11T16:42:39.096391929Z   pre_request: <function PreRequest.pre_request at 0x7476c865d940>
+2026-01-11T16:42:39.096394689Z   post_request: <function PostRequest.post_request at 0x7476c865d9e0>
+2026-01-11T16:42:39.096397259Z   child_exit: <function ChildExit.child_exit at 0x7476c865db20>
+2026-01-11T16:42:39.096399849Z   worker_exit: <function WorkerExit.worker_exit at 0x7476c865dc60>
+2026-01-11T16:42:39.096403139Z   nworkers_changed: <function NumWorkersChanged.nworkers_changed at 0x7476c865dda0>
+2026-01-11T16:42:39.096405719Z   on_exit: <function OnExit.on_exit at 0x7476c865dee0>
+2026-01-11T16:42:39.096408399Z   ssl_context: <function NewSSLContext.ssl_context at 0x7476c865e0c0>
+2026-01-11T16:42:39.096410869Z   proxy_protocol: False
+2026-01-11T16:42:39.096413289Z   proxy_allow_ips: ['127.0.0.1']
+2026-01-11T16:42:39.096415549Z   keyfile: None
+2026-01-11T16:42:39.096418139Z   certfile: None
+2026-01-11T16:42:39.096420519Z   ssl_version: 2
+2026-01-11T16:42:39.09642283Z   cert_reqs: 0
+2026-01-11T16:42:39.096425139Z   ca_certs: None
+2026-01-11T16:42:39.09642745Z   suppress_ragged_eofs: True
+2026-01-11T16:42:39.09642983Z   do_handshake_on_connect: False
+2026-01-11T16:42:39.09643214Z   ciphers: None
+2026-01-11T16:42:39.096464591Z   raw_paste_global_conf: []
+2026-01-11T16:42:39.096467931Z   strip_header_spaces: False
+2026-01-11T16:42:39.096483161Z [2026-01-11 16:42:39 +0000] [1] [INFO] Starting gunicorn 21.2.0
+2026-01-11T16:42:39.096653235Z [2026-01-11 16:42:39 +0000] [1] [DEBUG] Arbiter booted
+2026-01-11T16:42:39.096667115Z [2026-01-11 16:42:39 +0000] [1] [INFO] Listening at: http://0.0.0.0:10000 (1)
+2026-01-11T16:42:39.096704346Z [2026-01-11 16:42:39 +0000] [1] [INFO] Using worker: gthread
+2026-01-11T16:42:39.179677325Z [2026-01-11 16:42:39 +0000] [25] [INFO] Booting worker with pid: 25
+2026-01-11T16:42:39.220866488Z [2026-01-11 16:42:39 +0000] [1] [DEBUG] 1 workers
+2026-01-11T16:42:42.082772921Z [2026-01-11 16:42:42,082] INFO in __init__: Using Redis backend for settings store (key=switchbot_dashboard:settings)
+2026-01-11T16:42:42.182624899Z [2026-01-11 16:42:42,182] INFO in __init__: Using Redis backend for state store (key=switchbot_dashboard:state)
+2026-01-11T16:42:42.190653288Z [2026-01-11 16:42:42,190] DEBUG in automation: [automation] Polling SwitchBot meter | meter_device_id='FCE61F1FD04C' | trigger='scheduler'
+2026-01-11T16:42:42.672892856Z [2026-01-11 16:42:42,672] DEBUG in switchbot_api: SwitchBot GET /v1.1/devices/FCE61F1FD04C/status → HTTP 200 headers={'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '187', 'Connection': 'keep-alive', 'Date': 'Sun, 11 Jan 2026 16:42:42 GMT', 'switchbot-request-id': '24b85572-91d4-4c17-8ed1-7d67411da22f'}
+2026-01-11T16:42:42.675077578Z [2026-01-11 16:42:42,674] DEBUG in quota: [quota] fallback increment recorded: used=79 remaining=9921 limit=10000
+2026-01-11T16:42:42.675107959Z [2026-01-11 16:42:42,675] DEBUG in switchbot_api: SwitchBot quota headers absent on latest response.
+2026-01-11T16:42:42.675191841Z [2026-01-11 16:42:42,675] DEBUG in switchbot_api: SwitchBot API payload parsed: statusCode=100 message=success path=/v1.1/devices/FCE61F1FD04C/status
+2026-01-11T16:42:42.67726912Z [2026-01-11 16:42:42,677] DEBUG in automation: [automation] Quota snapshot updated | api_quota_day='2026-01-11' | api_requests_limit=10000 | api_requests_remaining=9921 | api_requests_total=79 | context='meter_status'
+2026-01-11T16:42:42.679442961Z [2026-01-11 16:42:42,679] DEBUG in automation: [automation] Meter reading stored | humidity=40 | temperature=21.9 | trigger='scheduler'
+2026-01-11T16:42:42.679514143Z [2026-01-11 16:42:42,679] INFO in __init__: [scheduler] Skipping start in Flask debug reload worker
+2026-01-11T16:42:42.680489996Z [2026-01-11 16:42:42 +0000] [25] [DEBUG] HEAD /
+2026-01-11T16:42:42.778815388Z 127.0.0.1 - - [11/Jan/2026:16:42:42 +0000] "HEAD / HTTP/1.1" 200 0 "-" "Go-http-client/1.1"
+2026-01-11T16:42:42.8866256Z [2026-01-11 16:42:42 +0000] [26] [DEBUG] Closing connection.
+2026-01-11T16:42:45.223733344Z [2026-01-11 16:42:45 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:42:45.400085878Z [2026-01-11 16:42:45 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:42:45.719823876Z [2026-01-11 16:42:45 +0000] [1] [INFO] Handling signal: term
+2026-01-11T16:42:45.765788869Z ==> Your service is live 🎉
+2026-01-11T16:42:45.792813496Z ==>
+2026-01-11T16:42:45.817606923Z ==> ///////////////////////////////////////////////////////////
+2026-01-11T16:42:45.844127691Z ==>
+2026-01-11T16:42:45.870000978Z ==> Available at your primary URL https://switchbot-latest.onrender.com
+2026-01-11T16:42:45.889947762Z [2026-01-11 16:42:45 +0000] [26] [INFO] Worker exiting (pid: 26)
+2026-01-11T16:42:45.895556865Z ==>
+2026-01-11T16:42:45.922125403Z ==> ///////////////////////////////////////////////////////////
+2026-01-11T16:42:46.521012911Z [2026-01-11 16:42:46 +0000] [1] [INFO] Shutting down: Master
+2026-01-11T16:42:46.741981287Z [2026-01-11 16:42:46 +0000] [25] [DEBUG] GET /
+2026-01-11T16:42:46.745042029Z 127.0.0.1 - - [11/Jan/2026:16:42:46 +0000] "GET / HTTP/1.1" 200 9465 "-" "Go-http-client/2.0"
+2026-01-11T16:42:50.22260748Z [2026-01-11 16:42:50 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:42:51.803085553Z [2026-01-11 16:42:51 +0000] [25] [DEBUG] GET /
+2026-01-11T16:42:51.806481643Z 127.0.0.1 - - [11/Jan/2026:16:42:51 +0000] "GET / HTTP/1.1" 200 9465 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T16:42:52.420071593Z [2026-01-11 16:42:52 +0000] [25] [DEBUG] GET /static/js/alerts.js
+2026-01-11T16:42:52.421612309Z 127.0.0.1 - - [11/Jan/2026:16:42:52 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T16:42:52.451816513Z [2026-01-11 16:42:52 +0000] [25] [DEBUG] GET /static/css/index.css
+2026-01-11T16:42:52.453066572Z 127.0.0.1 - - [11/Jan/2026:16:42:52 +0000] "GET /static/css/index.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T16:42:52.47248737Z [2026-01-11 16:42:52 +0000] [25] [DEBUG] GET /static/css/theme.css
+2026-01-11T16:42:52.47375616Z 127.0.0.1 - - [11/Jan/2026:16:42:52 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T16:42:55.05010752Z [2026-01-11 16:42:55 +0000] [25] [DEBUG] GET /reglages
+2026-01-11T16:42:55.180821897Z 127.0.0.1 - - [11/Jan/2026:16:42:55 +0000] "GET /reglages HTTP/1.1" 200 65035 "https://switchbot-latest.onrender.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T16:42:55.223048834Z [2026-01-11 16:42:55 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:42:55.223390172Z [2026-01-11 16:42:55 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:42:55.436415823Z [2026-01-11 16:42:55 +0000] [25] [DEBUG] GET /static/js/alerts.js
+2026-01-11T16:42:55.437642302Z 127.0.0.1 - - [11/Jan/2026:16:42:55 +0000] "GET /static/js/alerts.js HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T16:42:55.438705387Z [2026-01-11 16:42:55 +0000] [25] [DEBUG] GET /static/css/theme.css
+2026-01-11T16:42:55.439505976Z 127.0.0.1 - - [11/Jan/2026:16:42:55 +0000] "GET /static/css/theme.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T16:42:55.443022169Z [2026-01-11 16:42:55 +0000] [25] [DEBUG] GET /static/css/settings.css
+2026-01-11T16:42:55.443722705Z 127.0.0.1 - - [11/Jan/2026:16:42:55 +0000] "GET /static/css/settings.css HTTP/1.1" 304 0 "https://switchbot-latest.onrender.com/reglages" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+2026-01-11T16:43:00.222795301Z [2026-01-11 16:43:00 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:43:05.223859099Z [2026-01-11 16:43:05 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:43:10.222740556Z [2026-01-11 16:43:10 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:43:15.2227872Z [2026-01-11 16:43:15 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:43:20.222343832Z [2026-01-11 16:43:20 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:43:25.222954239Z [2026-01-11 16:43:25 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:43:25.223374829Z [2026-01-11 16:43:25 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:43:30.22243511Z [2026-01-11 16:43:30 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:43:35.222793101Z [2026-01-11 16:43:35 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:43:40.222549067Z [2026-01-11 16:43:40 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:43:45.223102203Z [2026-01-11 16:43:45 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:43:50.222280086Z [2026-01-11 16:43:50 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:43:55.222408271Z [2026-01-11 16:43:55 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:43:55.222629357Z [2026-01-11 16:43:55 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:44:00.22227625Z [2026-01-11 16:44:00 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:44:05.22260589Z [2026-01-11 16:44:05 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:44:10.222291775Z [2026-01-11 16:44:10 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:44:15.222979503Z [2026-01-11 16:44:15 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:44:19.649503292Z [2026-01-11 16:44:19 +0000] [25] [DEBUG] HEAD /healthz
+2026-01-11T16:44:19.652061863Z 127.0.0.1 - - [11/Jan/2026:16:44:19 +0000] "HEAD /healthz HTTP/1.1" 200 0 "https://switchbot-latest.onrender.com/healthz" "Mozilla/5.0+(compatible; UptimeRobot/2.0; http://www.uptimerobot.com/)"
+2026-01-11T16:44:20.222179426Z [2026-01-11 16:44:20 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:44:25.222971106Z [2026-01-11 16:44:25 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:44:25.223311934Z [2026-01-11 16:44:25 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:44:30.221966314Z [2026-01-11 16:44:30 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:44:35.230051447Z [2026-01-11 16:44:35 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:44:40.222344866Z [2026-01-11 16:44:40 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:44:45.223095786Z [2026-01-11 16:44:45 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:44:50.222432982Z [2026-01-11 16:44:50 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:44:55.222805432Z [2026-01-11 16:44:55 +0000] [25] [DEBUG] Closing connection.
+2026-01-11T16:44:55.222893674Z [2026-01-11 16:44:55 +0000] [25] [DEBUG] Closing connection.

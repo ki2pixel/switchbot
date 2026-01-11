@@ -26,7 +26,7 @@ config/state.json
 # memory-bank/
 
 # Logs / runtime
-*.log
+# *.log
 instance/
 
 # Build / packaging
@@ -41,4 +41,4 @@ node_modules/
 # Docker / compose overrides (generated)
 **/.docker-compose.override.yml
 
-debug/
+# debug/
