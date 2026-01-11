@@ -192,11 +192,16 @@ def create_app() -> Flask:
         app.logger.warning("Initial meter poll failed: %s", exc)
 
     scheduler_enabled = os.environ.get("SCHEDULER_ENABLED", "true").strip().lower()
-    debug = os.environ.get("FLASK_DEBUG", "0") == "1"
-    is_werkzeug_reloader = debug and os.environ.get("WERKZEUG_RUN_MAIN") != "true"
     
     if scheduler_enabled == "true":
-        if is_werkzeug_reloader:
+        # Only skip in Flask development server reload worker
+        # In production (Gunicorn), WERKZEUG_RUN_MAIN is never set
+        is_flask_reloader = (
+            os.environ.get("WERKZEUG_RUN_MAIN") is not None 
+            and os.environ.get("WERKZEUG_RUN_MAIN") != "true"
+        )
+        
+        if is_flask_reloader:
             app.logger.info("[scheduler] Skipping start in Flask debug reload worker")
         else:
             scheduler_service.start()
