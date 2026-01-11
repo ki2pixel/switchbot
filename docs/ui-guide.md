@@ -106,20 +106,27 @@ Affiche en temps réel :
 
 ### Actions rapides
 
-- **Exécuter** : Lance un cycle d'automatisation
-- **Arrêt rapide** : Éteint la climatisation
-- **Scènes** : Bascule entre les modes prédéfinis
+Les boutons du dashboard utilisent automatiquement les webhooks IFTTT avec système de fallback :
 
-### Scènes SwitchBot
+- **Bouton "Hiver"** → webhook winter → scène SwitchBot "Hiver" → commande `setAll` (fallback)
+- **Bouton "Été"** → webhook summer → scène SwitchBot "Été" → commande `setAll` (fallback)
+- **Bouton "Ventilateur"** → webhook fan → scène SwitchBot "Fan" → commande `setAll` (fallback)
+- **Bouton "Quick OFF"** → webhook off → scène SwitchBot "Arrêt" → commande `turnOff` (fallback)
 
-Les scènes permettent d'exécuter des configurations complexes en un clic :
+### Indicateurs visuels de configuration
 
-1. **Hiver** : Active le mode chauffage
-2. **Été** : Active la climatisation
-3. **Ventilation** : Active le ventilateur
-4. **Arrêt** : Éteint l'appareil
+Les boutons affichent des états visuels selon la configuration :
 
-> ℹ️ Les scènes doivent être configurées au préalable dans l'application SwitchBot officielle.
+- **Bouton vert** : Webhook IFTTT configuré et valide
+- **Bouton orange** : Webhook manquant mais scène SwitchBot configurée (fallback)
+- **Bouton rouge** : Aucun webhook ni scène configuré
+- **Icône ⚠️** : Avertissement de configuration manquante
+
+> ℹ️ **Fonctionnement de l'automatisation** :
+> - L'automatisation utilise d'abord les webhooks IFTTT (pas de consommation quota)
+> - Si le webhook échoue ou est absent, elle bascule sur les scènes SwitchBot
+> - En dernier recours, elle utilise les commandes `setAll`/`turnOff` (nécessite `aircon_device_id`)
+> - Vérifiez les messages d'état pour les erreurs de configuration
 
 ## Page Réglages (`/reglages`)
 
@@ -151,9 +158,22 @@ Définissez les plages d'activation :
 - Mêmes paramètres que l'hiver
 - Configuration indépendante
 
-### 4. Scènes SwitchBot
+### 4. Webhooks IFTTT
 
-Configuration des scènes :
+Configuration des webhooks IFTTT (priorité sur les scènes) :
+
+1. **Hiver** : URL du webhook IFTTT pour le chauffage
+2. **Été** : URL du webhook IFTTT pour la climatisation  
+3. **Ventilation** : URL du webhook IFTTT pour la ventilation
+4. **Arrêt** : URL du webhook IFTTT pour l'arrêt
+
+> ⚠️ **Sécurité** : Les URLs doivent commencer par `https://` (HTTP non autorisé). Ne partagez jamais vos clés webhooks publiquement.
+
+> 💡 **Avantages** : Les webhooks IFTTT ne consomment pas le quota API SwitchBot et permettent des applets complexes (notifications, logs, chaînes d'actions).
+
+### 5. Scènes SwitchBot
+
+Configuration des scènes (fallback si webhooks échouent) :
 
 1. **Hiver** : UUID de la scène de chauffage
 2. **Été** : UUID de la scène de climatisation
@@ -162,7 +182,19 @@ Configuration des scènes :
 
 > ℹ️ Les scènes doivent être créées au préalable dans l'application SwitchBot.
 
-### 5. Paramètres avancés
+### 6. Répétition OFF
+
+Configuration de la répétition des commandes OFF :
+
+- **Nombre de répétitions** : 1-10 (défaut : 1)
+- **Intervalle** : 1-600 secondes (défaut : 10)
+- **Comportement** : La première commande est envoyée immédiatement, les suivantes sont planifiées
+
+> 💡 **Usage typique** : `2 répétitions` avec `10 secondes` d'intervalle reproduit le comportement de l'application SwitchBot.
+
+> 📊 **Monitoring** : L'état des répétitions en cours est visible dans `state.json` sous `pending_off_repeat`.
+
+### 7. Paramètres avancés
 
 - **Seuil d'alerte API** : Nombre de requêtes restantes avant alerte
 - **Hystérésis** : Marge pour éviter les déclenchements intempestifs
@@ -407,6 +439,11 @@ Chaque appareil est représenté par une carte interactive :
 ### Messages utilisateur
 
 Le tableau de bord utilise des messages flash pour informer l'utilisateur du résultat des actions. Ces messages s'affichent en haut de la page et se ferment automatiquement après 6 secondes.
+
+**Messages spécifiques aux webhooks IFTTT :**
+- **Success** : "Webhook IFTTT déclenché avec succès"
+- **Warning** : "Webhook IFTTT échoué, utilisation de la scène SwitchBot"
+- **Info** : "Action exécutée via commande directe (fallback ultime)"
 
 > **Note technique** : L'auto-fermeture des messages est gérée par le script `static/js/alerts.js` qui ajoute une animation de fondu et supprime le message du DOM après un délai de 600ms, pour éviter d'encombrer l'interface tout en laissant le temps de lire le message.
 

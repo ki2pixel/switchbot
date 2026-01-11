@@ -6,9 +6,11 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 
 ### Automatisation intelligente
 - **Gestion des scènes** : Exécution de scènes SwitchBot préconfigurées
+- **Webhooks IFTTT** : Intégration prioritaire avec fallback cascade (IFTTT → scène → commande)
 - **Profils saisonniers** : Paramètres distincts pour l'hiver et l'été
 - **Fenêtres horaires** : Planification précise des plages d'activation
 - **Détection de présence** : Basée sur les plages horaires configurées
+- **Répétition OFF** : Commandes OFF multiples avec intervalle paramétrable
 
 ### Surveillance et contrôle
 - **Tableau de bord temps réel** : Vue d'ensemble de l'état du système

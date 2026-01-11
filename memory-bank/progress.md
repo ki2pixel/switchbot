@@ -140,6 +140,12 @@
 - Suite pytest complète passée (36/36 tests)
 - Documentation complète (ifttt-integration.md, configuration.md, README.md mis à jour)
 
+[2026-01-11 20:55:00] - Répétition OFF paramétrable et tests associés
+- Ajout des paramètres `off_repeat_count` et `off_repeat_interval_seconds` (validation backend + formulaire UI)
+- Extension d'`AutomationService` avec état `pending_off_repeat`, planification différée et exécution forcée des OFF répétés
+- Ajout de tests unitaires couvrant la file de répétitions et la purge automatique
+- Mise à jour de la documentation et vérification via pytest ciblé (`tests/test_automation_service.py`)
+
 ## En cours
 - Aucune tâche active.
 

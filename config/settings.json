@@ -6,7 +6,7 @@
   "command_cooldown_seconds": 60,
   "action_on_cooldown_seconds": 300,
   "action_off_cooldown_seconds": 60,
-  "off_repeat_count": 1,
+  "off_repeat_count": 2,
   "off_repeat_interval_seconds": 10,
   "turn_off_outside_windows": true,
   "api_quota_warning_threshold": 250,

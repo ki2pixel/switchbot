@@ -344,6 +344,14 @@ class AutomationService:
             self._state_store.write(state)
             self._debug("Cleared pending off repeat task")
 
+    def _has_pending_off_repeat(self) -> bool:
+        state = self._state_store.read()
+        task = state.get(OFF_REPEAT_STATE_KEY)
+        if not isinstance(task, dict):
+            return False
+        remaining = int(task.get("remaining", 0) or 0)
+        return remaining > 0
+
     def _schedule_off_repeat_task(self, now: dt.datetime, *, state_reason: str) -> None:
         settings = self._settings_store.read()
         repeat_count = int(settings.get("off_repeat_count", 1) or 1)
@@ -743,17 +751,24 @@ class AutomationService:
                     outcome = "winter_on"
                 elif current_temp >= (max_temp + hysteresis):
                     self._debug("Winter mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
-                    turned_off = self._perform_off_action(
-                        trigger=trigger,
-                        webhooks=webhooks,
-                        scenes=scenes,
-                        aircon_device_id=aircon_id,
-                        state_reason="automation_winter_off",
-                    )
-                    if turned_off:
-                        self._schedule_off_repeat_task(now, state_reason="automation_winter_off")
-                        decision_taken = True
-                        outcome = "winter_off"
+                    if self._has_pending_off_repeat():
+                        self._debug(
+                            "Skipping winter_off: off repeat already pending",
+                            trigger=trigger,
+                        )
+                        outcome = "off_repeat_pending"
+                    else:
+                        turned_off = self._perform_off_action(
+                            trigger=trigger,
+                            webhooks=webhooks,
+                            scenes=scenes,
+                            aircon_device_id=aircon_id,
+                            state_reason="automation_winter_off",
+                        )
+                        if turned_off:
+                            self._schedule_off_repeat_task(now, state_reason="automation_winter_off")
+                            decision_taken = True
+                            outcome = "winter_off"
             elif mode == "summer":
                 if current_temp >= (max_temp + hysteresis):
                     self._debug("Summer mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
@@ -780,17 +795,24 @@ class AutomationService:
                     outcome = "summer_on"
                 elif current_temp <= (min_temp - hysteresis):
                     self._debug("Summer mode: below min threshold", trigger=trigger, threshold=min_temp - hysteresis)
-                    turned_off = self._perform_off_action(
-                        trigger=trigger,
-                        webhooks=webhooks,
-                        scenes=scenes,
-                        aircon_device_id=aircon_id,
-                        state_reason="automation_summer_off",
-                    )
-                    if turned_off:
-                        self._schedule_off_repeat_task(now, state_reason="automation_summer_off")
-                        decision_taken = True
-                        outcome = "summer_off"
+                    if self._has_pending_off_repeat():
+                        self._debug(
+                            "Skipping summer_off: off repeat already pending",
+                            trigger=trigger,
+                        )
+                        outcome = "off_repeat_pending"
+                    else:
+                        turned_off = self._perform_off_action(
+                            trigger=trigger,
+                            webhooks=webhooks,
+                            scenes=scenes,
+                            aircon_device_id=aircon_id,
+                            state_reason="automation_summer_off",
+                        )
+                        if turned_off:
+                            self._schedule_off_repeat_task(now, state_reason="automation_summer_off")
+                            decision_taken = True
+                            outcome = "summer_off"
             else:
                 self._update_state(last_error=f"Unknown mode: {mode}")
                 self._error("Unknown automation mode", trigger=trigger, mode=mode)

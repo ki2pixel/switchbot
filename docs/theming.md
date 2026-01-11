@@ -80,6 +80,56 @@ La palette est centralisée dans `theme.css` :
   background: var(--sb-accent-hover);
   transform: translateY(-1px);
 }
+
+/* Boutons de scènes - styles spécifiques */
+.scene-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  min-height: 120px;
+  text-align: center;
+}
+
+.scene-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.scene-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.scene-icon--winter {
+  color: #f59e0b; /* Jaune/orange pour le chauffage */
+}
+
+.scene-icon--summer {
+  color: #3b82f6; /* Bleu pour la climatisation */
+}
+
+.scene-icon--fan {
+  color: #22c55e; /* Vert pour la ventilation */
+}
+
+.scene-icon--off {
+  color: #ef4444; /* Rouge pour l'arrêt */
+}
+
+.scene-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.scene-status {
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
 ```
 
 ### Formulaires

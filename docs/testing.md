@@ -315,6 +315,59 @@ test -f .env && grep -q "SWITCHBOT_TOKEN\|SWITCHBOT_SECRET" .env
 - Utilisation des variables CSS
 - Transitions fluides (60fps)
 
+## Logs et debugging
+
+### Préfixes de logs structurés
+
+Le système utilise des préfixes pour faciliter le diagnostic des problèmes :
+
+```bash
+# Logs IFTTT
+[ifttt] IFTTT webhook triggered successfully | status_code=200, url=https://maker.ifttt.com/trigger/...
+[ifttt] IFTTT webhook failed | action_key=winter, error=timeout
+
+# Logs d'automatisation
+[automation] Automation tick started | trigger=scheduler, interval=60s
+[automation] Using SwitchBot scene (webhook unavailable) | action_key=winter, scene_id=scene-w
+[automation] Scheduled repeated off action | pending_repeats=1, interval_seconds=10
+
+# Logs de santé
+[health] Health check completed | status=ok, scheduler_running=true
+```
+
+### Commandes de recherche dans les logs
+
+```bash
+# Filtrer les logs IFTTT
+grep "\[ifttt\]" /var/log/switchbot_dashboard.log
+
+# Rechercher les fallbacks
+grep "fallback" /var/log/switchbot_dashboard.log
+
+# Surveiller les erreurs
+grep -i "error\|failed" /var/log/switchbot_dashboard.log
+
+# Logs de répétition OFF
+grep "off repeat" /var/log/switchbot_dashboard.log
+
+# Logs de quota API
+grep "quota" /var/log/switchbot_dashboard.log
+```
+
+### Niveaux de log recommandés
+
+- **DEBUG** : Développement et diagnostic détaillé
+- **INFO** : Production normale (par défaut)
+- **WARNING** : Production stable (réduit le bruit)
+- **ERROR** : Problèmes critiques uniquement
+
+**Activation du mode debug :**
+```bash
+export LOG_LEVEL=debug
+python app.py
+# ou dans Render : définir LOG_LEVEL=debug dans les variables d'environnement
+```
+
 ## Tests d'automatisation
 
 ### 1. Logique d'hystérésis
@@ -386,6 +439,69 @@ test -f .env && grep -q "SWITCHBOT_TOKEN\|SWITCHBOT_SECRET" .env
      - `config/state.json` met à jour `last_action` avec `scene(<sceneId>)` et réinitialise les paramètres supposés (mode, power). Pour la scène OFF, vérifier que `assumed_aircon_power` passe à `"off"` et que les routes `/actions/aircon_off` et `/actions/quick_off` utilisent bien la scène configurée.
 4. **Tests automatisés**
    - Exécuter `pytest tests/test_dashboard_routes.py::test_update_settings_persists_aircon_scenes tests/test_dashboard_routes.py::test_aircon_on_winter_runs_scene_and_updates_state tests/test_dashboard_routes.py::test_aircon_off_runs_off_scene_when_configured tests/test_dashboard_routes.py::test_quick_off_prefers_scene_and_disables_automation` pour couvrir la persistance, les actions ON et OFF via scènes.
+
+### 6. Tests IFTTT Webhooks
+
+**Objectif** : Vérifier l'intégration complète des webhooks IFTTT avec le système de fallback cascade.
+
+1. **Configuration des webhooks**
+   - Configurer des URLs IFTTT valides (format `https://maker.ifttt.com/trigger/.../with/key/...`)
+   - Tester les URLs directement avec `curl` pour valider l'accessibilité
+   - Vérifier la validation HTTPS (HTTP doit être rejeté)
+
+2. **Exécution des webhooks**
+   - Cliquer sur les boutons de scènes (Hiver, Été, Ventilation, Arrêt)
+   - Vérifier dans les logs que le webhook est déclenché en premier
+   - Confirmer que les appels IFTTT ne consomment pas le quota API SwitchBot
+
+3. **Fallback automatique**
+   - Configurer une URL IFTTT invalide et une scène SwitchBot valide
+   - Déclencher une action et vérifier le fallback vers la scène SwitchBot
+   - Supprimer la scène et vérifier le fallback vers les commandes directes
+
+4. **Tests automatisés**
+   ```bash
+   /mnt/venv_ext4/venv_switchbot/bin/python -m pytest tests/test_ifttt.py
+   ```
+   - Tests de validation d'URL (HTTPS obligatoire)
+   - Tests de déclenchement avec mock
+   - Tests de timeout et gestion d'erreurs
+
+5. **Tests de logs structurés**
+   - Vérifier la présence des préfixes `[ifttt]` dans les logs
+   - Confirmer que les fallbacks sont correctement journalisés
+   - Valider la structure des logs avec métadonnées
+
+### 7. Tests de répétition OFF
+
+**Objectif** : Valider le fonctionnement de la répétition paramétrable des commandes OFF.
+
+1. **Configuration de la répétition**
+   - Configurer `off_repeat_count: 2` et `off_repeat_interval_seconds: 10`
+   - Vérifier la persistance dans `settings.json`
+
+2. **Exécution de la répétition**
+   - Déclencher une action OFF (automatique ou manuelle)
+   - Observer dans les logs : `[automation] Executing scheduled off repeat`
+   - Vérifier l'état dans `state.json` sous `pending_off_repeat`
+
+3. **Annulation des répétitions**
+   - Déclencher une action ON pendant des répétitions OFF en attente
+   - Vérifier que les répétitions sont annulées
+   - Confirmer que `pending_off_repeat` est vidé
+
+4. **Tests automatisés**
+   ```bash
+   /mnt/venv_ext4/venv_switchbot/bin/python -m pytest tests/test_automation_service.py::test_off_repeat_parameter
+   ```
+   - Tests de planification des répétitions
+   - Tests d'annulation lors d'actions ON
+   - Tests de validation des paramètres (bornes 1-10, 1-600s)
+
+5. **Tests de logs de répétition**
+   - Vérifier les logs de planification : `[automation] Scheduled repeated off action`
+   - Confirmer les logs d'exécution : `[automation] Executing scheduled off repeat`
+   - Valider les logs d'annulation : `[automation] Cleared pending off repeat task`
 
 > ℹ️ Les anciens tests `test_aircon_presets.py` ont été supprimés car la logique `aircon_presets` n’existe plus (voir `memory-bank/decisionLog.md`, 2026-01-10).
 

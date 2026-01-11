@@ -1,13 +1,20 @@
-[2026-01-11 15:30:00] - Session terminée, contexte remis à zéro
+# Mise à jour du contexte actif
 
-## Current Focus
-- En attente de nouvelle tâche
+# Contexte Actif - Session du 11 Janvier 2026
 
-## Recent Changes
-- Aucune
+## Objectifs
+- Implémenter la fonctionnalité de répétition des commandes OFF pour le climatiseur
+- Permettre la configuration du nombre de répétitions et de l'intervalle
+- Maintenir la stabilité du système
 
-## Open Questions / Issues
-- Aucune
+## Décisions Clés
+- Utilisation de l'état `pending_off_repeat` pour gérer les répétitions
+- Ajout de paramètres de configuration personnalisables
+- Mise à jour de l'interface utilisateur
 
-## Next Steps
-- Prêt pour la prochaine session
+## Questions/Problèmes Ouverts
+- Aucun problème majeur identifié
+
+## Prochaines Étapes
+- Surveillance des logs pour vérifier le bon fonctionnement en production
+- Ajustement des paramètres si nécessaire

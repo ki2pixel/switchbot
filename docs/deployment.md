@@ -69,6 +69,9 @@ Le fichier `Dockerfile` à la racine :
    - `REDIS_URL` (obligatoire si `STORE_BACKEND=redis`). Render fournit une URL TLS sous la forme `rediss://default:<password>@host:6379/0`.
    - `REDIS_PREFIX` (optionnel, ex. `switchbot_dashboard:prod` pour isoler les clés).
    - `REDIS_TTL_SECONDS` (optionnel) si vous souhaitez expirer automatiquement les données (laisser vide pour stockage permanent).
+   - **IFTTT Webhooks** (optionnel) : Variables pour les timeouts et configuration réseau si nécessaire :
+     - `IFTTT_TIMEOUT_SECONDS` : Timeout pour les requêtes IFTTT (défaut : 10s)
+     - `IFTTT_RETRY_ATTEMPTS` : Nombre de tentatives pour les webhooks (défaut : 1)
 3. Activer les logs sur Render : par défaut, Gunicorn écrit sur stdout/stderr, visibles dans l'onglet Logs.
 
 ## 5. Surveillance et santé de l'application
@@ -211,7 +214,49 @@ GET /healthz
    - Tester chaque scène manuellement
    - Vérifier les logs pour les erreurs potentielles
 
-## 8. Checklist de secrets
+## 8. Configuration réseau IFTTT
+
+### Exigences réseau
+
+Les webhooks IFTTT nécessitent une configuration réseau spécifique pour fonctionner correctement en production :
+
+- **HTTPS obligatoire** : Les URLs doivent commencer par `https://` (HTTP non autorisé)
+- **Sortie TLS 1.2+** : Render supporte TLS 1.2 et 1.3 pour les connexions sortantes
+- **Timeout par défaut** : 10 secondes pour les requêtes IFTTT
+- **Ports autorisés** : 443 (HTTPS) pour maker.ifttt.com
+
+### Variables de configuration
+
+```bash
+# Timeout pour les requêtes IFTTT (optionnel)
+IFTTT_TIMEOUT_SECONDS=10
+
+# Nombre de tentatives pour les webhooks (optionnel)
+IFTTT_RETRY_ATTEMPTS=1
+```
+
+### Test de connectivité
+
+Pour vérifier que votre instance Render peut atteindre IFTTT :
+
+```bash
+# Depuis le conteneur Render
+curl -I https://maker.ifttt.com
+
+# Test avec un webhook de test
+curl -X POST https://maker.ifttt.com/trigger/test/with/key/YOUR_KEY \
+  -H "Content-Type: application/json" \
+  -d '{"test": "connectivity"}'
+```
+
+### Dépannage réseau
+
+- **Timeouts** : Augmentez `IFTTT_TIMEOUT_SECONDS` si les réseaux sont lents
+- **DNS** : Vérifiez que `maker.ifttt.com` résout correctement
+- **Firewall** : Assurez-vous que le port 443 sortant est autorisé
+- **TLS** : Vérifiez la compatibilité des certificats avec Render
+
+## 9. Checklist de secrets
 
 | Emplacement | Secret | Description |
 |-------------|--------|-------------|

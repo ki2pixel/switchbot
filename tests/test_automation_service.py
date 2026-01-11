@@ -261,3 +261,39 @@ def test_winter_mode_above_max_within_hysteresis_no_action() -> None:
     last_action = state.get("last_action", "")
     assert "winter_off" not in str(last_action)
     assert "winter_on" not in str(last_action)
+
+
+def test_winter_off_skipped_when_repeat_pending() -> None:
+    """Test que winter_off ne se déclenche pas si une répétition OFF est déjà en attente."""
+    settings = _default_settings()
+    settings["winter"]["min_temp"] = 24.0
+    settings["winter"]["max_temp"] = 27.0
+    settings["hysteresis_celsius"] = 0.3
+    settings["off_repeat_count"] = 2
+    settings["off_repeat_interval_seconds"] = 10
+    
+    service, client, _settings_store, state_store = _build_service(
+        settings=settings,
+        temperature=27.5,  # > max_temp + hysteresis (27.3)
+    )
+
+    # Premier tick : déclenche winter_off et planifie une répétition
+    service.run_once()
+    assert client.run_scene_calls == ["scene-off"]
+    state = state_store.read()
+    assert state.get("pending_off_repeat") is not None
+    assert state["pending_off_repeat"]["remaining"] == 1
+
+    # Réinitialiser les compteurs du mock client
+    client.run_scene_calls.clear()
+
+    # Deuxième tick immédiat : température toujours > 27.3, mais répétition en attente
+    service.run_once()
+    
+    # Aucune nouvelle action OFF ne doit être déclenchée
+    assert client.run_scene_calls == []
+    assert client.send_command_calls == []
+    state = state_store.read()
+    # La répétition doit toujours être en attente
+    assert state.get("pending_off_repeat") is not None
+    assert state["pending_off_repeat"]["remaining"] == 1

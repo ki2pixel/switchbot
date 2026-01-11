@@ -72,6 +72,8 @@ Ce fichier contient les réglages métier persistés :
     "fan": "SCENE_FAN_UUID",
     "off": "SCENE_OFF_UUID"
   },
+  "off_repeat_count": 2,
+  "off_repeat_interval_seconds": 10,
   "turn_off_outside_windows": true
 }
 ```
@@ -114,6 +116,11 @@ Le dashboard implémente un système de **cascade à trois niveaux** pour décle
 }
 ```
 
+**Validation des URLs IFTTT :**
+- Les URLs doivent commencer par `https://` (HTTP non autorisé)
+- Validation automatique dans `ifttt.py:17-27`
+- Timeout configurable : 10 secondes par défaut
+
 **Avantages des webhooks IFTTT :**
 - ✅ **Fiabilité accrue** : contourne les bugs de l'API SwitchBot native pour l'exécution de scènes
 - ✅ **Flexibilité** : créez des applets complexes (notifications, logs, chaînes d'actions)
@@ -147,6 +154,65 @@ Le dashboard implémente un système de **cascade à trois niveaux** pour décle
 > ⚠️ **Sécurité** : Ne partagez jamais votre clé webhook IFTTT publiquement. Si elle est compromise, régénérez-la dans IFTTT → Webhooks → Settings.
 
 > 📚 **Documentation complète** : Consultez [docs/ifttt-integration.md](./ifttt-integration.md) pour un guide pas-à-pas de l'intégration IFTTT.
+
+#### Répétition OFF paramétrable
+
+Pour garantir l'extinction fiable du climatiseur, le système peut envoyer plusieurs commandes OFF consécutives avec un intervalle configurable :
+
+**Paramètres dans `settings.json` :**
+```json
+{
+  "off_repeat_count": 2,
+  "off_repeat_interval_seconds": 10
+}
+```
+
+**Validation et bornes :**
+- `off_repeat_count` : 1-10 (défaut : 1)
+- `off_repeat_interval_seconds` : 1-600 secondes (défaut : 10)
+- Validation automatique dans `routes.py:408-419`
+
+**Comportement détaillé :**
+- La première commande OFF est envoyée immédiatement
+- Les commandes suivantes sont planifiées via `AutomationService._schedule_off_repeat_task()`
+- L'état des répétitions en cours est stocké dans `state.json` sous `pending_off_repeat`
+- Les logs détaillent chaque exécution : `[automation] Executing scheduled off repeat`
+
+**Structure de l'état des répétitions :**
+```json
+{
+  "pending_off_repeat": {
+    "remaining": 1,
+    "interval_seconds": 10,
+    "next_run_at": "2026-01-11T21:30:10Z",
+    "state_reason": "automation_winter_off"
+  }
+}
+```
+
+**Cas d'usage typique :**
+- `off_repeat_count: 2` et `off_repeat_interval_seconds: 10` reproduit le comportement de l'application SwitchBot
+- Utile pour les climatiseurs qui n'arrêtent pas toujours du premier coup
+- Les répétitions sont automatiquement annulées si une nouvelle action est déclenchée
+
+**Impact sur l'automatisation :**
+- Les actions OFF (manuelles ou automatiques) déclenchent la file de répétitions
+- **Protection contre les déclenchements multiples** : Si une température reste au-dessus du seuil `max_temp + hysteresis` (ou en dessous de `min_temp - hysteresis` en mode été), l'automatisation **ne redéclenche pas** de nouvelle action OFF tant qu'une répétition est en attente. Vous verrez dans les logs : `Skipping winter_off: off repeat already pending`.
+- Les actions ON annulent les répétitions OFF en attente via `_clear_off_repeat_task()`
+- L'état est traçable via `state.json` pour diagnostiquer les répétitions en cours
+- Les répétitions utilisent le même système de fallback (IFTTT → scène → commande directe)
+
+**Monitoring et logs :**
+```bash
+# Planification des répétitions
+[automation] Scheduled repeated off action | pending_repeats=1, interval_seconds=10, state_reason=automation_winter_off
+
+# Exécution des répétitions
+[automation] Executing scheduled off repeat | trigger=scheduler, state_reason=automation_winter_off, remaining_before=1
+
+# Annulation des répétitions
+[automation] Cleared pending off repeat task
+```
 
 ### Dépannage de l'automatisation
 

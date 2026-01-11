@@ -121,11 +121,6 @@
 - Motivation : Éliminer la "zone grise" où l'automatisation pourrait agir sur une valeur obsolète issue de Redis, en marquant la température comme stale au démarrage et en la rafraîchissant immédiatement via un `poll_meter()` initial.
 - Implication : `create_app()` force le flag à `true` (`reason="app_start"`), puis appelle `poll_meter()` pour le remettre à `false`. En cas d'erreur API, le flag repasse à `true` (`reason="api_error"`). Documentation mise à jour, test ajouté (`tests/test_app_init.py`), pytest validé.
 
-[2026-01-11 17:40:00] - Stratégie Scheduler documentée + configuration Gunicorn dédiée
-- Décision : Documenter officiellement l'exécution d'APScheduler avec un worker unique, fournir `gunicorn.conf.py` (1 worker, 2 threads) et introduire la variable `SCHEDULER_ENABLED` pour désactiver proprement le scheduler lorsqu'un cron externe pilote `run_once`.
-- Motivation : Éviter les ticks dupliqués en production, clarifier le besoin de `WEB_CONCURRENCY=1` et permettre aux opérateurs de basculer temporairement vers un déclencheur externe sans modifier le code.
-- Implication : `create_app()` vérifie `SCHEDULER_ENABLED` avant de lancer le scheduler et loggue l'état, le Dockerfile délègue la configuration à Gunicorn, et `docs/scheduler.md` décrit les bonnes pratiques (workers, threads, variables d'environnement, troubleshooting).
-
 [2026-01-11 15:35:00] - Intégration complète des webhooks IFTTT avec système de fallback cascade
 - Décision : Implémenter un système à trois niveaux pour déclencher les actions de climatisation : 1) Webhooks IFTTT (priorité), 2) Scènes SwitchBot (fallback), 3) Commandes directes (fallback ultime).
 - Motivation : Contourner les limitations de l'API SwitchBot native pour l'exécution de scènes, réduire la consommation de quota API (webhooks ne comptent pas), offrir plus de flexibilité via les applets IFTTT complexes (notifications, logs, enchaînements), et garantir la fiabilité grâce au mécanisme de fallback automatique.
@@ -140,3 +135,36 @@
   - ✅ Flexible : possibilité de créer des applets IFTTT complexes (multi-actions, notifications, logs)
   - ✅ Résilient : cascade automatique en cas d'échec (webhook → scène → commande directe)
 - Implication : Configuration utilisateur plus complexe (création d'applets IFTTT), dépendance à un service externe (IFTTT), sécurité renforcée (URLs HTTPS uniquement), tests unitaires complets (16 nouveaux tests), documentation exhaustive mise à jour.
+
+- [2026-01-11 17:40:00] - Stratégie Scheduler documentée + configuration Gunicorn dédiée
+- Décision : Documenter officiellement l'exécution d'APScheduler avec un worker unique, fournir `gunicorn.conf.py` (1 worker, 2 threads) et introduire la variable `SCHEDULER_ENABLED` pour désactiver proprement le scheduler lorsqu'un cron externe pilote `run_once`.
+- Motivation : Éviter les ticks dupliqués en production, clarifier le besoin de `WEB_CONCURRENCY=1` et permettre aux opérateurs de basculer temporairement vers un déclencheur externe sans modifier le code.
+- Implication : `create_app()` vérifie `SCHEDULER_ENABLED` avant de lancer le scheduler et loggue l'état, le Dockerfile délègue la configuration à Gunicorn, et `docs/scheduler.md` décrit les bonnes pratiques (workers, threads, variables d'environnement, troubleshooting).
+
+[2026-01-11 20:55:00] - Répétition OFF paramétrable et exécution différée
+- Décision : introduire une fonctionnalité « off-repeat » permettant d’envoyer plusieurs commandes OFF consécutives avec un intervalle configurable pour fiabiliser l’extinction du climatiseur.
+- Motivation : reproduire la pratique validée dans l’application SwitchBot (deux OFF espacés de 10 s) et éviter de dépendre d’une nouvelle lecture de température pour relancer des OFF successifs lorsque la pièce reste chaude.
+- Implémentation :
+  - Ajout des paramètres `off_repeat_count` et `off_repeat_interval_seconds` (validation backend + exposition UI) et documentation correspondante.
+  - Extension d’AutomationService : état `pending_off_repeat`, helpers `_schedule_off_repeat_task`, `_process_off_repeat_task`, `_clear_off_repeat_task`, `_perform_off_action`, et refonte de `_send_aircon_off` (retour booléen + flag `force`).
+  - Intégration de la planification/exécution différée dans `run_once` ainsi que dans les branches `winter_off` / `summer_off`, avec logs dédiés.
+  - Ajout de tests unitaires (`tests/test_automation_service.py`) couvrant la planification, l’exécution différée et la purge anticipée des répétitions.
+- Impacts :
+  - Paramètres UI/documentation mis à jour pour guider l’ajustement des répétitions.
+  - Traçabilité explicite via `state.json` et les logs Render afin de diagnostiquer les répétitions en cours ou interrompues.
+
+[2026-01-11 21:30:00] - Intégration complète des webhooks IFTTT avec système de fallback cascade
+- Décision : implémenter un système de cascade à trois niveaux pour déclencher les actions de climatisation : webhooks IFTTT (priorité) → scènes SwitchBot (fallback 1) → commandes directes (fallback 2).
+- Motivation : améliorer la fiabilité des déclenchements, contourner les bugs de l'API SwitchBot native pour l'exécution de scènes, et économiser le quota API (les appels IFTTT ne consomment pas le quota SwitchBot).
+- Implémentation :
+  - Création du module `switchbot_dashboard/ifttt.py` avec `IFTTTWebhookClient` et helpers de validation
+  - Extension d'`AutomationService` pour privilégier les webhooks IFTTT, avec fallback automatique
+  - Mise à jour de `routes.py` pour exposer les paramètres `ifttt_webhooks` dans l'interface
+  - Ajout de tests unitaires complets dans `tests/test_ifttt.py`
+  - Documentation complète dans `docs/ifttt-integration.md` avec guide pas-à-pas
+- Impacts :
+  - Les actions manuelles et automatiques utilisent d'abord les webhooks IFTTT si configurés
+  - Fallback transparent vers les scènes SwitchBot natives en cas d'échec IFTTT
+  - Dernier recours vers les commandes directes `setAll`/`turnOff` si nécessaire
+  - Logs détaillés pour tracer le chemin d'exécution choisi
+  - Mise à jour de toute la documentation (configuration, UI guide, testing, README)
