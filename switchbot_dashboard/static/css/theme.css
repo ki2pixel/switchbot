@@ -43,6 +43,46 @@ body.sb-dark {
   color: var(--sb-accent);
 }
 
+.sb-loader-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(3, 7, 18, 0.8);
+  backdrop-filter: blur(2px);
+  border-radius: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  z-index: 10;
+}
+
+.sb-loader-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--sb-outline);
+  border-top: 2px solid var(--sb-accent);
+  border-radius: 50%;
+  animation: sb-spin 1s linear infinite;
+}
+
+@keyframes sb-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.sb-loader--active {
+  pointer-events: none;
+}
+
+.sb-loader--active .btn,
+.sb-loader--active button {
+  opacity: 0.7;
+}
+
 .container {
   max-width: 1200px;
 }

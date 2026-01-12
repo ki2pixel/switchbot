@@ -22,7 +22,7 @@
           </p>
         </div>
         <div class="page-header-actions" role="navigation" aria-label="Actions de la page quota">
-          <form method="post" action="{{ url_for('dashboard.quota_refresh') }}">
+          <form method="post" action="{{ url_for('dashboard.quota_refresh') }}" data-loader>
             <button class="btn btn-outline-primary" type="submit">Rafraîchir maintenant</button>
           </form>
           <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.index') }}">Retour</a>
@@ -116,5 +116,6 @@
       </article>
     </div>
     <script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/loaders.js') }}"></script>
   </body>
 </html>

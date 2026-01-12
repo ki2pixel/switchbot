@@ -1,7 +1,7 @@
 {
   "automation_enabled": true,
   "mode": "winter",
-  "poll_interval_seconds": 15,
+  "poll_interval_seconds": 30,
   "hysteresis_celsius": 0.3,
   "command_cooldown_seconds": 60,
   "action_on_cooldown_seconds": 300,

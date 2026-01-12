@@ -52,7 +52,7 @@
           <div class="card">
             <div class="card-header">Paramètres d'automatisation</div>
             <div class="card-body">
-              <form method="post" action="{{ url_for('dashboard.update_settings') }}" class="settings-form">
+              <form method="post" action="{{ url_for('dashboard.update_settings') }}" class="settings-form" data-loader>
                 <div class="form-check form-switch mb-3">
                   <input
                     class="form-check-input"
@@ -485,5 +485,6 @@
     </div>
     <script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
     <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/loaders.js') }}"></script>
   </body>
 </html>
