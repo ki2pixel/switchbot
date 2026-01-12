@@ -20,19 +20,24 @@
     };
     
     const showLoader = (element) => {
+        console.log('[Loaders] showLoader called for:', element);
         if (!element || element.classList.contains(LOADER_ACTIVE_CLASS)) {
+            console.log('[Loaders] Element already active or null');
             return;
         }
         
         element.classList.add(LOADER_ACTIVE_CLASS);
         element.setAttribute('aria-busy', 'true');
+        console.log('[Loaders] Classes added, creating overlay...');
         
         const overlay = createLoaderOverlay();
         element.style.position = 'relative';
         element.appendChild(overlay);
+        console.log('[Loaders] Overlay added, setting opacity...');
         
         requestAnimationFrame(() => {
             overlay.style.opacity = '1';
+            console.log('[Loaders] Loader displayed successfully');
         });
     };
     
@@ -57,10 +62,19 @@
     };
     
     const setupFormLoaders = () => {
-        document.querySelectorAll('form[data-loader]').forEach(form => {
+        const forms = document.querySelectorAll('form[data-loader]');
+        console.log('[Loaders] Found forms with data-loader:', forms.length);
+        
+        forms.forEach((form, index) => {
+            console.log(`[Loaders] Setting up form ${index}:`, form);
             form.addEventListener('submit', (event) => {
+                console.log('[Loaders] Form submit event triggered');
                 const submitButton = form.querySelector('button[type="submit"], input[type="submit"]');
+                console.log('[Loaders] Submit button found:', submitButton);
+                
                 if (submitButton && !submitButton.disabled) {
+                    console.log('[Loaders] Preventing default and showing loader');
+                    event.preventDefault();
                     showLoader(submitButton);
                     
                     const originalText = submitButton.textContent;
@@ -68,10 +82,12 @@
                     submitButton.disabled = true;
                     
                     setTimeout(() => {
+                        console.log('[Loaders] Submitting form after delay');
                         hideLoader(submitButton);
                         submitButton.textContent = originalText;
                         submitButton.disabled = false;
-                    }, 5000);
+                        form.submit();
+                    }, 1000);
                 }
             });
         });
@@ -117,6 +133,7 @@
     };
     
     document.addEventListener('DOMContentLoaded', () => {
+        console.log('[Loaders] Initializing loaders system...');
         setupFormLoaders();
         setupButtonLoaders();
         setupNavigationLoaders();
@@ -125,5 +142,7 @@
             show: showLoader,
             hide: hideLoader
         };
+        
+        console.log('[Loaders] System initialized');
     });
 })();
