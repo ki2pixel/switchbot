@@ -22,12 +22,24 @@
             Surveillez l'état actuel et déclenchez vos actions rapides.
           </p>
         </div>
-        <div class="page-header-actions">
+        <div class="page-header-actions" role="navigation" aria-label="Navigation principale">
           <a class="btn btn-primary" href="{{ url_for('dashboard.settings_page') }}">Réglages</a>
           <a class="btn btn-outline-primary" href="{{ url_for('dashboard.quota') }}">Quota API</a>
           <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.devices') }}">Appareils</a>
         </div>
       </header>
+
+      {% if show_quota_warning %}
+        <div class="quota-banner quota-alert alert alert-warning mb-3" role="status">
+          <div class="quota-banner__main">
+            <strong>Attention : quota API faible.</strong>
+            <span>
+              Il ne reste que {{ api_requests_remaining }} appels (seuil {{ quota_warning_threshold }}).
+            </span>
+          </div>
+          <a class="btn btn-outline-light btn-sm" href="{{ url_for('dashboard.quota') }}">Voir le quota</a>
+        </div>
+      {% endif %}
 
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -52,25 +64,42 @@
           <div class="card">
             <div class="card-header">Statut actuel</div>
             <div class="card-body">
-              <dl class="row mb-0">
-                <dt class="col-5">Température</dt>
-                <dd class="col-7">{{ state.get('last_temperature') }}</dd>
+              <div class="status-grid">
+                <div class="status-item">
+                  <span class="status-label">Température</span>
+                  <span class="status-value">{{ state.get('last_temperature') }}</span>
+                  {% if state.get('last_temperature_stale') %}
+                    <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis status-badge">
+                      Donnée potentiellement obsolète
+                    </span>
+                  {% endif %}
+                </div>
 
-                <dt class="col-5">Humidité</dt>
-                <dd class="col-7">{{ state.get('last_humidity') }}</dd>
+                <div class="status-item">
+                  <span class="status-label">Humidité</span>
+                  <span class="status-value">{{ state.get('last_humidity') }}</span>
+                </div>
 
-                <dt class="col-5">Dernière lecture</dt>
-                <dd class="col-7">{{ state.get('last_read_at') }}</dd>
+                <div class="status-item">
+                  <span class="status-label">Dernière lecture</span>
+                  <span class="status-value status-value--muted">{{ state.get('last_read_at') }}</span>
+                </div>
 
-                <dt class="col-5">Climatisation (supposée)</dt>
-                <dd class="col-7">{{ state.get('assumed_aircon_power') }}</dd>
+                <div class="status-item">
+                  <span class="status-label">Climatisation (supposée)</span>
+                  <span class="status-value">{{ state.get('assumed_aircon_power') }}</span>
+                </div>
 
-                <dt class="col-5">Dernière action</dt>
-                <dd class="col-7">{{ state.get('last_action') }}</dd>
+                <div class="status-item">
+                  <span class="status-label">Dernière action</span>
+                  <span class="status-value status-value--muted">{{ state.get('last_action') }}</span>
+                </div>
 
-                <dt class="col-5">Dernière erreur</dt>
-                <dd class="col-7">{{ state.get('last_error') }}</dd>
-              </dl>
+                <div class="status-item">
+                  <span class="status-label">Dernière erreur</span>
+                  <span class="status-value status-value--muted">{{ state.get('last_error') }}</span>
+                </div>
+              </div>
 
               <div class="d-flex gap-2 mt-3 flex-wrap">
                 <form method="post" action="{{ url_for('dashboard.run_once') }}">

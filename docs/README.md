@@ -13,6 +13,7 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - **Répétition OFF paramétrable** : Commandes OFF multiples avec intervalle configurable
 - **Idempotence des actions** : Protection contre les déclenchements excessifs
 - **Scheduler robuste** : Démarrage conditionnel et logging amélioré
+- **Fuseau horaire configurable** : Fenêtres horaires interprétées dans le fuseau IANA choisi (défaut Europe/Paris, fallback UTC en cas de valeur invalide)
 
 ### Surveillance et contrôle
 - **Tableau de bord temps réel** : Vue d'ensemble de l'état du système
@@ -80,6 +81,7 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - [Guide d'installation](setup.md) - Configuration détaillée
 - [Guide de l'utilisateur](ui-guide.md) - Utilisation de l'interface
 - [Référence de configuration](configuration.md) - Options avancées
+- [Guide du fuseau horaire](configuration.md#fuseau-horaire-timezone) - Paramétrage du champ `timezone` (IANA) avec fallback UTC
 - [Intégration IFTTT](ifttt-integration.md) - Configuration des webhooks IFTTT et système de fallback
 - [Guide du scheduler](scheduler.md) - Configuration et dépannage du scheduler
 - [Guide de déploiement](deployment.md) - Mise en production

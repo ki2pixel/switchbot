@@ -67,6 +67,23 @@ body.sb-dark {
   justify-content: flex-end;
 }
 
+.page-header-actions .btn {
+  white-space: nowrap;
+}
+
+.quota-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.quota-banner__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
 .page-subtitle {
   color: var(--sb-muted);
   font-size: 0.95rem;
@@ -87,6 +104,16 @@ body.sb-dark {
   .page-header-actions {
     width: 100%;
     justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.25rem;
+  }
+
+  .quota-banner {
+    position: sticky;
+    top: 0.75rem;
+    z-index: 20;
   }
 }
 

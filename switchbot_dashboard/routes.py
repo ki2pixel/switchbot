@@ -185,7 +185,10 @@ def _build_quota_context(settings: dict[str, Any], state: dict[str, Any]) -> dic
     api_quota_reset_at = state.get("api_quota_reset_at")
 
     raw_threshold = settings.get("api_quota_warning_threshold", DEFAULT_QUOTA_WARNING_THRESHOLD)
-    quota_warning_threshold = int(raw_threshold or DEFAULT_QUOTA_WARNING_THRESHOLD)
+    try:
+        quota_warning_threshold = int(raw_threshold)
+    except (TypeError, ValueError):
+        quota_warning_threshold = DEFAULT_QUOTA_WARNING_THRESHOLD
     if quota_warning_threshold < 0:
         quota_warning_threshold = 0
 
@@ -220,6 +223,7 @@ def index() -> str:
 
     settings = settings_store.read()
     state = state_store.read()
+    quota_context = _build_quota_context(settings, state)
     aircon_scenes, missing_scenes = _build_scenes_context(settings)
     ifttt_webhooks = _extract_ifttt_webhooks(settings)
     missing_webhooks = {key: not ifttt_webhooks[key] for key in AIRCON_SCENE_KEYS}
@@ -228,6 +232,7 @@ def index() -> str:
         "index.html",
         state=state,
         settings=settings,
+        **quota_context,
         aircon_scenes=aircon_scenes,
         missing_scenes=missing_scenes,
         ifttt_webhooks=ifttt_webhooks,

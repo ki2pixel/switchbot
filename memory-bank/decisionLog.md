@@ -186,3 +186,8 @@
   - `AutomationService.run_once()` journalise désormais `Skipping winter_off: already assumed off` et n'envoie plus d'actions OFF tant que l'état supposé est OFF.
   - Les actions ON purgent `_clear_off_repeat_task()` pour éviter un OFF tardif conflictuel.
   - Documentation (`docs/configuration.md`) et tests (`tests/test_automation_service.py`) couvrent ce comportement idempotent.
+
+[2026-01-12 10:33:00] - Implémentation de la gestion timezone explicite pour les fenêtres horaires d'automatisation
+- Décision : rendre AutomationService timezone-aware en ajoutant un champ "timezone" (défaut Europe/Paris) dans settings.json, avec validation IANA via zoneinfo.
+- Motivation : synchroniser les fenêtres horaires avec l'heure locale (Paris) indépendamment du serveur UTC (Render), évitant les déclenchements hors créneau (ex: "10:00-01:00" déclenchant après 01:00 local si serveur en UTC).
+- Implication : _get_timezone() avec fallback UTC si invalide, run_once() calcule now en astimezone, logs enrichis, UI expose le champ avec validation, tests unitaires couvrent UTC vs Paris, documentation mise à jour.

@@ -22,7 +22,7 @@
             Configurez les fenêtres horaires, profils hiver/été, scènes et seuils avancés.
           </p>
         </div>
-        <div class="page-header-actions d-flex flex-wrap gap-2">
+        <div class="page-header-actions d-flex flex-wrap gap-2" role="navigation" aria-label="Navigation principale">
           <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.index') }}">Retour à l'accueil</a>
           <a class="btn btn-outline-primary" href="{{ url_for('dashboard.quota') }}">Quota API</a>
           <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.devices') }}">Appareils</a>
@@ -151,6 +151,7 @@
                   </div>
                 </div>
 
+                <div class="row g-3">
                   <div class="col-12 col-md-6">
                     <label class="form-label" for="hysteresis_celsius">Hystérésis (°C)</label>
                     <input
@@ -235,16 +236,20 @@
                               id="day_{{ day.value }}"
                               name="time_window_days"
                               value="{{ day.value }}"
+                              aria-describedby="time_window_days_summary"
                               {% if day.value in time_window_form['days'] %}checked{% endif %}
                             />
                             <label class="btn btn-outline-primary btn-sm" for="day_{{ day.value }}">{{ day.label }}</label>
                           </div>
                         {% endfor %}
                       </div>
+                      <div id="time_window_days_summary" class="form-text" aria-live="polite">
+                        {{ time_window_form['days'] | length }} jour(s) sélectionné(s).
+                      </div>
                     </div>
                     <div class="col-6">
                       <label class="form-label" for="time_window_start">Début</label>
-                      <select class="form-select" id="time_window_start" name="time_window_start">
+                      <select class="form-select" id="time_window_start" name="time_window_start" aria-describedby="time_window_help">
                         <option value="">Choisir…</option>
                         {% for choice in time_choices %}
                           <option value="{{ choice }}" {% if time_window_form['start'] == choice %}selected{% endif %}>{{ choice }}</option>
@@ -253,12 +258,17 @@
                     </div>
                     <div class="col-6">
                       <label class="form-label" for="time_window_end">Fin</label>
-                      <select class="form-select" id="time_window_end" name="time_window_end">
+                      <select class="form-select" id="time_window_end" name="time_window_end" aria-describedby="time_window_help">
                         <option value="">Choisir…</option>
                         {% for choice in time_choices %}
                           <option value="{{ choice }}" {% if time_window_form['end'] == choice %}selected{% endif %}>{{ choice }}</option>
                         {% endfor %}
                       </select>
+                    </div>
+                    <div class="col-12">
+                      <div id="time_window_help" class="form-text">
+                        Astuce : si aucun jour n'est sélectionné, la fenêtre horaire est considérée comme inactive.
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -474,5 +484,6 @@
       </div>
     </div>
     <script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
   </body>
 </html>

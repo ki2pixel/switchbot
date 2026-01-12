@@ -88,7 +88,7 @@ Ce fichier contient les réglages métier persistés :
 - **Objectif** : interpréter les fenêtres horaires (`time_windows`) dans votre fuseau (ex. heure de Paris), indépendamment du fuseau du serveur (Render est souvent en UTC).
 - **Valeur par défaut** : `Europe/Paris`
 - **Format** : identifiant IANA (ex: `Europe/Paris`, `UTC`, `Europe/London`).
-- **Validation** : si la valeur est invalide, l'interface affiche une erreur et la configuration précédente est conservée.
+- **Validation** : si la valeur est invalide, l'interface affiche une erreur et la configuration précédente est conservée ; l'automatisation retombe explicitement sur le fuseau UTC pour continuer à fonctionner.
 
 #### Gestion du quota API (`api_quota_warning_threshold`)
 

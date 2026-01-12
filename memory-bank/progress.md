@@ -156,6 +156,7 @@
 - Modifications : Code `automation.py` (gardes dans winter_off/summer_off/off-outside-window), tests unitaires (`test_automation_service.py`), documentation (`docs/configuration.md`).
 - Validation : Logs utilisateur confirment le succès (`Skipping winter_off: already assumed off`), tests pytest passés.
 - Memory Bank synchronisée (decisionLog, activeContext, progress mis à jour).
+[2026-01-12 10:33:00] - Implémentation de la gestion timezone explicite pour les fenêtres horaires d'automatisation (Europe/Paris par défaut), incluant validation UI, tests et documentation.
 
 ## En cours
 - Aucune tâche active.

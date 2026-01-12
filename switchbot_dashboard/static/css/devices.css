@@ -51,6 +51,31 @@
   margin: 0;
 }
 
+.device-meta--primary {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.device-meta--secondary {
+  margin-top: 0.75rem;
+}
+
+.device-details {
+  border: 1px solid var(--sb-outline);
+  border-radius: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.device-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--sb-text);
+}
+
+.device-details[open] summary {
+  margin-bottom: 0.35rem;
+}
+
 .device-meta dt {
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -101,4 +126,20 @@
 
 .raw-block[open] summary {
   margin-bottom: 0.75rem;
+}
+
+@media (max-width: 576px) {
+  .device-card {
+    padding: 1rem;
+  }
+
+  .device-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-copy {
+    width: 100%;
+    padding: 0.6rem 0.85rem;
+  }
 }

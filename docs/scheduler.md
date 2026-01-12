@@ -3,6 +3,7 @@
 ## Vue d'ensemble
 
 Le dashboard utilise **APScheduler** (BackgroundScheduler) pour déclencher automatiquement les ticks d'automatisation toutes les 15 secondes (configurable via `poll_interval_seconds`).
+- Les fenêtres horaires sont évaluées dans le fuseau horaire configuré (`timezone` dans `settings.json`, valeur par défaut `Europe/Paris`). En cas de valeur invalide, le backend retombe sur UTC pour continuer à appliquer les plages.
 
 ## Configuration Production (Gunicorn)
 

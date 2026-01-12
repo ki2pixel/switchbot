@@ -136,6 +136,7 @@ Les boutons affichent des états visuels selon la configuration :
 - **Mode** : Bascule entre hiver et été
 - **Intervalle** : Fréquence de vérification (15-3600 secondes)
 - **Délai entre commandes** : Protection contre les déclenchements trop rapprochés
+- **Fuseau horaire** : champ texte pour saisir un identifiant IANA (ex. `Europe/Paris`, `UTC`). En cas de valeur invalide, l'UI affiche une erreur et le backend retombe sur UTC pour continuer à appliquer les fenêtres horaires.
 
 ### 2. Fenêtres horaires
 

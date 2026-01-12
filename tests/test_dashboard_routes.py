@@ -419,6 +419,76 @@ def test_quick_off_multiple_calls_accumulate_quota_usage() -> None:
     assert persisted_settings["automation_enabled"] is False
 
 
+def test_index_shows_quota_banner_when_threshold_hit() -> None:
+    settings = {
+        "api_quota_warning_threshold": 100,
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
+    }
+    state = {
+        "api_requests_remaining": 50,
+        "api_quota_day": _today_iso(),
+    }
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state=state,
+    )
+
+    with app.test_client() as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    soup = BeautifulSoup(response.data, "html.parser")
+    banner = soup.select_one(".quota-banner")
+    assert banner is not None
+    assert "50" in banner.get_text()
+
+
+def test_index_shows_quota_banner_when_remaining_equals_threshold() -> None:
+    settings = {
+        "api_quota_warning_threshold": 100,
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
+    }
+    state = {
+        "api_requests_remaining": 100,
+        "api_quota_day": _today_iso(),
+    }
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state=state,
+    )
+
+    with app.test_client() as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    soup = BeautifulSoup(response.data, "html.parser")
+    banner = soup.select_one(".quota-banner")
+    assert banner is not None
+
+
+def test_index_hides_quota_banner_when_threshold_disabled() -> None:
+    settings = {
+        "api_quota_warning_threshold": 0,
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
+    }
+    state = {
+        "api_requests_remaining": 0,
+        "api_quota_day": _today_iso(),
+    }
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state=state,
+    )
+
+    with app.test_client() as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    soup = BeautifulSoup(response.data, "html.parser")
+    banner = soup.select_one(".quota-banner")
+    assert banner is None
+
+
 def test_index_renders_quota_threshold_field_without_alert() -> None:
     settings = {
         "automation_enabled": False,

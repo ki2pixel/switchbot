@@ -69,22 +69,10 @@
                     </span>
                   </div>
 
-                  <dl class="device-meta">
+                  <dl class="device-meta device-meta--primary">
                     <div>
                       <dt>ID</dt>
                       <dd class="device-id">{{ device.get("deviceId") or "—" }}</dd>
-                    </div>
-                    <div>
-                      <dt>Hub</dt>
-                      <dd>{{ device.get("hubDeviceId") or "Aucun" }}</dd>
-                    </div>
-                    <div>
-                      <dt>Firmware</dt>
-                      <dd>{{ device.get("firmwareVersion") or "Inconnu" }}</dd>
-                    </div>
-                    <div>
-                      <dt>Cloud</dt>
-                      <dd>{{ "Activé" if device.get("enableCloudService") else "Désactivé" }}</dd>
                     </div>
                     <div>
                       <dt>Statut</dt>
@@ -92,11 +80,29 @@
                         {{ device.get("status") or "n/d" }}
                       </dd>
                     </div>
-                    <div>
-                      <dt>Batterie</dt>
-                      <dd>{{ device.get("battery") or "—" }}</dd>
-                    </div>
                   </dl>
+
+                  <details class="device-details">
+                    <summary>Voir les détails</summary>
+                    <dl class="device-meta device-meta--secondary">
+                      <div>
+                        <dt>Hub</dt>
+                        <dd>{{ device.get("hubDeviceId") or "Aucun" }}</dd>
+                      </div>
+                      <div>
+                        <dt>Firmware</dt>
+                        <dd>{{ device.get("firmwareVersion") or "Inconnu" }}</dd>
+                      </div>
+                      <div>
+                        <dt>Cloud</dt>
+                        <dd>{{ "Activé" if device.get("enableCloudService") else "Désactivé" }}</dd>
+                      </div>
+                      <div>
+                        <dt>Batterie</dt>
+                        <dd>{{ device.get("battery") or "—" }}</dd>
+                      </div>
+                    </dl>
+                  </details>
 
                   <div class="device-actions">
                     <button
@@ -150,7 +156,7 @@
                     </span>
                   </div>
 
-                  <dl class="device-meta">
+                  <dl class="device-meta device-meta--primary">
                     <div>
                       <dt>ID</dt>
                       <dd class="device-id">{{ remote.get("deviceId") or "—" }}</dd>
@@ -159,19 +165,25 @@
                       <dt>Marque</dt>
                       <dd>{{ remote.get("remoteBrand") or "Inconnue" }}</dd>
                     </div>
-                    <div>
-                      <dt>Modèle</dt>
-                      <dd>{{ remote.get("remoteModel") or "Inconnu" }}</dd>
-                    </div>
-                    <div>
-                      <dt>Catégorie</dt>
-                      <dd>{{ remote.get("remoteDeviceType") or "n/d" }}</dd>
-                    </div>
-                    <div>
-                      <dt>Cloud</dt>
-                      <dd>{{ "Activé" if remote.get("enableCloudService") else "Désactivé" }}</dd>
-                    </div>
                   </dl>
+
+                  <details class="device-details">
+                    <summary>Voir les détails</summary>
+                    <dl class="device-meta device-meta--secondary">
+                      <div>
+                        <dt>Modèle</dt>
+                        <dd>{{ remote.get("remoteModel") or "Inconnu" }}</dd>
+                      </div>
+                      <div>
+                        <dt>Catégorie</dt>
+                        <dd>{{ remote.get("remoteDeviceType") or "n/d" }}</dd>
+                      </div>
+                      <div>
+                        <dt>Cloud</dt>
+                        <dd>{{ "Activé" if remote.get("enableCloudService") else "Désactivé" }}</dd>
+                      </div>
+                    </dl>
+                  </details>
 
                   <div class="device-actions">
                     <button
@@ -202,31 +214,6 @@
         <div class="alert alert-warning">Aucune donnée.</div>
       {% endif %}
     </div>
-    <script>
-      document.addEventListener("click", async (event) => {
-        if (!event.target.matches(".btn-copy")) {
-          return;
-        }
-
-        const button = event.target;
-        const value = button.getAttribute("data-copy");
-        if (!value) {
-          return;
-        }
-
-        try {
-          await navigator.clipboard.writeText(value);
-          const original = button.textContent;
-          button.textContent = "Copié ✓";
-          button.setAttribute("aria-live", "assertive");
-          setTimeout(() => {
-            button.textContent = original;
-            button.removeAttribute("aria-live");
-          }, 1800);
-        } catch (err) {
-          console.error("Clipboard copy failed", err);
-        }
-      });
-    </script>
+    <script src="{{ url_for('static', filename='js/devices.js') }}"></script>
   </body>
 </html>

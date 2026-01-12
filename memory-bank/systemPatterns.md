@@ -74,3 +74,8 @@
 - Les guides thématiques (`docs/setup.md`, `configuration.md`, `ui-guide.md`, `theming.md`, `testing.md`, `deployment.md`) décrivent ces patterns.  
 - Toute évolution majeure (scènes, quotas, backend Redis, health check) doit être tracée dans la Memory Bank et reliée aux guides.
 
+## Gestion timezone-aware des fenêtres horaires
+- AutomationService utilise `zoneinfo` pour interpréter les fenêtres horaires dans le fuseau configuré (défaut Europe/Paris), indépendamment du serveur UTC.
+- _get_timezone() valide l'identifiant IANA et retombe sur UTC si invalide, avec logs d'avertissement.
+- run_once() calcule now en astimezone pour _is_now_in_windows, assurant la cohérence avec l'heure locale.
+
