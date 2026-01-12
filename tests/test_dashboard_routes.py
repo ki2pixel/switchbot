@@ -84,6 +84,18 @@ def _today_iso() -> str:
     return dt.datetime.utcnow().date().isoformat()
 
 
+def _extract_last_read_at(html: bytes) -> str | None:
+    soup = BeautifulSoup(html, "html.parser")
+    for item in soup.select(".status-item"):
+        label = item.select_one(".status-label")
+        value = item.select_one(".status-value")
+        if not label or not value:
+            continue
+        if "Dernière lecture" in label.get_text():
+            return value.get_text(strip=True)
+    return None
+
+
 def _build_app(
     initial_settings: dict[str, object],
     *,
@@ -517,6 +529,70 @@ def test_index_renders_quota_threshold_field_without_alert() -> None:
     # Le seuil est désormais éditable depuis /reglages uniquement.
     threshold_field = soup.select_one("#api_quota_warning_threshold")
     assert threshold_field is None
+
+
+def test_index_converts_last_read_at_to_configured_timezone() -> None:
+    # Given: une lecture stockée en UTC et un fuseau configuré Europe/Paris
+    settings = {"timezone": "Europe/Paris", "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""}}
+    state = {"last_read_at": "2026-01-12T17:25:31.941049+00:00"}
+    app, *_ = _build_app(settings, initial_state=state)
+
+    # When: la page d'accueil est chargée
+    with app.test_client() as client:
+        response = client.get("/")
+
+    # Then: l'heure affichée est convertie en +01:00
+    assert response.status_code == 200
+    displayed = _extract_last_read_at(response.data)
+    assert displayed == "2026-01-12T18:25:31.941049+01:00"
+
+
+def test_index_keeps_utc_when_timezone_invalid() -> None:
+    # Given: une timezone invalide dans les réglages
+    settings = {"timezone": "Definitely/NotAZone", "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""}}
+    state = {"last_read_at": "2026-01-12T17:25:31.941049+00:00"}
+    app, *_ = _build_app(settings, initial_state=state)
+
+    # When: la page d'accueil est chargée
+    with app.test_client() as client:
+        response = client.get("/")
+
+    # Then: l'heure reste en UTC
+    assert response.status_code == 200
+    displayed = _extract_last_read_at(response.data)
+    assert displayed == "2026-01-12T17:25:31.941049+00:00"
+
+
+def test_index_localizes_z_suffix_timestamp() -> None:
+    # Given: une lecture ISO utilisant le suffixe Z
+    settings = {"timezone": "Europe/Paris", "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""}}
+    state = {"last_read_at": "2026-01-12T17:25:31.941049Z"}
+    app, *_ = _build_app(settings, initial_state=state)
+
+    # When: la page d'accueil est chargée
+    with app.test_client() as client:
+        response = client.get("/")
+
+    # Then: l'heure affichée est convertie en +01:00
+    assert response.status_code == 200
+    displayed = _extract_last_read_at(response.data)
+    assert displayed == "2026-01-12T18:25:31.941049+01:00"
+
+
+def test_index_localizes_naive_timestamp_as_utc() -> None:
+    # Given: une lecture ISO sans fuseau
+    settings = {"timezone": "Europe/Paris", "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""}}
+    state = {"last_read_at": "2026-01-12T17:25:31.941049"}
+    app, *_ = _build_app(settings, initial_state=state)
+
+    # When: la page d'accueil est chargée
+    with app.test_client() as client:
+        response = client.get("/")
+
+    # Then: l'heure affichée est convertie depuis UTC vers +01:00
+    assert response.status_code == 200
+    displayed = _extract_last_read_at(response.data)
+    assert displayed == "2026-01-12T18:25:31.941049+01:00"
 
 
 def test_quota_page_displays_alert_when_threshold_hit() -> None:

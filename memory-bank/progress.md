@@ -165,6 +165,10 @@
 - Feedback dynamique pour la sélection des jours dans les réglages (compteur live).
 - Externalisation des scripts JS pour performance (settings.js, devices.js).
 - Ajout de tests de régression pour le bandeau quota (3 cas de test, pytest validé).
+[2026-01-12 18:55:00] - Correction fuseau affichage « Dernière lecture »
+- Ajout de helpers timezone dans `switchbot_dashboard/routes.py` pour convertir `state.last_read_at` du stockage UTC vers le fuseau paramétré (Europe/Paris par défaut, fallback UTC).
+- Mise à jour de `index()` pour rendre une copie `state_for_view` avec l'horodatage localisé sans modifier la persistance.
+- Ajout de quatre tests de régression (`tests/test_dashboard_routes.py`) couvrant fuseau valide, timezone invalide, suffixe `Z` et timestamps naïfs, garantissant la conversion affichée.
 
 ## En cours
 - Aucune tâche active.

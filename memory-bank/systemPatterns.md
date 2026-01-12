@@ -79,3 +79,27 @@
 - _get_timezone() valide l'identifiant IANA et retombe sur UTC si invalide, avec logs d'avertissement.
 - run_once() calcule now en astimezone pour _is_now_in_windows, assurant la cohérence avec l'heure locale.
 
+## Stockage avec bascule automatique (FailoverStore)
+- `FailoverStore` implémente une bascule transparente entre deux backends Redis (primaire/secondaire) avec cooldown de 60 secondes.
+- Priorité : primaire → secondaire → filesystem (au démarrage si aucun Redis disponible).
+- Logs préfixés `[store]` pour tracer les bascules et erreurs de connexion.
+- L'état de santé des backends est maintenu en mémoire avec timestamps de cooldown.
+
+## Cascade de déclenchement IFTTT → Scènes → Commandes
+- `AutomationService._trigger_aircon_action()` implémente une cascade à trois niveaux pour les actions de climatisation.
+- **Niveau 1** : Webhooks IFTTT (priorité, pas de quota SwitchBot, validation HTTPS obligatoire).
+- **Niveau 2** : Scènes SwitchBot (fallback si webhook échoue ou absent).
+- **Niveau 3** : Commandes directes `setAll`/`turnOff` (dernier recours, nécessite `aircon_device_id`).
+- Logs détaillés pour tracer le chemin d'exécution choisi et les raisons des fallbacks.
+
+## Répétition OFF avec file d'attente
+- `AutomationService` planifie des commandes OFF répétées via `_schedule_off_repeat_task()` avec état `pending_off_repeat`.
+- Structure d'état dans `state.json` : `{remaining, interval_seconds, next_run_at, state_reason}`.
+- Protection idempotence : aucune nouvelle action OFF si `assumed_aircon_power == "off"`.
+- Les actions ON annulent automatiquement les files d'attente OFF via `_clear_off_repeat_task()`.
+
+## Validation et normalisation des webhooks IFTTT
+- `extract_ifttt_webhooks()` normalise les URLs et garantit la structure des 4 clés (winter, summer, fan, off).
+- `validate_webhook_url()` impose HTTPS uniquement et vérifie la validité de l'URL.
+- `IFTTTWebhookClient` gère les timeouts (10s par défaut) et les erreurs réseau avec logs structurés.
+

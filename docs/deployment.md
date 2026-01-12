@@ -66,7 +66,9 @@ Le fichier `Dockerfile` à la racine :
    - `LOG_LEVEL` (optionnel mais recommandé) : Niveau de log propagé à Gunicorn via `--log-level ${LOG_LEVEL:-info}` dans le `Dockerfile`. Utiliser `warning` ou `error` en production pour réduire le bruit, `debug`/`info` lors des diagnostics.
    - `FLASK_SECRET_KEY` (secret aléatoire).
    - `STORE_BACKEND=redis` pour activer la persistance externe des réglages/état.
-   - `REDIS_URL` (obligatoire si `STORE_BACKEND=redis`). Render fournit une URL TLS sous la forme `rediss://default:<password>@host:6379/0`.
+   - `REDIS_URL_PRIMARY` (recommandé) : URL Redis principale pour la haute disponibilité.
+   - `REDIS_URL_SECONDARY` (optionnel) : URL Redis secondaire pour le fallback automatique.
+   - `REDIS_URL` (legacy) : URL Redis uniqueutilisée si `REDIS_URL_PRIMARY` n'est pas défini.
    - `REDIS_PREFIX` (optionnel, ex. `switchbot_dashboard:prod` pour isoler les clés).
    - `REDIS_TTL_SECONDS` (optionnel) si vous souhaitez expirer automatiquement les données (laisser vide pour stockage permanent).
    - **IFTTT Webhooks** (optionnel) : Variables pour les timeouts et configuration réseau si nécessaire :
@@ -92,6 +94,32 @@ Le fichier `Dockerfile` à la racine :
 1. **Surveiller les logs IFTTT** : Rechercher `[ifttt]` dans les logs Render
 2. **Alertes sur les fallbacks** : Trop de fallbacks peuvent indiquer un problème IFTTT
 3. **Quota API** : Avec IFTTT, le quota devrait rester stable même avec forte automatisation
+
+### Configuration Redis haute disponibilité
+
+Pour une production robuste, configurez deux instances Redis avec bascule automatique :
+
+**Recommandations Upstash/Render** :
+1. **Instance primaire** : Upstash Redis (plan Free suffisant)
+2. **Instance secondaire** : Render Redis ou autre fournisseur
+3. **Variables Render** :
+   ```bash
+   STORE_BACKEND=redis
+   REDIS_URL_PRIMARY=rediss://default:password@primary-host:6379/0
+   REDIS_URL_SECONDARY=rediss://default:password@secondary-host:6379/0
+   REDIS_PREFIX=switchbot_dashboard:prod
+   ```
+
+**Comportement de bascule** :
+- **Priorité** : primaire → secondaire → filesystem (au démarrage)
+- **Cooldown** : 60 secondes avant de réessayer un backend défaillant
+- **Logs** : `[store] Redis primary backend failed` → bascule automatique
+- **Transparence** : aucune interruption de service pour l'utilisateur
+
+**Monitoring de la bascule** :
+- Surveiller les logs `[store]` dans Render
+- Vérifier la latence des deux instances Redis
+- Configurer des alertes si la bascule est fréquente
 
 **Variables d'environnement recommandées pour IFTTT** :
 ```bash

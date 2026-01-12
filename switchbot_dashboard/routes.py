@@ -96,6 +96,39 @@ def _utc_now_iso() -> str:
     return dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc).isoformat()
 
 
+def _parse_iso_datetime(value: str) -> dt.datetime | None:
+    raw = value.strip()
+    if not raw:
+        return None
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    try:
+        parsed = dt.datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=dt.timezone.utc)
+    return parsed
+
+
+def _resolve_timezone(settings: dict[str, Any]) -> dt.tzinfo:
+    raw_timezone = settings.get("timezone")
+    timezone_name = str(raw_timezone or "").strip() or DEFAULT_TIMEZONE
+    try:
+        return ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError:
+        return dt.timezone.utc
+
+
+def _localize_iso_timestamp(value: Any, timezone: dt.tzinfo) -> str | None:
+    if not isinstance(value, str):
+        return None
+    parsed = _parse_iso_datetime(value)
+    if parsed is None:
+        return None
+    return parsed.astimezone(timezone).isoformat()
+
+
 def _as_bool(value: Any) -> bool:
     if value is None:
         return False
@@ -223,6 +256,11 @@ def index() -> str:
 
     settings = settings_store.read()
     state = state_store.read()
+    timezone = _resolve_timezone(settings)
+    state_for_view = dict(state)
+    localized_last_read_at = _localize_iso_timestamp(state.get("last_read_at"), timezone)
+    if localized_last_read_at is not None:
+        state_for_view["last_read_at"] = localized_last_read_at
     quota_context = _build_quota_context(settings, state)
     aircon_scenes, missing_scenes = _build_scenes_context(settings)
     ifttt_webhooks = _extract_ifttt_webhooks(settings)
@@ -230,7 +268,7 @@ def index() -> str:
 
     return render_template(
         "index.html",
-        state=state,
+        state=state_for_view,
         settings=settings,
         **quota_context,
         aircon_scenes=aircon_scenes,
