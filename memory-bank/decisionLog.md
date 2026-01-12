@@ -178,3 +178,11 @@
 - Décision : Améliorer la détection du mode debug pour ne skipper le scheduler que dans Flask dev reloader (flask run), pas avec Gunicorn. Ajout de vérification SERVER_SOFTWARE.
 - Motivation : FLASK_DEBUG=1 défini sur Render empêchait le démarrage du scheduler malgré Gunicorn, causant l'absence de polling automatique.
 - Implication : Scheduler démarre correctement en production, automation fonctionne toutes les 15 secondes configurées.
+
+[2026-01-12 00:55:00] - Idempotence des actions OFF en mode hiver/été
+- Décision : Empêcher tout nouveau déclenchement `winter_off`/`summer_off` (ainsi que l'arrêt hors créneau) lorsque `assumed_aircon_power == "off"`, même si la température reste au-dessus/au-dessous des seuils après expiration du cooldown.
+- Motivation : Après la file `off_repeat`, les scènes OFF repartaient toutes les ~60 s tant que la température demeurait >27.3 °C, saturant les webhooks et obligeant l'utilisateur à stopper l'automation.
+- Implications :
+  - `AutomationService.run_once()` journalise désormais `Skipping winter_off: already assumed off` et n'envoie plus d'actions OFF tant que l'état supposé est OFF.
+  - Les actions ON purgent `_clear_off_repeat_task()` pour éviter un OFF tardif conflictuel.
+  - Documentation (`docs/configuration.md`) et tests (`tests/test_automation_service.py`) couvrent ce comportement idempotent.

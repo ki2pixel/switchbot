@@ -179,6 +179,7 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "scene_summer_id": "scene-s",
         "scene_fan_id": "scene-f",
         "scene_off_id": "scene-off",
+        "timezone": "Europe/Paris",
         "api_quota_warning_threshold": "250",
     }
 
@@ -193,11 +194,73 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "fan": "scene-f",
         "off": "scene-off",
     }
+    assert persisted["timezone"] == "Europe/Paris"
     assert persisted["api_quota_warning_threshold"] == 250
     assert persisted["command_cooldown_seconds"] == 200
     assert persisted["action_on_cooldown_seconds"] == 300
     assert persisted["action_off_cooldown_seconds"] == 90
     assert scheduler.called is True
+
+
+def test_update_settings_rejects_invalid_timezone_and_keeps_previous() -> None:
+    initial_settings = {
+        "automation_enabled": False,
+        "mode": "winter",
+        "poll_interval_seconds": 120,
+        "hysteresis_celsius": 0.3,
+        "command_cooldown_seconds": 180,
+        "action_on_cooldown_seconds": 0,
+        "action_off_cooldown_seconds": 0,
+        "turn_off_outside_windows": False,
+        "timezone": "Europe/Paris",
+        "meter_device_id": "meter",
+        "aircon_device_id": "aircon",
+        "winter": {"min_temp": 18.0, "max_temp": 24.0, "target_temp": 20.0, "fan_speed": 3, "ac_mode": 5},
+        "summer": {"min_temp": 20.0, "max_temp": 28.0, "target_temp": 24.0, "fan_speed": 2, "ac_mode": 2},
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
+    }
+    app, settings_store, _state_store, _scheduler, _tracker = _build_app(initial_settings)
+
+    form = {
+        "automation_enabled": "on",
+        "mode": "winter",
+        "poll_interval_seconds": "300",
+        "hysteresis_celsius": "0.4",
+        "command_cooldown_seconds": "200",
+        "action_on_cooldown_seconds": "0",
+        "action_off_cooldown_seconds": "0",
+        "turn_off_outside_windows": "on",
+        "meter_device_id": "meter",
+        "aircon_device_id": "aircon",
+        "winter_min_temp": "18",
+        "winter_max_temp": "24",
+        "winter_target_temp": "21",
+        "winter_ac_mode": "5",
+        "winter_fan_speed": "3",
+        "summer_min_temp": "20",
+        "summer_max_temp": "28",
+        "summer_target_temp": "23",
+        "summer_ac_mode": "2",
+        "summer_fan_speed": "3",
+        "scene_winter_id": "",
+        "scene_summer_id": "",
+        "scene_fan_id": "",
+        "scene_off_id": "",
+        "timezone": "Definitely/NotAZone",
+        "api_quota_warning_threshold": "250",
+    }
+
+    with app.test_client() as client:
+        response = client.post("/settings", data=form, follow_redirects=True)
+
+    assert response.status_code == 200
+    persisted = settings_store.read()
+    assert persisted["timezone"] == "Europe/Paris"
+
+    soup = BeautifulSoup(response.data, "html.parser")
+    error = soup.select_one(".alert-danger")
+    assert error is not None
+    assert "Fuseau horaire invalide" in error.get_text()
 
 
 def test_aircon_on_winter_runs_scene_and_updates_state() -> None:

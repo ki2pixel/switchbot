@@ -1,3 +1,22 @@
+## Terminé
+[2026-01-09 16:47:00] - Implémentation du thème sombre par défaut sur les templates index.html et devices.html.
+[2026-01-09 17:00:00] - Refonte de la page Devices : cartes lisibles, synthèse, copie d'ID et JSON repliables.
+[2026-01-09 17:20:00] - Externalisation complète des styles (theme.css + feuilles spécifiques) et documentation associée.
+[2026-01-09 17:40:00] - Restructuration de la documentation en guides thématiques avec index et renvois croisés.
+[2026-01-09 22:05:00] - Chaîne de déploiement containerisée (Dockerfile, GHCR workflow, doc déploiement) livrée et premier déploiement Render validé.
+[2026-01-10 02:20:00] - Implémentation d'un système de suivi local des quotas API SwitchBot
+  - Ajout d'un compteur journalier local dans `automation.py` pour suivre l'utilisation de l'API (10 000 requêtes/jour)
+  - Configuration de `LOG_LEVEL` pour Gunicorn via la variable d'environnement
+  - Vérification de l'absence de headers de quota dans les réponses de l'API SwitchBot
+  - Mise à jour de l'interface utilisateur pour afficher les quotas calculés localement
+  - Documentation des décisions techniques dans la Memory Bank
+[2026-01-10 13:35:00] - Aircon presets configurables et tests associés
+[2026-01-10 16:40:00] - Scène OFF SwitchBot + documentation/tests
+[2026-01-10 20:30:00] - Amélioration des flash messages (auto-dismiss et contraste)
+[2026-01-10 20:40:00] - Harmonisation totale des templates UI en français (index.html, devices.html, quota.html) : traductions des labels, boutons, badges et métadonnées selon la terminologie UI.
+[2026-01-10 20:42:00] - Traduction complète des messages flash/alertes en français dans routes.py pour cohérence avec l'interface.
+[2026-01-10 20:50:00] - Session question température redeploy et implémentation flag stale
+
 [2026-01-09 16:01:00] - Baseline documenté
 - productContext.md décrit désormais la vision globale, les composants clés et le flux d’automatisation.
 - systemPatterns.md recense les patterns techniques (services injectés, stockage JSON atomique, APScheduler, validations).
@@ -109,24 +128,6 @@
 - Mise à jour des templates `index.html` et `quota.html` pour ARIA et auto-dismiss
 - Renforcement du contraste dans `theme.css` avec nouvelles variables et styles `.alert`
 
-## Terminé
-[2026-01-09 16:47:00] - Implémentation du thème sombre par défaut sur les templates index.html et devices.html.
-[2026-01-09 17:00:00] - Refonte de la page Devices : cartes lisibles, synthèse, copie d'ID et JSON repliables.
-[2026-01-09 17:20:00] - Externalisation complète des styles (theme.css + feuilles spécifiques) et documentation associée.
-[2026-01-09 17:40:00] - Restructuration de la documentation en guides thématiques avec index et renvois croisés.
-[2026-01-09 22:05:00] - Chaîne de déploiement containerisée (Dockerfile, GHCR workflow, doc déploiement) livrée et premier déploiement Render validé.
-[2026-01-10 02:20:00] - Implémentation d'un système de suivi local des quotas API SwitchBot
-  - Ajout d'un compteur journalier local dans `automation.py` pour suivre l'utilisation de l'API (10 000 requêtes/jour)
-  - Configuration de `LOG_LEVEL` pour Gunicorn via la variable d'environnement
-  - Vérification de l'absence de headers de quota dans les réponses de l'API SwitchBot
-  - Mise à jour de l'interface utilisateur pour afficher les quotas calculés localement
-  - Documentation des décisions techniques dans la Memory Bank
-[2026-01-10 13:35:00] - Aircon presets configurables et tests associés
-[2026-01-10 16:40:00] - Scène OFF SwitchBot + documentation/tests
-[2026-01-10 20:30:00] - Amélioration des flash messages (auto-dismiss et contraste)
-[2026-01-10 20:40:00] - Harmonisation totale des templates UI en français (index.html, devices.html, quota.html) : traductions des labels, boutons, badges et métadonnées selon la terminologie UI.
-[2026-01-10 20:42:00] - Traduction complète des messages flash/alertes en français dans routes.py pour cohérence avec l'interface.
-[2026-01-10 20:50:00] - Session question température redeploy et implémentation flag stale
 - Analyse du comportement de récupération de température lors d'un redeploy Render (~1 min) avec Redis.
 - Implémentation du flag `last_temperature_stale` pour signaler une température potentiellement obsolète.
 - Mise à jour de la documentation (`docs/configuration.md`).
@@ -149,6 +150,12 @@
 - Diagnostic et correction du scheduler skippé sur Render à cause de FLASK_DEBUG=1 avec Gunicorn
 - Amélioration de la détection mode debug pour distinguer Flask dev reloader de Gunicorn
 - Tests validés (53/53 passés), correction appliquée sans régression
+[2026-01-12 00:55:00] - Correction des déclenchements excessifs `winter_off`
+- Diagnostic initial : `winter_off` se déclenchait trop fréquemment après exécution des `off_repeat`, relançant des scènes OFF toutes les ~60 s tant que la température restait élevée.
+- Solution implémentée : Ajout d'une vérification d'idempotence (`assumed_aircon_power == "off"`) dans `AutomationService.run_once()` pour bloquer les nouvelles actions OFF si le climatiseur est déjà supposé OFF.
+- Modifications : Code `automation.py` (gardes dans winter_off/summer_off/off-outside-window), tests unitaires (`test_automation_service.py`), documentation (`docs/configuration.md`).
+- Validation : Logs utilisateur confirment le succès (`Skipping winter_off: already assumed off`), tests pytest passés.
+- Memory Bank synchronisée (decisionLog, activeContext, progress mis à jour).
 
 ## En cours
 - Aucune tâche active.

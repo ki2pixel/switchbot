@@ -554,6 +554,120 @@ python app.py
 - Pas de consommation directe de `request.form`
 - Bornes respectées sur tous les champs
 
+## Tests unitaires (nouvelles fonctionnalités)
+
+### Tests IFTTT Webhooks (`tests/test_ifttt.py`)
+
+**Fichier de test** : `tests/test_ifttt.py` (16 tests)
+
+**Scénarios couverts** :
+1. **Validation des URLs** :
+   - URLs HTTPS valides acceptées
+   - URLs HTTP et invalides rejetées
+   - URLs vides et nulles gérées
+
+2. **Client IFTTT** :
+   - Trigger webhook réussi (status 200)
+   - Gestion des timeouts (10s par défaut)
+   - Erreurs HTTP et réseau
+   - Validation des payloads JSON
+
+3. **Extraction des webhooks** :
+   - Normalisation des configurations
+   - Clés manquantes (winter, summer, fan, off)
+   - Types de données invalides
+
+**Exécution** :
+```bash
+/mnt/venv_ext4/venv_switchbot/bin/python -m pytest tests/test_ifttt.py -v
+```
+
+### Tests de répétition OFF (`tests/test_automation_service.py`)
+
+**Nouveaux tests ajoutés** :
+1. **Planification des répétitions** :
+   - `_schedule_off_repeat_task()` crée les tâches correctement
+   - Validation des bornes (count: 1-10, interval: 1-600s)
+   - État `pending_off_repeat` mis à jour dans `state.json`
+
+2. **Exécution différée** :
+   - `_process_off_repeat_task()` exécute les répétitions
+   - Décrémentation correcte du compteur
+   - Logs appropriés pour chaque exécution
+
+3. **Purge automatique** :
+   - `_clear_off_repeat_task()` nettoie l'état
+   - Annulation sur nouvelle action ON
+   - Gestion des cas où aucune répétition n'est en cours
+
+**Scénarios de test** :
+```python
+# Test de la planification
+def test_schedule_off_repeat_task():
+    # Vérifie création de pending_off_repeat avec count=2, interval=10
+    
+# Test de l'exécution
+def test_process_off_repeat_task():
+    # Vérifie décrémentation et exécution
+    
+# Test de l'idempotence
+def test_off_idempotence_when_already_off():
+    # Vérifie qu'aucun nouvel OFF n'est envoyé si assumed_aircon_power="off"
+```
+
+### Tests de robustesse du scheduler
+
+**Nouveaux comportements testés** :
+1. **Démarrage conditionnel** :
+   - `SCHEDULER_ENABLED=false` : scheduler ne démarre pas
+   - `FLASK_DEBUG=1` avec Gunicorn : scheduler démarre
+   - `flask run` : scheduler ne démarre pas
+
+2. **Logging amélioré** :
+   - `reschedule()` loggue en DEBUG pas WARNING
+   - Messages informatifs pour les états normaux
+
+**Exécution ciblée** :
+```bash
+# Tests spécifiques au scheduler
+/mnt/venv_ext4/venv_switchbot/bin/python -m pytest tests/test_automation_service.py::test_scheduler_* -v
+
+# Tests IFTTT complets
+/mnt/venv_ext4/venv_switchbot/bin/python -m pytest tests/test_ifttt.py -v
+
+# Tests de répétition OFF
+/mnt/venv_ext4/venv_switchbot/bin/python -m pytest tests/test_automation_service.py::test_off_repeat -v
+```
+
+### Tests d'intégration avec BeautifulSoup
+
+**Tests UI avec quota** :
+- Vérification de l'affichage de l'alerte quota
+- Test du seuil `api_quota_warning_threshold`
+- Validation des métadonnées (jour, reset_at)
+
+**Exécution** :
+```bash
+/mnt/venv_ext4/venv_switchbot/bin/python -m pytest tests/test_dashboard_routes.py::test_quota_warning -v
+```
+
+### Couverture de tests complète
+
+**Statut actuel** : 53 tests passants (au 12 Jan 2026)
+
+**Répartition** :
+- `test_app_init.py` : Initialisation et santé
+- `test_dashboard_routes.py` : Routes et interface
+- `test_automation_service.py` : Logique métier et répétitions
+- `test_ifttt.py` : Webhooks et fallbacks
+- `test_adaptive_cooldown.py` : Cooldown adaptatif
+- `test_aircon_presets.py` : Scènes et presets
+
+**Commande complète** :
+```bash
+/mnt/venv_ext4/venv_switchbot/bin/python -m pytest --tb=short -q
+```
+
 ## Checklist finale
 
 - [ ] Installation et démarrage OK

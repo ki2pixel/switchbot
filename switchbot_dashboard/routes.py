@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import (
     Blueprint,
@@ -88,6 +89,7 @@ AIRCON_SCENE_LABELS: dict[str, str] = {
     "off": "Aircon OFF – Scène",
 }
 DEFAULT_QUOTA_WARNING_THRESHOLD = 250
+DEFAULT_TIMEZONE = "Europe/Paris"
 
 
 def _utc_now_iso() -> str:
@@ -419,6 +421,22 @@ def update_settings() -> Any:
     )
 
     settings["turn_off_outside_windows"] = _as_bool(request.form.get("turn_off_outside_windows"))
+
+    timezone_raw = request.form.get("timezone")
+    if timezone_raw is None:
+        settings.setdefault("timezone", DEFAULT_TIMEZONE)
+    else:
+        requested_timezone = str(timezone_raw).strip() or DEFAULT_TIMEZONE
+        try:
+            ZoneInfo(requested_timezone)
+        except ZoneInfoNotFoundError:
+            flash(
+                "Fuseau horaire invalide : utilisez un identifiant IANA (ex: Europe/Paris, UTC).",
+                "error",
+            )
+        else:
+            settings["timezone"] = requested_timezone
+
     settings["api_quota_warning_threshold"] = _as_int(
         request.form.get("api_quota_warning_threshold"),
         default=int(settings.get("api_quota_warning_threshold", DEFAULT_QUOTA_WARNING_THRESHOLD) or DEFAULT_QUOTA_WARNING_THRESHOLD),

@@ -6,11 +6,13 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 
 ### Automatisation intelligente
 - **Gestion des scènes** : Exécution de scènes SwitchBot préconfigurées
-- **Webhooks IFTTT** : Intégration prioritaire avec fallback cascade (IFTTT → scène → commande)
+- **Webhooks IFTTT** : Intégration prioritaire avec fallback cascade à 3 niveaux (IFTTT → scène → commande)
 - **Profils saisonniers** : Paramètres distincts pour l'hiver et l'été
 - **Fenêtres horaires** : Planification précise des plages d'activation
 - **Détection de présence** : Basée sur les plages horaires configurées
-- **Répétition OFF** : Commandes OFF multiples avec intervalle paramétrable
+- **Répétition OFF paramétrable** : Commandes OFF multiples avec intervalle configurable
+- **Idempotence des actions** : Protection contre les déclenchements excessifs
+- **Scheduler robuste** : Démarrage conditionnel et logging amélioré
 
 ### Surveillance et contrôle
 - **Tableau de bord temps réel** : Vue d'ensemble de l'état du système
@@ -78,18 +80,25 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - [Guide d'installation](setup.md) - Configuration détaillée
 - [Guide de l'utilisateur](ui-guide.md) - Utilisation de l'interface
 - [Référence de configuration](configuration.md) - Options avancées
-- [Intégration IFTTT](ifttt-integration.md) - Configuration des webhooks IFTTT
+- [Intégration IFTTT](ifttt-integration.md) - Configuration des webhooks IFTTT et système de fallback
+- [Guide du scheduler](scheduler.md) - Configuration et dépannage du scheduler
 - [Guide de déploiement](deployment.md) - Mise en production
+- [Guide de tests](testing.md) - Tests manuels et unitaires
 
 ## 🚦 Statut du projet
 
 ### Fonctionnalités implémentées
 
 - [x] Support des scènes SwitchBot
-- [x] Gestion des quotas API
+- [x] Webhooks IFTTT avec système de fallback cascade
+- [x] Répétition OFF paramétrable
+- [x] Idempotence des actions OFF
+- [x] Gestion des quotas API avec alertes
 - [x] Stockage Redis et système de fichiers
+- [x] Scheduler robuste avec logging amélioré
 - [x] Interface utilisateur réactive
 - [x] Documentation complète
+- [x] Suite de tests complète (53 tests)
 
 ### Prochaines étapes
 

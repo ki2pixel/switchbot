@@ -5,8 +5,9 @@ import logging
 from typing import Any
 
 import datetime as dt
+from zoneinfo import ZoneInfo
 
-from switchbot_dashboard.automation import AutomationService, OFF_REPEAT_STATE_KEY
+from switchbot_dashboard.automation import AutomationService, OFF_REPEAT_STATE_KEY, _is_now_in_windows
 from switchbot_dashboard.quota import ApiQuotaTracker
 
 
@@ -331,3 +332,16 @@ def test_winter_off_skipped_when_already_assumed_off() -> None:
 
     state = state_store.read()
     assert state.get("pending_off_repeat") is None
+
+
+def test_time_window_evaluation_respects_timezone() -> None:
+    time_windows = [{"days": [0, 1, 2, 3, 4, 5, 6], "start": "10:00", "end": "01:00"}]
+
+    now_utc = dt.datetime(2026, 1, 12, 0, 30, tzinfo=dt.timezone.utc)
+    now_paris = now_utc.astimezone(ZoneInfo("Europe/Paris"))
+
+    assert now_paris.hour == 1
+    assert now_paris.minute == 30
+
+    assert _is_now_in_windows(time_windows, now_utc) is True
+    assert _is_now_in_windows(time_windows, now_paris) is False

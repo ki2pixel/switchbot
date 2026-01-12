@@ -175,6 +175,21 @@
                     <div class="form-text">Bannière d'alerte lorsque les appels restants passent sous cette valeur.</div>
                   </div>
 
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="timezone">Fuseau horaire</label>
+                    <input
+                      class="form-control"
+                      id="timezone"
+                      name="timezone"
+                      value="{{ settings.get('timezone', 'Europe/Paris') }}"
+                      placeholder="Europe/Paris"
+                      autocapitalize="none"
+                      autocomplete="off"
+                      spellcheck="false"
+                    />
+                    <div class="form-text">Utilisé pour interpréter les fenêtres horaires (identifiant IANA, ex: Europe/Paris, UTC).</div>
+                  </div>
+
                   <div class="col-12">
                     <div class="form-check mb-2">
                       <input

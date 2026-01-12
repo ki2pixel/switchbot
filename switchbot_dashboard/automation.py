@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import has_request_context, request
 
@@ -38,7 +39,7 @@ def _is_now_in_windows(time_windows: list[dict[str, Any]], now: dt.datetime) -> 
             end = _parse_hhmm(end_raw)
         except ValueError:
             continue
-        now_time = now.time()
+        now_time = now.time().replace(tzinfo=None)
 
         if start <= end:
             if now.weekday() in days and start <= now_time <= end:
@@ -66,6 +67,7 @@ def _ensure_utc(value: dt.datetime) -> dt.datetime:
 
 logger = logging.getLogger(__name__)
 OFF_REPEAT_STATE_KEY = "pending_off_repeat"
+DEFAULT_TIMEZONE = "Europe/Paris"
 
 
 def _format_details(details: dict[str, Any]) -> str:
@@ -139,6 +141,19 @@ class AutomationService:
             endpoint = request.endpoint or "http_request"
             return f"http:{endpoint}"
         return "scheduler"
+
+    def _get_timezone(self, settings: dict[str, Any], *, trigger: str) -> tuple[dt.tzinfo, str]:
+        raw_timezone = settings.get("timezone")
+        timezone_name = str(raw_timezone or "").strip() or DEFAULT_TIMEZONE
+        try:
+            return ZoneInfo(timezone_name), timezone_name
+        except ZoneInfoNotFoundError:
+            self._warning(
+                "Invalid timezone; falling back to UTC",
+                trigger=trigger,
+                timezone=timezone_name,
+            )
+            return dt.timezone.utc, "UTC"
 
     def _log_quota_snapshot(self, context: str) -> None:
         state = self._state_store.read()
@@ -599,9 +614,10 @@ class AutomationService:
 
     def run_once(self) -> None:
         trigger = self._detect_trigger_source()
-        now = dt.datetime.now()
         self._update_state(last_tick=_utc_now_iso())
         settings = self._settings_store.read()
+        timezone_info, timezone_name = self._get_timezone(settings, trigger=trigger)
+        now = dt.datetime.now(dt.timezone.utc).astimezone(timezone_info)
         poll_interval = int(settings.get("poll_interval_seconds", 0) or 0)
         automation_enabled = bool(settings.get("automation_enabled", False))
         outcome = "noop"
@@ -615,6 +631,8 @@ class AutomationService:
             trigger=trigger,
             poll_interval_seconds=poll_interval,
             automation_enabled=automation_enabled,
+            timezone=timezone_name,
+            now_local=now.isoformat(),
         )
 
         self._process_off_repeat_task(
@@ -643,6 +661,8 @@ class AutomationService:
             in_window=in_window,
             time_windows=_summarize_time_windows(time_windows),
             turn_off_outside_windows=bool(settings.get("turn_off_outside_windows", False)),
+            timezone=timezone_name,
+            now_local=now.isoformat(),
         )
 
         if not in_window:

@@ -39,7 +39,9 @@ Ce document décrit les règles obligatoires pour tout nouveau code ou refactori
 ### Services et API SwitchBot
 - **Encapsulation** : Utiliser `SwitchBotClient`. Pas de requêtes HTTP directes dans les vues.
 - **Quotas** : Utiliser l'instance unique d'`ApiQuotaTracker` branchée dans `SwitchBotClient`. Tout nouveau service doit réutiliser ce client pour garantir la cohérence des compteurs.
-- **Scènes** : Priorité aux scènes `winter`, `summer` et `off`. Prévoir un fallback documenté et un avertissement UI si les UUID sont manquants.
+- **Actions prioritaires** : Priorité aux webhooks IFTTT pour les actions automatiques et manuelles, avec fallback vers scènes SwitchBot (`winter`, `summer`, `off`) puis commandes directes (`setAll`/`turnOff`).
+- **Off-repeat** : Utiliser les paramètres `off_repeat_count` et `off_repeat_interval_seconds` pour répéter les actions OFF selon la configuration.
+- **Idempotence OFF** : Empêcher les déclenchements répétés d'actions OFF si `assumed_aircon_power == "off"`.
 - **Quick actions** : Le bouton "Quick off" doit déclencher la scène `off` (avec repli `turnOff` uniquement si `aircon_device_id` est présent).
 
 ## 4. Frontend & Templates Jinja
@@ -60,6 +62,7 @@ Ce document décrit les règles obligatoires pour tout nouveau code ou refactori
 
 - **Logger** : Utiliser `current_app.logger`. Préfixer par contexte : `[scheduler]`, `[api]`, `[store]`, `[auth]`.
 - **Santé** : Le endpoint `/healthz` est le contrat de monitoring. Il doit refléter l'état des stores (503 si `StoreError`).
+- **Scheduler** : Gérer gracieusement les appels `reschedule()` si non démarré, utiliser `SERVER_SOFTWARE` pour détecter le mode production et éviter les skippings erronés.
 - **Quotas** : L'interface doit afficher les quotas calculés localement (reset à minuit UTC) et alerter en cas de dépassement imminent.
 - **Sécurité** : Ne jamais loguer de secrets, jetons ou données personnelles.
 
@@ -94,4 +97,4 @@ Ce document décrit les règles obligatoires pour tout nouveau code ou refactori
 - Ce standard est complété par les guides spécifiques : `docs/configuration.md`, `docs/testing.md`, `docs/theming.md`.
 
 ---
-*Dernière mise à jour : 10 Janvier 2026*
+*Dernière mise à jour : 12 Janvier 2026*

@@ -72,7 +72,35 @@ Le fichier `Dockerfile` à la racine :
    - **IFTTT Webhooks** (optionnel) : Variables pour les timeouts et configuration réseau si nécessaire :
      - `IFTTT_TIMEOUT_SECONDS` : Timeout pour les requêtes IFTTT (défaut : 10s)
      - `IFTTT_RETRY_ATTEMPTS` : Nombre de tentatives pour les webhooks (défaut : 1)
+   - `SCHEDULER_ENABLED` : Active/désactive le scheduler interne (défaut : true)
 3. Activer les logs sur Render : par défaut, Gunicorn écrit sur stdout/stderr, visibles dans l'onglet Logs.
+
+### Impact des webhooks IFTTT sur le quota et monitoring
+
+**Avantages pour le quota API** :
+- Les webhooks IFTTT ne consomment pas le quota SwitchBot (10 000/jour)
+- Seuls les fallbacks (scènes ou commandes directes) consomment le quota
+- Économie significative en production avec automatisation fréquente
+
+**Monitoring spécifique IFTTT** :
+- Logs préfixés `[ifttt]` pour les actions webhook
+- Logs préfixés `[automation]` pour les fallbacks
+- Surveiller les timeouts : `IFTTT webhook timeout after 10s`
+- Vérifier les fallbacks : `Using SwitchBot scene (webhook unavailable)`
+
+**Recommandations de monitoring Render** :
+1. **Surveiller les logs IFTTT** : Rechercher `[ifttt]` dans les logs Render
+2. **Alertes sur les fallbacks** : Trop de fallbacks peuvent indiquer un problème IFTTT
+3. **Quota API** : Avec IFTTT, le quota devrait rester stable même avec forte automatisation
+
+**Variables d'environnement recommandées pour IFTTT** :
+```bash
+# Pour réduire le bruit dans les logs en production
+LOG_LEVEL=warning
+
+# Pour augmenter la fiabilité des webhooks (réseau lent)
+IFTTT_TIMEOUT_SECONDS=15
+```
 
 ## 5. Surveillance et santé de l'application
 

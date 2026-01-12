@@ -14,6 +14,7 @@ SWITCHBOT_RETRY_DELAY_SECONDS=10
 SWITCHBOT_POLL_INTERVAL_SECONDS=60
 LOG_LEVEL=info
 FLASK_SECRET_KEY=change_me
+SCHEDULER_ENABLED=true
 ```
 
 > ⚠️ **Sécurité** : Ne jamais commiter `.env`. Utiliser `.env.example` comme modèle.
@@ -28,6 +29,7 @@ FLASK_SECRET_KEY=change_me
 - `SWITCHBOT_RETRY_ATTEMPTS` et `SWITCHBOT_RETRY_DELAY_SECONDS` retombent respectivement sur `2` et `10` secondes si la valeur fournie n'est pas un entier valide.  
 - Définir `FLASK_SECRET_KEY` dans `.env` est indispensable : en production, cela évite le fallback `"dev"` utilisé uniquement pour le développement et protège les sessions/flash messages.
 - `LOG_LEVEL` contrôle le niveau de log de Gunicorn (valeurs possibles : DEBUG, INFO, WARNING, ERROR, CRITICAL), appliqué via le Dockerfile en production et via `switchbot_dashboard/__init__.py` en développement.
+- `SCHEDULER_ENABLED` (défaut: `true`) : Active/désactive le scheduler interne. Mettre à `false` pour utiliser un cron externe ou pour le debugging.
 
 ### 2. Paramètres applicatifs (`config/settings.json`)
 
@@ -74,11 +76,19 @@ Ce fichier contient les réglages métier persistés :
   },
   "off_repeat_count": 2,
   "off_repeat_interval_seconds": 10,
+  "timezone": "Europe/Paris",
   "turn_off_outside_windows": true
 }
 ```
 
 > ℹ️ **Production et conteneurs Render** : lorsque `STORE_BACKEND=redis` est activé, les fichiers `config/settings.json` et `config/state.json` empaquetés dans l'image Docker ne servent qu'à fournir des valeurs initiales. Toutes les modifications effectuées via l'interface sont écrites dans Redis et survivent aux redeploy/scale. Ne modifiez les fichiers locaux que pour préparer un premier déploiement ou dépanner hors ligne.
+
+#### Fuseau horaire (`timezone`)
+
+- **Objectif** : interpréter les fenêtres horaires (`time_windows`) dans votre fuseau (ex. heure de Paris), indépendamment du fuseau du serveur (Render est souvent en UTC).
+- **Valeur par défaut** : `Europe/Paris`
+- **Format** : identifiant IANA (ex: `Europe/Paris`, `UTC`, `Europe/London`).
+- **Validation** : si la valeur est invalide, l'interface affiche une erreur et la configuration précédente est conservée.
 
 #### Gestion du quota API (`api_quota_warning_threshold`)
 
@@ -213,6 +223,32 @@ Pour garantir l'extinction fiable du climatiseur, le système peut envoyer plusi
 # Annulation des répétitions
 [automation] Cleared pending off repeat task
 ```
+
+#### Idempotence des actions OFF
+
+Pour éviter les déclenchements excessifs, le système implémente une protection d'idempotence basée sur l'état supposé du climatiseur (`assumed_aircon_power`) :
+
+**Principe de fonctionnement :**
+- Une fois qu'une action OFF est déclenchée (manuellement ou automatiquement), `assumed_aircon_power` est mis à `"off"`
+- Tant que cet état est `"off"`, le système **refusera** de déclencher de nouvelles actions OFF, même si la température reste dans la zone de déclenchement
+- Les logs indiqueront : `Skipping winter_off: already assumed off` ou `Skipping summer_off: already assumed off`
+
+**Cas d'usage typique :**
+- Température à 28°C, seuil max à 27°C, hysteresis à 0.3°C
+- Premier déclenchement à 28°C → `assumed_aircon_power="off"`
+- Température reste à 28°C après les répétitions OFF → **aucun nouveau déclenchement**
+- Température baisse à 26°C → action ON possible → `assumed_aircon_power="on"`
+
+**Avantages de cette protection :**
+- ✅ **Évite la saturation** des webhooks IFTTT et de l'API SwitchBot
+- ✅ **Préserve le quota** API en évitant les appels inutiles
+- ✅ **Stabilise l'automatisation** en cas de climatisation inefficace
+- ✅ **Logs clairs** pour diagnostiquer les comportements attendus
+
+**Réinitialisation de l'état :**
+- Les actions ON (`winter_on`, `summer_on`, `fan_on`) remettent `assumed_aircon_power` à `"on"`
+- Un redémarrage de l'application réinitialise l'état à `"unknown"`
+- L'état est visible dans `state.json` sous la clé `assumed_aircon_power`
 
 ### Dépannage de l'automatisation
 

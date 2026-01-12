@@ -133,6 +133,63 @@ export WEB_CONCURRENCY=1
 
 **Solution** : Consulter `[scheduler]` logs pour l'exception
 
+### Comportement de logging (mis à jour)
+
+#### Changement de niveau de log pour reschedule()
+
+**Ancien comportement** :
+```
+[WARNING] Cannot schedule job: scheduler is None
+```
+
+**Nouveau comportement** (depuis Jan 2026) :
+```
+[DEBUG] Reschedule called but scheduler not started (normal if SCHEDULER_ENABLED=false)
+```
+
+**Raison** : Éviter les faux positifs dans les logs quand `SCHEDULER_ENABLED=false` ou en mode debug. Le message est maintenant informatif plutôt qu'alarmant.
+
+#### Détection améliorée du mode debug
+
+**Ancien comportement** : Le scheduler était désactivé si `FLASK_DEBUG=1`
+
+**Nouveau comportement** : Détection précise du mode de fonctionnement :
+- **Flask dev reloader** (`flask run`) : Scheduler désactivé
+- **Gunicorn avec `FLASK_DEBUG=1`** : Scheduler activé
+
+**Logs attendus** :
+```bash
+# Développement local (flask run)
+[scheduler] Flask development mode detected, skipping scheduler start
+
+# Production Render (Gunicorn)
+[scheduler] BackgroundScheduler started successfully
+[scheduler] Job scheduled with interval=15 seconds
+```
+
+#### Messages de logs à surveiller
+
+**Démarrage normal** :
+```
+[scheduler] BackgroundScheduler started successfully
+[scheduler] Job scheduled with interval=15 seconds
+[scheduler] Triggering immediate first tick
+```
+
+**Reschedule après changement de configuration** :
+```
+[scheduler] Reschedule called but scheduler not started (normal if SCHEDULER_ENABLED=false)
+# ou
+[scheduler] Rescheduling automation job
+[scheduler] Job scheduled with interval=30 seconds
+```
+
+**Scheduler désactivé intentionnellement** :
+```
+[scheduler] APScheduler disabled via SCHEDULER_ENABLED=false
+[scheduler] Flask development mode detected, skipping scheduler start
+```
+
 ### Performance avec 1 worker
 
 Le worker unique avec threads suffit pour :
