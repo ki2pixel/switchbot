@@ -3,14 +3,16 @@
     const LOADER_ACTIVE_CLASS = 'sb-loader--active';
     const LOADER_OVERLAY_CLASS = 'sb-loader-overlay';
     const LOADER_SPINNER_CLASS = 'sb-loader-spinner';
+    const GLOBAL_LOADER_ID = 'sb-global-loader';
+    const GLOBAL_LOADER_ACTIVE_CLASS = 'sb-global-loader--active';
     
     const createLoaderOverlay = () => {
-        const overlay = document.createElement('div');
+        const overlay = document.createElement('span');
         overlay.className = LOADER_OVERLAY_CLASS;
         overlay.setAttribute('aria-hidden', 'true');
         overlay.setAttribute('role', 'presentation');
         
-        const spinner = document.createElement('div');
+        const spinner = document.createElement('span');
         spinner.className = LOADER_SPINNER_CLASS;
         spinner.setAttribute('role', 'img');
         spinner.setAttribute('aria-label', 'Chargement...');
@@ -18,26 +20,58 @@
         overlay.appendChild(spinner);
         return overlay;
     };
+
+    const ensureGlobalLoader = () => {
+        let overlay = document.getElementById(GLOBAL_LOADER_ID);
+        if (overlay) {
+            return overlay;
+        }
+
+        overlay = document.createElement('div');
+        overlay.id = GLOBAL_LOADER_ID;
+        overlay.className = 'sb-global-loader';
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.setAttribute('role', 'presentation');
+
+        const spinner = document.createElement('div');
+        spinner.className = 'sb-global-loader__spinner';
+        spinner.setAttribute('role', 'img');
+        spinner.setAttribute('aria-label', 'Chargement...');
+
+        overlay.appendChild(spinner);
+        document.body.appendChild(overlay);
+        return overlay;
+    };
+
+    const showGlobalLoader = () => {
+        const overlay = ensureGlobalLoader();
+        overlay.classList.add(GLOBAL_LOADER_ACTIVE_CLASS);
+        document.body.classList.add('sb-loading');
+    };
+
+    const hideGlobalLoader = () => {
+        const overlay = document.getElementById(GLOBAL_LOADER_ID);
+        if (!overlay) {
+            return;
+        }
+        overlay.classList.remove(GLOBAL_LOADER_ACTIVE_CLASS);
+        document.body.classList.remove('sb-loading');
+    };
     
     const showLoader = (element) => {
-        console.log('[Loaders] showLoader called for:', element);
         if (!element || element.classList.contains(LOADER_ACTIVE_CLASS)) {
-            console.log('[Loaders] Element already active or null');
             return;
         }
         
         element.classList.add(LOADER_ACTIVE_CLASS);
         element.setAttribute('aria-busy', 'true');
-        console.log('[Loaders] Classes added, creating overlay...');
         
         const overlay = createLoaderOverlay();
         element.style.position = 'relative';
         element.appendChild(overlay);
-        console.log('[Loaders] Overlay added, setting opacity...');
         
         requestAnimationFrame(() => {
             overlay.style.opacity = '1';
-            console.log('[Loaders] Loader displayed successfully');
         });
     };
     
@@ -63,18 +97,12 @@
     
     const setupFormLoaders = () => {
         const forms = document.querySelectorAll('form[data-loader]');
-        console.log('[Loaders] Found forms with data-loader:', forms.length);
-        
-        forms.forEach((form, index) => {
-            console.log(`[Loaders] Setting up form ${index}:`, form);
+        forms.forEach((form) => {
             form.addEventListener('submit', (event) => {
-                console.log('[Loaders] Form submit event triggered');
                 const submitButton = form.querySelector('button[type="submit"], input[type="submit"]');
-                console.log('[Loaders] Submit button found:', submitButton);
-                
                 if (submitButton && !submitButton.disabled) {
-                    console.log('[Loaders] Preventing default and showing loader');
                     event.preventDefault();
+                    showGlobalLoader();
                     showLoader(submitButton);
                     
                     const originalText = submitButton.textContent;
@@ -82,12 +110,14 @@
                     submitButton.disabled = true;
                     
                     setTimeout(() => {
-                        console.log('[Loaders] Submitting form after delay');
+                        form.submit();
+                    }, 1000);
+                    setTimeout(() => {
+                        hideGlobalLoader();
                         hideLoader(submitButton);
                         submitButton.textContent = originalText;
                         submitButton.disabled = false;
-                        form.submit();
-                    }, 1000);
+                    }, 10000);
                 }
             });
         });
@@ -117,32 +147,39 @@
     };
     
     const setupNavigationLoaders = () => {
-        document.querySelectorAll('a[data-loader]').forEach(link => {
+        document.querySelectorAll('a[data-loader]').forEach((link) => {
             link.addEventListener('click', (event) => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+                    return;
+                }
+
+                const href = link.getAttribute('href') || '';
+                if (!href || href.startsWith('#') || href.startsWith('javascript:')) {
+                    return;
+                }
+
+                event.preventDefault();
+                showGlobalLoader();
                 showLoader(link);
-                
-                const originalText = link.textContent;
-                link.textContent = 'Chargement...';
-                
                 setTimeout(() => {
-                    hideLoader(link);
-                    link.textContent = originalText;
-                }, 2000);
+                    window.location.href = href;
+                }, 150);
             });
         });
     };
     
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('[Loaders] Initializing loaders system...');
+        ensureGlobalLoader();
+        hideGlobalLoader();
         setupFormLoaders();
         setupButtonLoaders();
         setupNavigationLoaders();
         
         window.SwitchBotLoaders = {
             show: showLoader,
-            hide: hideLoader
+            hide: hideLoader,
+            showGlobal: showGlobalLoader,
+            hideGlobal: hideGlobalLoader,
         };
-        
-        console.log('[Loaders] System initialized');
     });
 })();
