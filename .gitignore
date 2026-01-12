@@ -19,6 +19,7 @@ venv/
 .env
 .env.*
 *.secret
+!.env.example
 
 # Local config/state artifacts
 # config/settings.json

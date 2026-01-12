@@ -28,7 +28,20 @@ def validate_webhook_url(url: str) -> bool:
 
 
 def extract_ifttt_webhooks(settings: dict[str, Any]) -> dict[str, str]:
-    """Return a normalized mapping of configured IFTTT webhook URLs."""
+    """Extract and normalize IFTTT webhook URLs from settings.
+
+    Args:
+        settings: Configuration dictionary containing 'ifttt_webhooks' mapping
+
+    Returns:
+        Dictionary with normalized webhook URLs for keys: 'winter', 'summer', 'fan', 'off'
+        Empty strings are used for missing or invalid entries
+
+    Example:
+        >>> settings = {"ifttt_webhooks": {"winter": "https://maker.ifttt.com/trigger/..."}}
+        >>> extract_ifttt_webhooks(settings)
+        {"winter": "https://maker.ifttt.com/trigger/...", "summer": "", "fan": "", "off": ""}
+    """
     raw_webhooks = settings.get("ifttt_webhooks", {})
     if not isinstance(raw_webhooks, dict):
         raw_webhooks = {}

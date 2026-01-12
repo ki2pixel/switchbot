@@ -102,7 +102,7 @@ LOG_LEVEL=warning
 IFTTT_TIMEOUT_SECONDS=15
 ```
 
-## 5. Surveillance et santé de l'application
+## 5. Surveillance et santé de l'application - [2026-01-10]
 
 ### Endpoint de santé (`/healthz`)
 
@@ -119,6 +119,8 @@ GET /healthz
   "scheduler_running": true,
   "automation_enabled": true,
   "last_tick": "2024-01-10T14:30:00Z",
+  "last_read_at": "2024-01-10T14:29:45Z",
+  "temperature_stale": false,
   "api_requests_total": 42,
   "api_requests_remaining": 958,
   "api_quota_day": "2024-01-10",
@@ -131,6 +133,8 @@ GET /healthz
 - `scheduler_running` : Indique si le planificateur d'automatisation est actif
 - `automation_enabled` : Indique si l'automatisation est activée
 - `last_tick` : Dernière exécution du planificateur (ISO 8601)
+- `last_read_at` : Dernière lecture réussie du capteur de température
+- `temperature_stale` : Indique si la température actuelle est potentiellement obsolète
 - `api_requests_total` : Nombre total de requêtes API effectuées aujourd'hui
 - `api_requests_remaining` : Nombre de requêtes API restantes avant d'atteindre la limite quotidienne
 - `api_quota_day` : Date de réinitialisation du quota (minuit UTC)
@@ -150,6 +154,68 @@ GET /healthz
 - Méthode : `GET`
 - Intervalle : 5 minutes
 - Seuil d'alerte : Code de statut != 200 OU `status != "ok"`
+
+### Logs Render et monitoring - [2026-01-12]
+
+#### Logs structurés pour le diagnostic
+
+Le système génère des logs structurés avec préfixes pour faciliter le diagnostic dans les logs Render :
+
+```bash
+# Logs IFTTT
+[ifttt] IFTTT webhook triggered successfully | status_code=200, url=https://maker.ifttt.com/trigger/...
+[ifttt] IFTTT webhook failed | action_key=winter, error=timeout
+
+# Logs d'automatisation
+[automation] Automation tick started | trigger=scheduler, interval=60s
+[automation] Using SwitchBot scene (webhook unavailable) | action_key=winter, scene_id=scene-w
+[automation] Scheduled repeated off action | pending_repeats=1, interval_seconds=10
+
+# Logs de santé
+[health] Health check completed | status=ok, scheduler_running=true
+
+# Logs de répétition OFF
+[automation] Executing scheduled off repeat | trigger=scheduler, state_reason=automation_winter_off, remaining_before=1
+[automation] Cleared pending off repeat task
+```
+
+#### Commandes de recherche dans les logs Render
+
+```bash
+# Filtrer les logs IFTTT
+grep "\[ifttt\]" /var/log/switchbot_dashboard.log
+
+# Rechercher les fallbacks
+grep "fallback" /var/log/switchbot_dashboard.log
+
+# Surveiller les erreurs
+grep -i "error\|failed" /var/log/switchbot_dashboard.log
+
+# Logs de répétition OFF
+grep "off repeat" /var/log/switchbot_dashboard.log
+
+# Logs de quota API
+grep "quota" /var/log/switchbot_dashboard.log
+```
+
+#### Alertes et seuils recommandés
+
+**Configuration recommandée pour le monitoring :**
+- **Fréquence** : Toutes les 5 minutes
+- **Seuils d'alerte :**
+  - `status != "ok"` → Critique
+  - `scheduler_running == false` → Avertissement
+  - `last_tick` > 10 minutes → Critique
+  - `api_requests_remaining` < 100 → Avertissement
+  - `api_requests_remaining` < 50 → Critique
+  - `temperature_stale == true` → Avertissement
+
+**Outils recommandés :**
+- **Render Health Checks** : Surveillance nat intégrée
+- **Uptime Kuma** : Surveillance externe de la disponibilité
+- **Prometheus** : Collecte des métriques personnalisées
+- **Grafana** : Tableaux de bord de surveillance avancés
+- **AlertManager** : Gestion des alertes personnalisées
 
 ## 6. Processus de déploiement
 

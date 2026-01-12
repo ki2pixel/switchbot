@@ -191,3 +191,43 @@
 - Décision : rendre AutomationService timezone-aware en ajoutant un champ "timezone" (défaut Europe/Paris) dans settings.json, avec validation IANA via zoneinfo.
 - Motivation : synchroniser les fenêtres horaires avec l'heure locale (Paris) indépendamment du serveur UTC (Render), évitant les déclenchements hors créneau (ex: "10:00-01:00" déclenchant après 01:00 local si serveur en UTC).
 - Implication : _get_timezone() avec fallback UTC si invalide, run_once() calcule now en astimezone, logs enrichis, UI expose le champ avec validation, tests unitaires couvrent UTC vs Paris, documentation mise à jour.
+
+[2026-01-12 11:45:00] - Bandeau d'alerte quota sur la page d'accueil
+- Décision : Injecter le contexte quota dans la route `index()` pour afficher un bandeau d'alerte sur `/` quand le seuil d'avertissement (`api_quota_warning_threshold`) est atteint.
+- Motivation : Améliorer la visibilité des quotas API faible directement sur la page principale, en réutilisant le contexte existant pour éviter la duplication.
+- Implication : Modification de `routes.py` (_build_quota_context), ajout du bandeau conditionnel dans `index.html`, styles responsives dans `theme.css`, et tests pour valider l'affichage/masquage selon le seuil.
+
+[2026-01-12 11:50:00] - Refactorisation de la carte "Statut actuel" en grille mobile
+- Décision : Remplacer la liste verticale par une grille CSS (`status-grid`) avec items (`status-item`) pour améliorer la scannabilité mobile.
+- Motivation : Adapter l'affichage des métadonnées (température, humidité, etc.) à l'écran étroit, en gardant la lisibilité et l'accessibilité.
+- Implication : Nouveau CSS dans `index.css`, modification de `index.html`, grille auto-ajustable pour les écrans de différentes tailles.
+
+[2026-01-12 11:55:00] - Amélioration de l'accessibilité des en-têtes de navigation
+- Décision : Ajouter des attributs ARIA (`role="navigation"`, `aria-label`) aux conteneurs d'actions dans les templates `index.html`, `quota.html`, et `settings.html`.
+- Motivation : Renforcer l'accessibilité pour les utilisateurs de lecteurs d'écran et clavier, en respectant WCAG.
+- Implication : Modifications mineures dans les templates, aucune régression fonctionnelle.
+
+[2026-01-12 12:00:00] - Réduction de la densité sur /devices avec détails pliables
+- Décision : Placer les métadonnées secondaires des appareils dans des éléments `<details>` pliables, garder primaire ID et statut visible.
+- Motivation : Améliorer la lisibilité mobile en réduisant la surcharge visuelle tout en gardant l'accès aux infos détaillées.
+- Implication : Refactorisation de `devices.html`, nouveau CSS pour les détails dans `devices.css`, externalisation du JS clipboard vers `devices.js`.
+
+[2026-01-12 12:05:00] - Feedback dynamique pour la sélection des jours dans les réglages
+- Décision : Ajouter un compteur dynamique des jours sélectionnés dans le formulaire des fenêtres horaires, via JS (`settings.js`).
+- Motivation : Fournir un retour utilisateur immédiat pour éviter les erreurs de configuration mobile.
+- Implication : Attributs `aria-describedby` et `aria-live` dans `settings.html`, CSS amélioré pour les chips, tests pour valider le comportement.
+
+[2026-01-12 12:10:00] - Externalisation des scripts JS pour performance
+- Décision : Extraire le JS inline vers des fichiers externes (`settings.js`, `devices.js`) et les inclure dans les templates respectifs.
+- Motivation : Améliorer les performances de chargement et la maintenabilité, en évitant le JS inline qui bloque le rendu.
+- Implication : Création de fichiers JS modulaires, suppression du JS inline, ajout des scripts dans les templates.
+
+[2026-01-12 12:15:00] - Tests de régression pour le bandeau quota
+- Décision : Ajouter trois tests dans `test_dashboard_routes.py` pour couvrir l'affichage du bandeau quand le seuil est atteint (= ou <), et son masquage quand désactivé.
+- Motivation : Assurer la robustesse de la nouvelle fonctionnalité et prévenir les régressions, en durcissant `_build_quota_context` pour les seuils invalides.
+- Implication : Tests avec BeautifulSoup, validation que pytest passe à 100%.
+
+- [2026-01-12 12:55:00] - Bascule Redis primaire/secondaire avec fallback automatique
+- Décision : Introduire un `FailoverStore` entre deux backends Redis (`REDIS_URL_PRIMARY` / `REDIS_URL_SECONDARY`) avec cooldown et logs `[store]`, en conservant le fallback filesystem.
+- Motivation : Absorber l'épuisement de quota Upstash (500k/mois) ou les erreurs réseau en basculant automatiquement vers un Redis secondaire.
+- Implication : `create_app()` sélectionne les URLs primaires/secondaires (compat `REDIS_URL` legacy) et injecte les stores de bascule pour settings/state. Documentation et `.env.example` mis à jour, tests dédiés ajoutés pour la bascule et le retry post-cooldown.

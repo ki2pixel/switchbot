@@ -371,6 +371,17 @@ def healthz() -> Any:
 
 @dashboard_bp.post("/settings")
 def update_settings() -> Any:
+    """Handle settings form submission and validation.
+
+    Processes form data from the settings page, validates all inputs,
+    and persists changes to the settings store.
+
+    Returns:
+        Redirect to settings page with success or error flash messages
+
+    Raises:
+        StoreError: If settings cannot be read or written
+    """
     settings_store = current_app.extensions["settings_store"]
     scheduler_service = current_app.extensions["scheduler_service"]
 
@@ -523,6 +534,14 @@ def update_settings() -> Any:
 
 @dashboard_bp.route("/actions/run_once", methods=["GET", "POST"])
 def run_once() -> Any:
+    """Execute a single automation cycle manually.
+
+    Triggers the automation service to run one complete cycle
+    of temperature monitoring and device control.
+
+    Returns:
+        Redirect to home page with success flash message
+    """
     automation_service = current_app.extensions["automation_service"]
 
     automation_service.run_once()

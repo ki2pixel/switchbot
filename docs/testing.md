@@ -440,68 +440,132 @@ python app.py
 4. **Tests automatisés**
    - Exécuter `pytest tests/test_dashboard_routes.py::test_update_settings_persists_aircon_scenes tests/test_dashboard_routes.py::test_aircon_on_winter_runs_scene_and_updates_state tests/test_dashboard_routes.py::test_aircon_off_runs_off_scene_when_configured tests/test_dashboard_routes.py::test_quick_off_prefers_scene_and_disables_automation` pour couvrir la persistance, les actions ON et OFF via scènes.
 
-### 6. Tests IFTTT Webhooks
+### Tests IFTTT Webhooks - [2026-01-11] - Mise à jour complète
 
 **Objectif** : Vérifier l'intégration complète des webhooks IFTTT avec le système de fallback cascade.
 
-1. **Configuration des webhooks**
-   - Configurer des URLs IFTTT valides (format `https://maker.ifttt.com/trigger/.../with/key/...`)
-   - Tester les URLs directement avec `curl` pour valider l'accessibilité
-   - Vérifier la validation HTTPS (HTTP doit être rejeté)
+#### 1. Configuration des webhooks
+- Configurer des URLs IFTTT valides (format `https://maker.ifttt.com/trigger/.../with/key/...`)
+- Tester les URLs directement avec `curl` pour valider l'accessibilité
+- Vérifier la validation HTTPS (HTTP doit être rejeté)
 
-2. **Exécution des webhooks**
-   - Cliquer sur les boutons de scènes (Hiver, Été, Ventilation, Arrêt)
-   - Vérifier dans les logs que le webhook est déclenché en premier
-   - Confirmer que les appels IFTTT ne consomment pas le quota API SwitchBot
+#### 2. Exécution des webhooks
+- Cliquer sur les boutons de scènes (Hiver, Été, Ventilation, Arrêt)
+- Vérifier dans les logs que le webhook est déclenché en premier
+- Confirmer que les appels IFTTT ne consomment pas le quota API SwitchBot
 
-3. **Fallback automatique**
-   - Configurer une URL IFTTT invalide et une scène SwitchBot valide
-   - Déclencher une action et vérifier le fallback vers la scène SwitchBot
-   - Supprimer la scène et vérifier le fallback vers les commandes directes
+#### 3. Fallback automatique
+- Configurer une URL IFTTT invalide et une scène SwitchBot valide
+- Déclencher une action et vérifier le fallback vers la scène SwitchBot
+- Supprimer la scène et vérifier le fallback vers les commandes directes
 
-4. **Tests automatisés**
-   ```bash
-   /mnt/venv_ext4/venv_switchbot/bin/python -m pytest tests/test_ifttt.py
-   ```
-   - Tests de validation d'URL (HTTPS obligatoire)
-   - Tests de déclenchement avec mock
-   - Tests de timeout et gestion d'erreurs
+#### 4. Tests automatisés
+```bash
+/mnt/venv_ext4/venv_switchbot/bin/python -m pytest tests/test_ifttt.py
+```
+- Tests de validation d'URL (HTTPS obligatoire)
+- Tests de déclenchement avec mock
+- Tests de timeout et gestion d'erreurs
 
-5. **Tests de logs structurés**
-   - Vérifier la présence des préfixes `[ifttt]` dans les logs
-   - Confirmer que les fallbacks sont correctement journalisés
-   - Valider la structure des logs avec métadonnées
+#### 5. Tests de logs structurés
+- Vérifier la présence des préfixes `[ifttt]` dans les logs
+- Confirmer que les fallbacks sont correctement journalisés
+- Valider la structure des logs avec métadonnées
 
-### 7. Tests de répétition OFF
+#### 6. Tests de timeout et gestion erreurs
+- Simuler un timeout IFTTT (URL lente ou inaccessible)
+- Vérifier le fallback automatique vers les scènes
+- Tester les erreurs HTTP 4xx/5xx
+- Valider les logs d'erreur structurés
+
+### Tests de répétition OFF - [2026-01-11] - Mise à jour complète
 
 **Objectif** : Valider le fonctionnement de la répétition paramétrable des commandes OFF.
 
-1. **Configuration de la répétition**
-   - Configurer `off_repeat_count: 2` et `off_repeat_interval_seconds: 10`
-   - Vérifier la persistance dans `settings.json`
+#### 1. Configuration de la répétition
+- Configurer `off_repeat_count: 2` et `off_repeat_interval_seconds: 10`
+- Vérifier la persistance dans `settings.json`
+- Tester les bornes de validation (1-10, 1-600s)
 
-2. **Exécution de la répétition**
-   - Déclencher une action OFF (automatique ou manuelle)
-   - Observer dans les logs : `[automation] Executing scheduled off repeat`
-   - Vérifier l'état dans `state.json` sous `pending_off_repeat`
+#### 2. Exécution de la répétition
+- Déclencher une action OFF (automatique ou manuelle)
+- Observer dans les logs : `[automation] Executing scheduled off repeat`
+- Vérifier l'état dans `state.json` sous `pending_off_repeat`
 
-3. **Annulation des répétitions**
-   - Déclencher une action ON pendant des répétitions OFF en attente
-   - Vérifier que les répétitions sont annulées
-   - Confirmer que `pending_off_repeat` est vidé
+#### 3. Annulation des répétitions
+- Déclencher une action ON pendant des répétitions OFF en attente
+- Vérifier que les répétitions sont annulées
+- Confirmer que `pending_off_repeat` est vidé
 
-4. **Tests automatisés**
-   ```bash
-   /mnt/venv_ext4/venv_switchbot/bin/python -m pytest tests/test_automation_service.py::test_off_repeat_parameter
-   ```
-   - Tests de planification des répétitions
-   - Tests d'annulation lors d'actions ON
-   - Tests de validation des paramètres (bornes 1-10, 1-600s)
+#### 4. Tests automatisés
+```bash
+/mnt/venv_ext4/venv_switchbot/bin/python -m pytest tests/test_automation_service.py::test_off_repeat_parameter
+```
+- Tests de planification des répétitions
+- Tests d'annulation lors d'actions ON
+- Tests de validation des paramètres (bornes 1-10, 1-600s)
 
-5. **Tests de logs de répétition**
-   - Vérifier les logs de planification : `[automation] Scheduled repeated off action`
-   - Confirmer les logs d'exécution : `[automation] Executing scheduled off repeat`
-   - Valider les logs d'annulation : `[automation] Cleared pending off repeat task`
+#### 5. Tests d'idempotence - [2026-01-12]
+- Configurer une température élevée (> seuil max + hysteresis)
+- Déclencher une action OFF (vérifier `assumed_aircon_power="off"`)
+- Tenter de redéclencher OFF : doit être ignoré avec log `Skipping winter_off: already assumed off`
+- Déclencher ON : doit réinitialiser `assumed_aircon_power="on"`
+- Vérifier que les logs sont cohérents
+
+### Tests de gestion timezone - [2026-01-12] - Mise à jour complète
+
+**Objectif** : Valider le fonctionnement timezone-aware des fenêtres horaires.
+
+#### 1. Configuration du fuseau
+- Configurer `timezone: "Europe/Paris"` (défaut)
+- Tester avec `timezone: "UTC"` et `timezone: "Europe/London"`
+- Configurer un fuseau invalide et vérifier le fallback UTC
+
+#### 2. Tests de conversion horaire
+- Configurer une fenêtre 10:00-01:00 (jour suivant)
+- Vérifier que l'automatisation fonctionne correctement à 00:30 UTC (01:30 Paris)
+- Tester les transitions horaires (été/hiver)
+
+#### 3. Tests automatisés
+```bash
+/mnt/venv_ext4/venv_switchbot/bin/python -m pytest tests/test_automation_service.py::test_timezone_handling
+```
+- Tests de validation IANA
+- Tests de conversion UTC→local
+- Tests des fenêtres horaires timezone-aware
+
+### Tests UI mobile et bandeau quota - [2026-01-12] - Mise à jour complète
+
+**Objectif** : Valider les améliorations UI/UX mobile et l'affichage du bandeau quota.
+
+#### 1. Tests du bandeau d'alerte quota
+- Configurer `api_quota_warning_threshold: 100`
+- Simuler une consommation proche du seuil
+- Vérifier l'affichage du bandeau sur la page d'accueil
+- Tester la responsivité du bandeau sur mobile
+
+#### 2. Tests de la grille status-grid
+- Tester l'affichage sur desktop (multi-colonnes)
+- Tester sur mobile (single colonne)
+- Vérifier les attributs ARIA pour accessibilité
+
+#### 3. Tests du feedback dynamique des jours
+- Sélectionner des jours dans le formulaire des fenêtres horaires
+- Vérifier le compteur live des jours sélectionnés
+- Tester `aria-live` pour lecteurs d'écran
+
+#### 4. Tests des détails pliables (/devices)
+- Ouvrir/fermer les sections `<details>` sur mobile
+- Vérifier que l'ID reste toujours visible
+- Tester le bouton de copie d'ID
+
+#### 5. Tests automatisés avec BeautifulSoup
+```bash
+/mnt/venv_ext4/venv_switchbot/bin/python -m pytest tests/test_dashboard_routes.py::test_quota_warning_display
+```
+- Tests d'affichage conditionnel du bandeau
+- Tests de présence des classes CSS mobile
+- Tests des attributs ARIA
 
 > ℹ️ Les anciens tests `test_aircon_presets.py` ont été supprimés car la logique `aircon_presets` n’existe plus (voir `memory-bank/decisionLog.md`, 2026-01-10).
 

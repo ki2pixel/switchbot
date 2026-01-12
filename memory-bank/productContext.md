@@ -58,9 +58,8 @@
 - `docs/configuration.md` et `docs/ui-guide.md` expliquent la clé `aircon_presets`, les champs disponibles et le workflow recommandé (utiliser l’UI plutôt que modifier le fichier local quand Redis est actif).
 - Des tests unitaires (paramètres + route `/settings`) garantissent la persistance et la non-régression.
 
-[2026-01-09 16:20:00] - UX mobile & formulaires guidés
+[2026-01-12 12:20:00] - Améliorations UI/UX mobile complètes
 
-- L’écran principal (`switchbot_dashboard/templates/index.html`) est orienté mobile-first : nouvelle carte Settings, gradient léger et contrôles tactiles (switchs, badges).
-- Le paramétrage des fenêtres horaires se fait via cases à cocher jour par jour (`DAY_CHOICES`) et menus déroulants 24 h (`TIME_CHOICES`) fournis par `routes.py`.
-- Les profils Winter/Summer reposent sur des dropdowns bornés (températures `TEMP_CHOICES`, modes `AC_MODE_CHOICES`, ventilation `FAN_SPEED_CHOICES`) garantissant la cohérence entre UI et validation persistée.
-- Les constantes partagées côté backend évitent les divergences avec `config/settings.json` et facilitent l’extension future (ex. pas de 0,5 °C).
+- Implémentation des 6 axes d'amélioration mobile : bandeau d'alerte quota sur la page d'accueil, refactorisation de la carte statut en grille scannable, accessibilité renforcée des en-têtes de navigation, réduction de densité sur /devices avec détails pliables, feedback dynamique pour la sélection des jours dans les réglages, et externalisation des scripts JS pour performance.
+- L'interface est désormais entièrement mobile-first, avec styles responsives, ARIA pour accessibilité (WCAG AA), et thème sombre cohérent.
+- Tests de régression ajoutés pour valider l'affichage conditionnel du bandeau quota sur l'accueil.

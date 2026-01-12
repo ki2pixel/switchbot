@@ -9,7 +9,7 @@ from redis import Redis
 from redis.exceptions import RedisError
 
 from .automation import AutomationService
-from .config_store import BaseStore, JsonStore, RedisJsonStore, StoreError
+from .config_store import BaseStore, FailoverStore, JsonStore, RedisJsonStore, StoreError
 from .ifttt import IFTTTWebhookClient
 from .routes import dashboard_bp
 from .scheduler import SchedulerService
@@ -35,10 +35,14 @@ def _build_store(
     if selected_backend != "redis":
         return _make_json_store()
 
-    redis_url = os.environ.get("REDIS_URL", "").strip()
-    if not redis_url:
+    redis_url_primary = os.environ.get("REDIS_URL_PRIMARY", "").strip()
+    redis_url_legacy = os.environ.get("REDIS_URL", "").strip()
+    redis_url = redis_url_primary or redis_url_legacy
+    redis_url_secondary = os.environ.get("REDIS_URL_SECONDARY", "").strip()
+
+    if not redis_url and not redis_url_secondary:
         app.logger.error(
-            "STORE_BACKEND=redis but REDIS_URL is missing. Falling back to filesystem for %s store.",
+            "[store] STORE_BACKEND=redis but no Redis URL configured (REDIS_URL_PRIMARY/REDIS_URL or REDIS_URL_SECONDARY). Falling back to filesystem for %s store.",
             kind,
         )
         return _make_json_store()
@@ -52,31 +56,61 @@ def _build_store(
         except ValueError:
             app.logger.warning("Invalid REDIS_TTL_SECONDS=%s. Ignoring TTL configuration.", ttl_env)
 
-    try:
-        redis_client = Redis.from_url(redis_url)
-        redis_client.ping()
-    except (RedisError, ValueError) as exc:
-        app.logger.error(
-            "Redis backend unavailable for %s store (%s). Falling back to filesystem.",
-            kind,
-            exc,
-        )
-        return _make_json_store()
-
     key = f"{redis_prefix}:{kind}"
-    store: BaseStore = RedisJsonStore(redis_client, key=key, ttl_seconds=ttl_seconds)
 
-    try:
-        store.read()
-    except StoreError as exc:
+    def _make_redis_store(redis_url_value: str, *, label: str) -> RedisJsonStore | None:
+        if not redis_url_value:
+            return None
+
+        try:
+            redis_client = Redis.from_url(redis_url_value)
+            redis_client.ping()
+        except (RedisError, ValueError) as exc:
+            app.logger.error(
+                "[store] Redis %s backend unavailable for %s store (%s)",
+                label,
+                kind,
+                exc,
+            )
+            return None
+
+        store = RedisJsonStore(redis_client, key=key, ttl_seconds=ttl_seconds)
+
+        try:
+            store.read()
+        except StoreError as exc:
+            app.logger.error(
+                "[store] Redis %s backend misconfigured for %s store (%s)",
+                label,
+                kind,
+                exc,
+            )
+            return None
+
+        return store
+
+    primary_store = _make_redis_store(redis_url, label="primary")
+    secondary_store = _make_redis_store(redis_url_secondary, label="secondary")
+
+    if primary_store is None and secondary_store is None:
         app.logger.error(
-            "Redis backend misconfigured for %s store (%s). Falling back to filesystem.",
+            "[store] Redis backend unavailable for %s store. Falling back to filesystem.",
             kind,
-            exc,
         )
         return _make_json_store()
 
-    app.logger.info("Using Redis backend for %s store (key=%s)", kind, key)
+    if primary_store is not None and secondary_store is not None:
+        store: BaseStore = FailoverStore(
+            kind=kind,
+            primary=primary_store,
+            secondary=secondary_store,
+            logger=app.logger,
+        )
+        app.logger.info("[store] Using Redis backend with failover for %s store (key=%s)", kind, key)
+        return store
+
+    store = primary_store or secondary_store
+    app.logger.info("[store] Using Redis backend for %s store (key=%s)", kind, key)
     return store
 
 

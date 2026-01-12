@@ -83,12 +83,13 @@ Ce fichier contient les réglages métier persistés :
 
 > ℹ️ **Production et conteneurs Render** : lorsque `STORE_BACKEND=redis` est activé, les fichiers `config/settings.json` et `config/state.json` empaquetés dans l'image Docker ne servent qu'à fournir des valeurs initiales. Toutes les modifications effectuées via l'interface sont écrites dans Redis et survivent aux redeploy/scale. Ne modifiez les fichiers locaux que pour préparer un premier déploiement ou dépanner hors ligne.
 
-#### Fuseau horaire (`timezone`)
+#### Fuseau horaire (`timezone`) - [2026-01-12]
 
 - **Objectif** : interpréter les fenêtres horaires (`time_windows`) dans votre fuseau (ex. heure de Paris), indépendamment du fuseau du serveur (Render est souvent en UTC).
 - **Valeur par défaut** : `Europe/Paris`
 - **Format** : identifiant IANA (ex: `Europe/Paris`, `UTC`, `Europe/London`).
 - **Validation** : si la valeur est invalide, l'interface affiche une erreur et la configuration précédente est conservée ; l'automatisation retombe explicitement sur le fuseau UTC pour continuer à fonctionner.
+- **Implémentation** : Utilise `zoneinfo` pour la validation et la conversion des heures. `run_once()` calcule l'heure actuelle dans le fuseau configuré pour évaluer les fenêtres horaires.
 
 #### Gestion du quota API (`api_quota_warning_threshold`)
 
@@ -99,7 +100,7 @@ Ce fichier contient les réglages métier persistés :
   - Configurable via l'interface utilisateur ou directement dans `settings.json`
   - Se réinitialise à minuit UTC avec le compteur de quota
 
-#### Webhooks IFTTT (priorité) + Scènes SwitchBot (fallback)
+#### Webhooks IFTTT (priorité) + Scènes SwitchBot (fallback) - [2026-01-11]
 
 Le dashboard implémente un système de **cascade à trois niveaux** pour déclencher vos actions de climatisation :
 
@@ -165,7 +166,7 @@ Le dashboard implémente un système de **cascade à trois niveaux** pour décle
 
 > 📚 **Documentation complète** : Consultez [docs/ifttt-integration.md](./ifttt-integration.md) pour un guide pas-à-pas de l'intégration IFTTT.
 
-#### Répétition OFF paramétrable
+#### Répétition OFF paramétrable - [2026-01-11]
 
 Pour garantir l'extinction fiable du climatiseur, le système peut envoyer plusieurs commandes OFF consécutives avec un intervalle configurable :
 
@@ -224,7 +225,7 @@ Pour garantir l'extinction fiable du climatiseur, le système peut envoyer plusi
 [automation] Cleared pending off repeat task
 ```
 
-#### Idempotence des actions OFF
+#### Idempotence des actions OFF - [2026-01-12]
 
 Pour éviter les déclenchements excessifs, le système implémente une protection d'idempotence basée sur l'état supposé du climatiseur (`assumed_aircon_power`) :
 
@@ -326,11 +327,23 @@ Le tableau de bord prend en charge deux modes de stockage pour les paramètres e
 | Variable | Description |
 |----------|-------------|
 | `STORE_BACKEND` | `filesystem` (par défaut) ou `redis` |
-| `REDIS_URL` | URL complète Redis (`redis://` ou `rediss://` pour TLS) |
+| `REDIS_URL_PRIMARY` | URL Redis principale (`redis://` ou `rediss://` pour TLS) |
+| `REDIS_URL_SECONDARY` | URL Redis secondaire (fallback automatique si la primaire échoue/quota épuisé) |
+| `REDIS_URL` | Legacy : URL Redis unique (utilisée si `REDIS_URL_PRIMARY` n'est pas définie) |
 | `REDIS_PREFIX` | Préfixe pour les clés (défaut : `switchbot_dashboard`) |
 | `REDIS_TTL_SECONDS` | Durée de vie des clés (optionnel) |
 | `SWITCHBOT_SETTINGS_PATH` | Chemin du fichier de configuration (mode filesystem) |
 | `SWITCHBOT_STATE_PATH` | Chemin du fichier d'état (mode filesystem) |
+
+#### Bascule automatique Redis (primary → secondary)
+
+Si `STORE_BACKEND=redis` et que **deux URLs** sont définies (`REDIS_URL_PRIMARY` + `REDIS_URL_SECONDARY`), le dashboard utilise un store de bascule :
+
+- **Priorité** : primaire puis secondaire.
+- **Déclenchement** : en cas d'erreur Redis (quota épuisé, limitation de requêtes, erreur réseau…), l'opération est retentée automatiquement sur le backend secondaire.
+- **Retour au primaire** : le système retente le primaire après une courte période de cooldown.
+
+> **ℹ️** Le fallback vers le mode `filesystem` reste géré au démarrage : si aucun backend Redis n'est disponible, l'application retombe sur les fichiers JSON.
 
 #### Recommandations de déploiement
 
@@ -356,12 +369,15 @@ Le tableau de bord prend en charge deux modes de stockage pour les paramètres e
 3. Exportez les variables d'environnement :
    ```bash
    export STORE_BACKEND=redis
-   export REDIS_URL=rediss://default:password@host:port
+   export REDIS_URL_PRIMARY=rediss://default:password@host:port
+   export REDIS_URL_SECONDARY=rediss://default:password@host2:port2
    export REDIS_PREFIX=switchbot_dashboard
    ```
 
 4. (Optionnel) Importez les données existantes :
    ```bash
+   redis-cli -u $REDIS_URL_PRIMARY SET ${REDIS_PREFIX}:settings "$(cat config/settings.json)"
+   redis-cli -u $REDIS_URL_PRIMARY SET ${REDIS_PREFIX}:state "$(cat config/state.json)"
    redis-cli -u $REDIS_URL SET ${REDIS_PREFIX}:settings "$(cat config/settings.json)"
    redis-cli -u $REDIS_URL SET ${REDIS_PREFIX}:state "$(cat config/state.json)"
    ```

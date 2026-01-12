@@ -46,6 +46,103 @@ La palette est centralisée dans `theme.css` :
 
 ## Composants globaux
 
+### Bandeau d'alerte quota - [2026-01-12]
+
+Le bandeau d'alerte s'affiche automatiquement lorsque le quota API est faible :
+
+```css
+.quota-warning-banner {
+  background: linear-gradient(135deg, var(--sb-warning), #dc2626);
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  animation: pulse-warning 2s infinite;
+}
+
+.quota-warning-banner.high {
+  background: linear-gradient(135deg, var(--sb-warning), #f59e0b);
+}
+
+.quota-warning-banner.critical {
+  background: linear-gradient(135deg, var(--sb-danger), #dc2626);
+}
+
+@keyframes pulse-warning {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+```
+
+**Responsive et accessibilité :**
+- Adaptation mobile avec `flex-wrap` sur petits écrans
+- Attributs `aria-live="polite"` pour lecteurs d'écran
+- Contraste WCAG AA respecté
+
+### Grille de statut mobile - [2026-01-12]
+
+La grille de statut utilise CSS Grid pour une meilleure adaptabilité mobile :
+
+```css
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.status-item {
+  background: var(--sb-card);
+  border: 1px solid var(--sb-border);
+  border-radius: 12px;
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.status-item:hover {
+  background: var(--sb-card-hover);
+  transform: translateY(-1px);
+}
+
+.status-item__label {
+  color: var(--sb-text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.status-item__value {
+  color: var(--sb-text);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* Mobile optimisation */
+@media (max-width: 768px) {
+  .status-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .status-item {
+    padding: 0.75rem;
+  }
+  
+  .status-item__value {
+    font-size: 1.1rem;
+  }
+}
+```
+
+**Caractéristiques :**
+- Auto-ajustement selon la largeur disponible
+- Maintien de la cohérence visuelle sur tous écrans
+- Support des attributs ARIA pour accessibilité
+
 ### Cartes (Cards)
 
 ```css

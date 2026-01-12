@@ -97,6 +97,22 @@ def _summarize_time_windows(time_windows: list[dict[str, Any]]) -> str:
 
 
 class AutomationService:
+    """Core automation service for SwitchBot device control.
+
+    Manages temperature monitoring, scene execution, and device automation
+    with timezone-aware scheduling and IFTTT webhook integration.
+
+    Attributes:
+        _settings_store: Persistent storage for configuration settings
+        _state_store: Persistent storage for runtime state
+        _client: SwitchBot API client with quota tracking
+        _ifttt_client: IFTTT webhook client for scene triggers
+        _logger: Logger instance for structured logging
+
+    Example:
+        >>> service = AutomationService(settings_store, state_store, client, ifttt_client)
+        >>> service.run_once()  # Execute one automation cycle
+    """
     def __init__(
         self,
         settings_store: BaseStore,

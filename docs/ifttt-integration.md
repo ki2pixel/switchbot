@@ -254,6 +254,80 @@ grep "fallback" /var/log/switchbot_dashboard.log
 grep -i "error\|failed" /var/log/switchbot_dashboard.log
 ```
 
+## Gestion des erreurs et timeouts
+
+### Types d'erreurs gérées
+
+Le système gère automatiquement les erreurs suivantes avec fallback approprié :
+
+- **Timeout HTTP** : Délai d'attente dépassé (10s par défaut)
+- **Erreur HTTP 4xx/5xx** : Problèmes de connexion ou de serveur IFTTT
+- **URL invalide** : Format incorrect ou protocole non-HTTPS
+- **Réseau inaccessible** : Problèmes de connectivité
+
+### Configuration des timeouts
+
+Le timeout des webhooks IFTTT est configurable via le code source :
+
+```python
+# Dans switchbot_dashboard/ifttt.py
+DEFAULT_TIMEOUT = 10  # secondes
+```
+
+**Recommandations** :
+- **5-10s** : Pour la plupart des usages (défaut : 10s)
+- **15-20s** : Si les applets IFTTT sont complexes avec des actions multiples
+- **3-5s** : Pour une réactivité maximale (risque d'échecs plus fréquents)
+
+### Logs détaillés pour le debugging
+
+Le système génère des logs structurés avec préfixes pour faciliter le diagnostic :
+
+```bash
+# Succès du webhook
+[ifttt] IFTTT webhook triggered successfully | status_code=200, url=https://maker.ifttt.com/trigger/...
+
+# Échec avec fallback
+[ifttt] IFTTT webhook failed | action_key=winter, error=timeout
+[automation] Using SwitchBot scene (webhook unavailable) | action_key=winter, scene_id=scene-w
+
+# Fallback ultime
+[automation] Scene execution failed | action_key=off, scene_id=scene-off, error=invalid_scene
+[automation] Falling back to direct command | action_key=off, device_id=aircon-1
+```
+
+### Stratégies de retry
+
+**Webhooks IFTTT** : Pas de retry automatique (fallback immédiat vers scène)
+- Raison : Les webhooks sont souvent des actions utilisateur immédiates
+- Le retry créerait une latence inutile
+
+**Scènes SwitchBot** : Retry via `SwitchBotClient` selon `SWITCHBOT_RETRY_*`
+- Gère les erreurs 429 (rate limiting) et 5xx (serveur)
+- Délai configurable via `SWITCHBOT_RETRY_DELAY_SECONDS`
+
+### Patterns d'erreurs courants
+
+#### 1. Timeout récurrent
+**Cause** : Applet IFTTT trop complexe ou serveur IFTTT surchargé
+**Solution** :
+- Simplifier l'applet IFTTT
+- Augmenter le timeout à 15-20s
+- Utiliser directement les scènes SwitchBot
+
+#### 2. HTTP 401/403
+**Cause** : Clé webhook invalide ou expirée
+**Solution** :
+- Régénérer la clé dans IFTTT → Webhooks → Settings
+- Mettre à jour l'URL dans le dashboard
+
+#### 3. HTTP 429 depuis IFTTT
+**Cause** : Trop de requêtes vers les webhooks IFTTT
+**Solution** :
+- Augmenter `poll_interval_seconds`
+- Réduire les actions manuelles
+- IFTTT a généralement des limites plus généreuses que SwitchBot
+
 ## Sécurité
 
 ⚠️ **Protection de votre clé webhook** :
@@ -261,8 +335,24 @@ grep -i "error\|failed" /var/log/switchbot_dashboard.log
 - Stockez-la de manière sécurisée (variables d'environnement si possible)
 - Si votre clé est compromise, régénérez-la dans IFTTT → Webhooks → Settings
 
+🔒 **Validation HTTPS stricte** :
+- Toutes les URLs doivent commencer par `https://`
+- Les URLs `http://` sont automatiquement rejetées
+- Validation via regex dans `ifttt.py:17-27`
+
+🛡️ **Isolation des données** :
+- Les payloads JSON ne contiennent jamais de secrets
+- Les logs n'affichent jamais les clés webhook complètes
+- Les erreurs sont tronquées pour éviter les fuites d'information
+
 ## Ressources
 
 - [Documentation IFTTT Webhooks](https://ifttt.com/maker_webhooks)
 - [Service SwitchBot sur IFTTT](https://ifttt.com/switchbot)
 - [FAQ IFTTT locale](./IFTTT/faq.md)
+- [Guide de configuration](./configuration.md)
+- [Guide UI](./ui-guide.md)
+
+---
+
+*[Dernière mise à jour : 12 janvier 2026 - Système de fallback cascade et gestion des erreurs]*

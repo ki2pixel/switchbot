@@ -79,7 +79,7 @@ Une bannière d'alerte s'affiche automatiquement lorsque le nombre de requêtes 
 - Augmentez le seuil d'alerte si nécessaire
 - Évitez les actions manuelles répétitives qui consomment des crédits
 
-## Page d'accueil (`/`)
+## Page d'accueil (`/`) - [2026-01-12]
 
 ### En-tête
 
@@ -89,6 +89,15 @@ Une bannière d'alerte s'affiche automatiquement lorsque le nombre de requêtes 
   - **Quota API** : Consommation et limites
   - **Appareils** : Gestion des équipements
 
+### Bandeau d'alerte quota - [2026-01-12]
+
+Un bandeau d'alerte s'affiche automatiquement en haut de la page d'accueil lorsque le quota API est faible :
+
+- **Déclenchement** : Quand `api_requests_remaining` ≤ `api_quota_warning_threshold`
+- **Affichage** : Bannière fixe avec couleur d'avertissement (jaune/rouge)
+- **Contenu** : Nombre de requêtes restantes, lien vers la page quota
+- **Styles** : Responsive avec thème sombre, contraste WCAG AA
+
 ### Vignette Quota API
 
 Affiche en temps réel :
@@ -97,12 +106,14 @@ Affiche en temps réel :
 - **Utilisation** : Barre de progression visuelle
 - **Réinitialisation** : Compte à rebours avant minuit UTC
 
-### Statut actuel
+### Statut actuel - Grille mobile - [2026-01-12]
 
-- **Température/Humidité** : Dernière lecture
-- **Climatisation** : État supposé (ON/OFF)
-- **Dernière action** : Commande exécutée
-- **Erreurs** : Dernier message d'erreur
+Refactorisé en grille CSS (`status-grid`) pour améliorer la scannabilité mobile :
+
+- **Structure** : Grille responsive avec items (`status-item`)
+- **Contenu** : Température/Humidité, État climatisation, Dernière action, Quota
+- **Responsive** : Auto-ajustable pour écrans de différentes tailles
+- **Accessibilité** : Attributs ARIA pour lecteurs d'écran
 
 ### Actions rapides
 
@@ -128,7 +139,7 @@ Les boutons affichent des états visuels selon la configuration :
 > - En dernier recours, elle utilise les commandes `setAll`/`turnOff` (nécessite `aircon_device_id`)
 > - Vérifiez les messages d'état pour les erreurs de configuration
 
-## Page Réglages (`/reglages`)
+## Page Réglages (`/reglages`) - [2026-01-12]
 
 ### 1. Automatisation
 
@@ -138,13 +149,14 @@ Les boutons affichent des états visuels selon la configuration :
 - **Délai entre commandes** : Protection contre les déclenchements trop rapprochés
 - **Fuseau horaire** : champ texte pour saisir un identifiant IANA (ex. `Europe/Paris`, `UTC`). En cas de valeur invalide, l'UI affiche une erreur et le backend retombe sur UTC pour continuer à appliquer les fenêtres horaires.
 
-### 2. Fenêtres horaires
+### 2. Fenêtres horaires - Feedback dynamique - [2026-01-12]
 
-Définissez les plages d'activation :
+Définissez les plages d'activation avec feedback utilisateur en temps réel :
 
-- **Jours** : Sélection multiple (lun-dim)
+- **Jours** : Sélection multiple (lun-dim) avec compteur dynamique
 - **Heure de début/fin** : Format 24h
 - **Bouton +** : Ajoute une nouvelle plage
+- **Feedback** : Compteur live des jours sélectionnés avec `aria-live`
 
 ### 3. Profils saisonniers
 
@@ -159,7 +171,7 @@ Définissez les plages d'activation :
 - Mêmes paramètres que l'hiver
 - Configuration indépendante
 
-### 4. Webhooks IFTTT
+### 4. Webhooks IFTTT - [2026-01-11]
 
 Configuration des webhooks IFTTT (priorité sur les scènes) :
 
@@ -183,7 +195,7 @@ Configuration des scènes (fallback si webhooks échouent) :
 
 > ℹ️ Les scènes doivent être créées au préalable dans l'application SwitchBot.
 
-### 6. Répétition OFF
+### 6. Répétition OFF - [2026-01-11]
 
 Configuration de la répétition des commandes OFF :
 
@@ -376,11 +388,11 @@ Affiche en temps réel :
 
 > ℹ️ **Note** : L'état affiché est une estimation basée sur la dernière commande envoyée. Pour une mise à jour en temps réel, utilisez le bouton "Run once".
 
-## Gestion des appareils (`/devices`)
+## Gestion des appareils (`/devices`) - [2026-01-12]
 
 ### Vue d'ensemble
 
-La page des appareils fournit une vue complète de votre écosystème SwitchBot :
+La page des appareils fournit une vue complète de votre écosystème SwitchBot avec une densité réduite pour mobile :
 
 - **Appareils physiques** : Compteur et détails des appareils connectés
 - **Télécommandes IR** : Gestion des appareils infrarouges contrôlés
@@ -392,28 +404,24 @@ La page des appareils fournit une vue complète de votre écosystème SwitchBot 
 - **Appareils** : Nombre total d'appareils physiques détectés
 - **Télécommandes** : Nombre de périphériques infrarouges configurés
 
-### Fiche appareil
+### Fiche appareil - Détails pliables - [2026-01-12]
 
-Chaque appareil est représenté par une carte interactive :
+Chaque appareil est représenté par une carte interactive avec détails optimisés pour mobile :
 
-#### En-tête
+#### En-tête (visible)
 - **Icône** : Représentation visuelle du type d'appareil
 - **Nom** : Identifiant personnalisable
 - **Badge** : Type de connexion (Hub, Bluetooth, etc.)
+- **ID** : Bouton de copie direct (toujours visible)
 
-#### Détails techniques
+#### Détails techniques (plier/déplier)
 - **Modèle** : Référence du matériel
 - **Version** : Numéro de firmware
 - **Batterie** : Niveau actuel (si applicable)
 - **Statut** : Connecté/déconnecté
 - **Dernière activité** : Horodatage de la dernière interaction
 
-#### Actions
-- **Copier l'ID** : Copie l'identifiant unique de l'appareil
-- **Voir les détails** : Affiche les métadonnées techniques complètes
-- **Rafraîchir** : Met à jour les informations de l'appareil
-
-> 💡 **Astuce** : Maintenez la touche `Maj` enfoncée lors du clic sur "Copier l'ID" pour ouvrir un menu contextuel avec plus d'options.
+> 💡 **Optimisation mobile** : Les métadonnées secondaires sont dans des éléments `<details>` pliables pour réduire la densité visuelle tout en gardant l'accès aux informations détaillées.
 
 ### Workflow de configuration
 
@@ -421,6 +429,16 @@ Chaque appareil est représenté par une carte interactive :
 2. Repérer la remote Air Conditioner → Copier l'ID → `aircon_device_id`
 3. Coller dans `config/settings.json`
 4. Rafraîchir la page d'accueil pour validation
+
+### Scripts externes - [2026-01-12]
+
+Pour améliorer les performances et la maintenabilité, les scripts JS sont externalisés :
+
+- **devices.js** : Gestion du clipboard et interactions des appareils
+- **settings.js** : Feedback dynamique des formulaires
+- **alerts.js** : Auto-fermeture des messages flash
+
+> 💡 **Avantages** : Chargement plus rapide, meilleur cache navigateur, code maintenable.
 
 ## Interactions et accessibilité
 

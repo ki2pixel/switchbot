@@ -82,10 +82,12 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - [Guide de l'utilisateur](ui-guide.md) - Utilisation de l'interface
 - [Référence de configuration](configuration.md) - Options avancées
 - [Guide du fuseau horaire](configuration.md#fuseau-horaire-timezone) - Paramétrage du champ `timezone` (IANA) avec fallback UTC
-- [Intégration IFTTT](ifttt-integration.md) - Configuration des webhooks IFTTT et système de fallback
+- [Intégration IFTTT](ifttt-integration.md) - Configuration des webhooks IFTTT et système de fallback cascade
 - [Guide du scheduler](scheduler.md) - Configuration et dépannage du scheduler
-- [Guide de déploiement](deployment.md) - Mise en production
+- [Guide de déploiement](deployment.md) - Mise en production avec monitoring `/healthz`
 - [Guide de tests](testing.md) - Tests manuels et unitaires
+- [Guide de thématisation](theming.md) - Styles CSS et composants UI
+- [Référence API SwitchBot](switchbot/README.md) - Documentation API v1.1
 
 ## 🚦 Statut du projet
 
@@ -127,17 +129,33 @@ Pour toute question ou problème, veuillez ouvrir une [issue](https://github.com
 
 ### Gestion des scènes
 
-Le tableau de bord utilise les scènes SwitchBot pour une configuration flexible. Voici un exemple de configuration :
+Le tableau de bord utilise les scènes SwitchBot pour une configuration flexible. Le système implémente une cascade à 3 niveaux :
+
+1. **Webhooks IFTTT** (priorité) - Ne consomme pas le quota API SwitchBot
+2. **Scènes SwitchBot** (fallback 1) - Exécution directe via API
+3. **Commandes directes** (fallback 2) - `setAll`/`turnOff` sur device IR
+
+Voici un exemple de configuration :
 
 ```python
-# Exemple de configuration de scène
+# Exemple de configuration de scènes
 {
-  "winter_scene": "1234567890abcdef1234567890abcdef",
-  "summer_scene": "abcdef1234567890abcdef1234567890",
-  "fan_scene": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
-  "off_scene": "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5"
+  "ifttt_webhooks": {
+    "winter": "https://maker.ifttt.com/trigger/switchbot_winter/with/key/YOUR_KEY",
+    "summer": "https://maker.ifttt.com/trigger/switchbot_summer/with/key/YOUR_KEY",
+    "fan": "https://maker.ifttt.com/trigger/switchbot_fan/with/key/YOUR_KEY",
+    "off": "https://maker.ifttt.com/trigger/switchbot_off/with/key/YOUR_KEY"
+  },
+  "aircon_scenes": {
+    "winter": "1234567890abcdef1234567890abcdef",
+    "summer": "abcdef1234567890abcdef1234567890",
+    "fan": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
+    "off": "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5"
+  }
 }
 ```
+
+> 💡 **Pour en savoir plus** : Consultez le guide complet [Intégration IFTTT](ifttt-integration.md) pour configurer les webhooks et comprendre le système de fallback cascade.
 
 ### Surveillance de la santé
 

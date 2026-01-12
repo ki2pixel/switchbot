@@ -157,6 +157,14 @@
 - Validation : Logs utilisateur confirment le succès (`Skipping winter_off: already assumed off`), tests pytest passés.
 - Memory Bank synchronisée (decisionLog, activeContext, progress mis à jour).
 [2026-01-12 10:33:00] - Implémentation de la gestion timezone explicite pour les fenêtres horaires d'automatisation (Europe/Paris par défaut), incluant validation UI, tests et documentation.
+[2026-01-12 12:25:00] - Implémentation des 6 axes d'améliorations UI/UX mobile
+- Bandeau d'alerte quota sur la page d'accueil (injection contexte quota, affichage conditionnel).
+- Refactorisation de la carte "Statut actuel" en grille scannable pour mobile.
+- Amélioration de l'accessibilité des en-têtes de navigation (ARIA labels).
+- Réduction de densité sur /devices avec détails pliables et externalisation JS.
+- Feedback dynamique pour la sélection des jours dans les réglages (compteur live).
+- Externalisation des scripts JS pour performance (settings.js, devices.js).
+- Ajout de tests de régression pour le bandeau quota (3 cas de test, pytest validé).
 
 ## En cours
 - Aucune tâche active.
