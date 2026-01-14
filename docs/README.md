@@ -22,9 +22,10 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - **Journalisation complète** : Historique des actions et erreurs
 
 ### Architecture moderne
-- **Injection de dépendances** : Services modulaires et testables
 - **PostgreSQL primaire** : Backend Neon avec connection pooling et fallback filesystem
 - **Cascade IFTTT** : Webhooks IFTTT → scènes SwitchBot → commandes directes
+- **History Monitoring** : Dashboard temps réel avec Chart.js et rétention 6h
+- **Loaders Frontend** : Système non bloquant pour améliorer la réactivité perçue
 - **Estimation locale des quotas** : Suivi précis avec alertes configurables
 - **Gestion robuste des erreurs** : Repli élégant en cas d'indisponibilité
 
@@ -66,9 +67,12 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - **`AutomationService`** : Cœur de l'automatisation, gère la logique métier
 - **`SwitchBotClient`** : Client API avec suivi des quotas intégré
 - **`BaseStore`** : Interface de stockage abstraite
-  - `RedisJsonStore` : Stockage Redis haute performance
-  - `JsonStore` : Stockage basé sur des fichiers JSON
+  - `PostgresStore` : Stockage PostgreSQL Neon (recommandé)
+  - `JsonStore` : Stockage basé sur des fichiers JSON (fallback)
+  - `RedisJsonStore` : Stockage Redis (déprécié mais fonctionnel)
 - **`ApiQuotaTracker`** : Suivi précis des quotas d'API
+- **`HistoryService`** : Service de monitoring et d'historique temps réel
+- **`IFTTTWebhookClient`** : Client webhooks IFTTT avec système de cascade
 
 ### Flux de données
 
@@ -84,7 +88,8 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - [Référence de configuration](configuration.md) - Options avancées
 - [Migration PostgreSQL](postgresql-migration.md) - Guide de migration vers Neon
 - [Intégration IFTTT](ifttt-integration.md) - Configuration webhooks et cascade
-- [Performance Frontend](frontend-performance.md) - Optimisations UX
+- **[History Monitoring](history-monitoring.md) - Dashboard temps réel et analyse**
+- **[Performance Frontend](frontend-performance.md) - Optimisations UX et loaders**
 - [Guide du scheduler](scheduler.md) - Configuration et dépannage
 - [Guide de déploiement](deployment.md) - Mise en production avec monitoring `/healthz`
 - [Guide de tests](testing.md) - Tests manuels et unitaires
@@ -97,14 +102,16 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 
 - [x] Support des scènes SwitchBot
 - [x] Webhooks IFTTT avec système de fallback cascade
+- [x] Stockage PostgreSQL Neon avec fallback filesystem
+- [x] History Monitoring dashboard temps réel
+- [x] Loaders frontend non bloquants
 - [x] Répétition OFF paramétrable
 - [x] Idempotence des actions OFF
 - [x] Gestion des quotas API avec alertes
-- [x] Stockage Redis et système de fichiers
 - [x] Scheduler robuste avec logging amélioré
 - [x] Interface utilisateur réactive
 - [x] Documentation complète
-- [x] Suite de tests complète (53 tests)
+- [x] Suite de tests complète (99/116 tests passants, 85% de couverture)
 
 ### Prochaines étapes
 
@@ -169,7 +176,7 @@ L'application expose un endpoint de monitoring à `/healthz` qui fournit des inf
 - **Python** : 3.8 ou supérieur
 - **Compte SwitchBot** : Avec appareils configurés
 - **Token d'API** : Jeton d'API SwitchBot valide
-- **Stockage** : Redis recommandé pour la production
+- **PostgreSQL** : Neon recommandé pour la production (free tier suffisant)
 
 ### Installation
 

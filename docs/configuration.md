@@ -360,6 +360,10 @@ POSTGRES_SSL_MODE=require
 | `SWITCHBOT_SETTINGS_PATH` | Chemin du fichier de configuration | Fallback |
 | `SWITCHBOT_STATE_PATH` | Chemin du fichier d'état | Fallback |
 
+> ⚠️ **Note** : PostgreSQL est maintenant le backend recommandé. Redis reste disponible pour compatibilité mais est considéré comme déprécié.
+> 
+> 📝 **Note historique** : Redis était le backend recommandé avant la migration PostgreSQL du 14 janvier 2026. Il reste disponible pour compatibilité mais PostgreSQL offre une architecture simplifiée et de meilleures performances.
+
 #### Recommandations de déploiement
 
 **Pour les environnements conteneurisés (Docker, Render) :**

@@ -104,7 +104,8 @@ def _build_app(
 ) -> tuple[Flask, MemoryStore, MemoryStore, DummyScheduler, ApiQuotaTracker | None]:
     project_root = Path(__file__).resolve().parents[1]
     template_folder = project_root / "switchbot_dashboard" / "templates"
-    app = Flask(__name__, template_folder=str(template_folder))
+    static_folder = project_root / "switchbot_dashboard" / "static"
+    app = Flask(__name__, template_folder=str(template_folder), static_folder=str(static_folder))
     app.secret_key = "test"
 
     settings_store = MemoryStore(initial_settings)

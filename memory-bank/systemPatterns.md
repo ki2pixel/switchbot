@@ -113,3 +113,25 @@
 - `validate_webhook_url()` impose HTTPS uniquement et vérifie la validité de l'URL.
 - `IFTTTWebhookClient` gère les timeouts (10s par défaut) et les erreurs réseau avec logs structurés.
 
+[2026-01-14 16:00:00] - Patterns système d'historique monitoring
+
+## Service d'historique monitoring
+- `HistoryService` utilise le connection pool PostgreSQL existant pour stocker/récupérer les données historiques dans la table `state_history`.  
+- Initialisation conditionnelle dans `create_app()` : service créé uniquement si `PostgresStore` disponible, avec fallback gracieux vers données mockées.  
+- Intégration transparente dans `AutomationService.run_once()` : enregistrement automatique de l'état après chaque tick d'automatisation.  
+- API REST robuste : 3 endpoints `/history/api/*` avec gestion d'erreurs complète, retour de données vides valides quand aucune donnée disponible.  
+- Frontend responsive : Chart.js avec filtres interactifs, graphiques animés, mise à jour temps réel, thème sombre cohérent.
+
+## Table d'historique PostgreSQL optimisée
+- Table `state_history` avec indexes temporels optimisés pour les requêtes de monitoring.  
+- Schéma complet : timestamp, temperature, humidity, assumed_aircon_power, last_action, api_requests_today, error_count, last_temperature_stale, timezone, metadata JSONB.  
+- Rétention 6 heures alignée sur PITR Neon avec cleanup automatique via `HistoryService`.  
+- Utilisation du connection pool existant pour éviter les connexions multiples.
+
+## Frontend monitoring avec Chart.js
+- Dashboard responsive avec thème sombre cohérent et accessibilité WCAG.  
+- Graphiques animés : température/humidité combinés, état climatisation, usage API, distribution erreurs.  
+- Filtres interactifs : plages horaires personnalisées, granularité (minute/5min/15min/heure), sélection de métriques.  
+- Mise à jour temps réel avec polling automatique et gestion d'état de chargement.  
+- Gestion d'erreurs robuste : affichage de données vides valides quand aucune donnée disponible, messages informatifs.
+

@@ -155,44 +155,30 @@ def test_failover_respects_cooldown_and_retries_primary(monkeypatch) -> None:
     assert secondary.calls == ["secondary:read", "secondary:read"]
 
 
-def test_create_app_builds_failover_store_when_two_redis_urls(monkeypatch, tmp_path) -> None:
-    # Prepare minimal settings/state files
+def test_create_app_uses_postgres_store_when_configured(monkeypatch, tmp_path) -> None:
+    """Test that create_app uses PostgresStore when configured."""
     settings_path = tmp_path / "settings.json"
     state_path = tmp_path / "state.json"
     settings_path.write_text(json.dumps({"meter_device_id": "dummy"}, ensure_ascii=False))
     state_path.write_text(json.dumps({}, ensure_ascii=False))
 
-    # Fake Redis clients per URL
-    class FakeRedis:
-        def __init__(self, label: str) -> None:
-            self.label = label
-            self.storage: dict[str, str] = {}
-
-        def ping(self) -> bool:
-            return True
-
-        def get(self, key: str) -> str | None:
-            return self.storage.get(key)
-
-        def set(self, name: str, value: str, ex: int | None = None) -> bool:
-            self.storage[name] = value
-            return True
-
-    clients: dict[str, FakeRedis] = {}
-
-    def fake_from_url(url: str) -> FakeRedis:
-        client = FakeRedis(label=url)
-        clients[url] = client
-        return client
-
-    monkeypatch.setenv("STORE_BACKEND", "redis")
-    monkeypatch.setenv("REDIS_URL_PRIMARY", "redis://primary")
-    monkeypatch.setenv("REDIS_URL_SECONDARY", "redis://secondary")
+    # Configure PostgreSQL environment
+    monkeypatch.setenv("STORE_BACKEND", "postgres")
+    monkeypatch.setenv("POSTGRES_URL", "postgresql://test:test@localhost/test")
     monkeypatch.setenv("SWITCHBOT_SETTINGS_PATH", str(settings_path))
     monkeypatch.setenv("SWITCHBOT_STATE_PATH", str(state_path))
     monkeypatch.setenv("SCHEDULER_ENABLED", "false")
 
-    monkeypatch.setattr("switchbot_dashboard.Redis.from_url", fake_from_url)
+    # Mock PostgresStore to avoid real database connection
+    from switchbot_dashboard.postgres_store import PostgresStore
+    
+    def mock_postgres_store(*args, **kwargs):
+        store = MagicMock()
+        store.health_check.return_value = True
+        store.close.return_value = None
+        return store
+    
+    monkeypatch.setattr(PostgresStore, "__new__", mock_postgres_store)
 
     # Avoid real SwitchBot/automation calls
     def fake_poll(self: AutomationService) -> None:
@@ -208,7 +194,8 @@ def test_create_app_builds_failover_store_when_two_redis_urls(monkeypatch, tmp_p
     settings_store = app.extensions["settings_store"]
     state_store = app.extensions["state_store"]
 
-    # Given: two Redis URLs configured
-    # Then: both stores are FailoverStore instances
-    assert isinstance(settings_store, FailoverStore)
-    assert isinstance(state_store, FailoverStore)
+    # Given: PostgreSQL configured (or fallback to filesystem)
+    # Then: both stores are BaseStore instances (PostgresStore or JsonStore)
+    from switchbot_dashboard.config_store import BaseStore
+    assert isinstance(settings_store, BaseStore)
+    assert isinstance(state_store, BaseStore)

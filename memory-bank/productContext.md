@@ -1,5 +1,16 @@
 [2026-01-09 15:58:00] - Initial project overview
 
+[2026-01-14 16:00:00] - Implémentation complète du système d'historique monitoring
+
+- **Dashboard d'historique complet** : Nouveau frontend responsive avec Chart.js pour visualiser les tendances de température, humidité, état climatisation et usage API.
+- **HistoryService** : Service de collecte et récupération des données avec agrégations, intégré dans AutomationService.run_once() pour enregistrement automatique.
+- **API REST** : 3 endpoints `/history/api/*` pour données filtrées, agrégats et derniers enregistrements avec gestion d'erreurs robuste.
+- **Table PostgreSQL optimisée** : `state_history` avec indexes temporels, rétention 6 heures alignée sur PITR Neon, cleanup automatique.
+- **Fonctionnalités avancées** : Graphiques animés, filtres interactifs (plages horaires, granularité, métriques), mise à jour temps réel, thème sombre cohérent.
+- **Tests et documentation** : 15+ cas de test couvrant CRUD, agrégations, erreurs, intégration ; documentation utilisateur complète dans `docs/history-monitoring.md`.
+- **Configuration** : Utilise PostgreSQL existant, variables POSTGRES_URL et STORE_BACKEND=postgres ; aucune dépendance additionnelle requise.
+- **Avantages utilisateur** : Monitoring temps réel, analyse ludique, performance optimisée, cohérence architecturale, accessibilité WCAG complète.
+
 [2026-01-14 12:45:00] - Migration PostgreSQL Neon
 
 - Architecture de stockage simplifiée : Remplacement du double backend Redis (primaire/secondaire) + fallback filesystem par PostgreSQL unique (Neon) + fallback filesystem.
