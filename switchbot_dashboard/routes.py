@@ -828,6 +828,18 @@ def history_api_data() -> Any:
         # Get historical data
         data = history_service.get_history(start, end, metrics or None, granularity, limit)
         
+        # Return empty data structure if no data found
+        if not data:
+            return {
+                "data": [],
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+                "granularity": granularity,
+                "metrics": metrics or ["timestamp", "temperature", "humidity", "assumed_aircon_power"],
+                "count": 0,
+                "message": "No historical data available yet"
+            }
+        
         return {
             "data": data,
             "start": start.isoformat(),
@@ -841,7 +853,16 @@ def history_api_data() -> Any:
         return {"error": f"Invalid parameters: {exc}"}, 400
     except Exception as exc:
         current_app.logger.error(f"[history] API error: {exc}")
-        return {"error": "Failed to retrieve historical data"}, 500
+        # Return empty data structure on error to avoid breaking the frontend
+        return {
+            "data": [],
+            "start": start.isoformat() if 'start' in locals() else dt.datetime.utcnow().isoformat(),
+            "end": end.isoformat() if 'end' in locals() else dt.datetime.utcnow().isoformat(),
+            "granularity": "minute",
+            "metrics": ["timestamp", "temperature", "humidity", "assumed_aircon_power"],
+            "count": 0,
+            "message": "Error retrieving data"
+        }
 
 
 @dashboard_bp.get("/history/api/aggregates")
@@ -876,6 +897,27 @@ def history_api_aggregates() -> Any:
             period_hours = 1
 
         aggregates = history_service.get_aggregates(period_hours)
+        
+        # Return empty aggregates if no data
+        if not aggregates:
+            return {
+                "period_hours": period_hours,
+                "aggregates": {
+                    "total_records": 0,
+                    "avg_temperature": 0,
+                    "min_temperature": 0,
+                    "max_temperature": 0,
+                    "avg_humidity": 0,
+                    "min_humidity": 0,
+                    "max_humidity": 0,
+                    "common_aircon_state": "unknown",
+                    "distinct_actions": 0,
+                    "total_errors": 0,
+                    "max_api_requests": 0
+                },
+                "message": "No historical data available yet"
+            }
+        
         return {
             "period_hours": period_hours,
             "aggregates": aggregates,
@@ -883,7 +925,24 @@ def history_api_aggregates() -> Any:
 
     except Exception as exc:
         current_app.logger.error(f"[history] Aggregates API error: {exc}")
-        return {"error": "Failed to retrieve aggregated data"}, 500
+        # Return empty aggregates on error to avoid breaking the frontend
+        return {
+            "period_hours": 1,
+            "aggregates": {
+                "total_records": 0,
+                "avg_temperature": 0,
+                "min_temperature": 0,
+                "max_temperature": 0,
+                "avg_humidity": 0,
+                "min_humidity": 0,
+                "max_humidity": 0,
+                "common_aircon_state": "unknown",
+                "distinct_actions": 0,
+                "total_errors": 0,
+                "max_api_requests": 0
+            },
+            "message": "Error retrieving data"
+        }
 
 
 @dashboard_bp.get("/history/api/latest")
@@ -924,6 +983,15 @@ def history_api_latest() -> Any:
             limit = 10
 
         latest = history_service.get_latest_records(limit)
+        
+        # Return empty latest if no data
+        if not latest:
+            return {
+                "latest": [],
+                "count": 0,
+                "message": "No historical data available yet"
+            }
+        
         return {
             "latest": latest,
             "count": len(latest),
@@ -931,4 +999,9 @@ def history_api_latest() -> Any:
 
     except Exception as exc:
         current_app.logger.error(f"[history] Latest API error: {exc}")
-        return {"error": "Failed to retrieve latest data"}, 500
+        # Return empty latest on error to avoid breaking the frontend
+        return {
+            "latest": [],
+            "count": 0,
+            "message": "Error retrieving data"
+        }
