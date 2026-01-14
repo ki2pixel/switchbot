@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Réglages · SwitchBot Dashboard</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}" />
+  </head>
+  <body class="sb-dark">
+    <div class="container py-4">
+      <header class="page-header mb-4">
+        <div class="page-header-main">
+          <h1 class="h3 mb-0">Réglages SwitchBot</h1>
+          <p class="page-subtitle text-muted mb-0">
+            Configurez les fenêtres horaires, profils hiver/été, scènes et seuils avancés.
+          </p>
+        </div>
+        <div class="page-header-actions d-flex flex-wrap gap-2" role="navigation" aria-label="Navigation principale">
+          <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.index') }}" data-loader>Retour à l'accueil</a>
+          <a class="btn btn-outline-primary" href="{{ url_for('dashboard.quota') }}" data-loader>Quota API</a>
+          <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.devices') }}" data-loader>Appareils</a>
+        </div>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mb-3" aria-live="polite" aria-atomic="true">
+            {% for category, message in messages %}
+              {% if category == 'error' %}
+                <div class="alert alert-danger" role="alert" data-auto-dismiss="6000">
+                  {{ message }}
+                </div>
+              {% else %}
+                <div class="alert alert-success" role="alert" data-auto-dismiss="6000">
+                  {{ message }}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="row g-3">
+        <div class="col-12 col-xl-9">
+          <div class="card">
+            <div class="card-header">Paramètres d'automatisation</div>
+            <div class="card-body">
+              <form method="post" action="{{ url_for('dashboard.update_settings') }}" class="settings-form" data-loader>
+                <div class="form-check form-switch mb-3">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    id="automation_enabled"
+                    name="automation_enabled"
+                    {% if settings.get('automation_enabled') %}checked{% endif %}
+                  />
+                  <label class="form-check-label" for="automation_enabled">Automatisation activée</label>
+                </div>
+
+                <div class="row g-3">
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="mode">Mode</label>
+                    <select class="form-select" id="mode" name="mode">
+                      <option value="winter" {% if settings.get('mode') == 'winter' %}selected{% endif %}>hiver</option>
+                      <option value="summer" {% if settings.get('mode') == 'summer' %}selected{% endif %}>été</option>
+                    </select>
+                  </div>
+
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="poll_interval_seconds">Intervalle de sondage (s)</label>
+                    <input
+                      class="form-control"
+                      id="poll_interval_seconds"
+                      name="poll_interval_seconds"
+                      value="{{ settings.get('poll_interval_seconds') }}"
+                      inputmode="numeric"
+                    />
+                  </div>
+
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="command_cooldown_seconds">Cooldown par défaut (s)</label>
+                    <input
+                      class="form-control"
+                      id="command_cooldown_seconds"
+                      name="command_cooldown_seconds"
+                      value="{{ settings.get('command_cooldown_seconds') }}"
+                      inputmode="numeric"
+                    />
+                    <div class="form-text">Utilisé si les champs ci-dessous sont vides.</div>
+                  </div>
+
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="action_on_cooldown_seconds">Cooldown après démarrage (s)</label>
+                    <input
+                      class="form-control"
+                      id="action_on_cooldown_seconds"
+                      name="action_on_cooldown_seconds"
+                      value="{{ settings.get('action_on_cooldown_seconds') }}"
+                      inputmode="numeric"
+                    />
+                    <div class="form-text">Recommandé : 300 s (5 min) pour laisser la pompe chauffer.</div>
+                  </div>
+
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="action_off_cooldown_seconds">Cooldown après arrêt (s)</label>
+                    <input
+                      class="form-control"
+                      id="action_off_cooldown_seconds"
+                      name="action_off_cooldown_seconds"
+                      value="{{ settings.get('action_off_cooldown_seconds') }}"
+                      inputmode="numeric"
+                    />
+                    <div class="form-text">Recommandé : 60 s pour garder un arrêt réactif.</div>
+                  </div>
+                </div>
+
+                <div class="row g-3">
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="off_repeat_count">Répétitions arrêt OFF</label>
+                    <input
+                      class="form-control"
+                      id="off_repeat_count"
+                      name="off_repeat_count"
+                      value="{{ settings.get('off_repeat_count', 1) }}"
+                      inputmode="numeric"
+                      min="1"
+                      max="10"
+                    />
+                    <div class="form-text">Nombre total d'ordres OFF envoyés (1 = aucune répétition).</div>
+                  </div>
+
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="off_repeat_interval_seconds">Intervalle entre OFF (s)</label>
+                    <input
+                      class="form-control"
+                      id="off_repeat_interval_seconds"
+                      name="off_repeat_interval_seconds"
+                      value="{{ settings.get('off_repeat_interval_seconds', 10) }}"
+                      inputmode="numeric"
+                      min="1"
+                    />
+                    <div class="form-text">Délai entre deux OFF successifs (ex. 10 s).</div>
+                  </div>
+                </div>
+
+                <div class="row g-3">
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="hysteresis_celsius">Hystérésis (°C)</label>
+                    <input
+                      class="form-control"
+                      id="hysteresis_celsius"
+                      name="hysteresis_celsius"
+                      value="{{ settings.get('hysteresis_celsius') }}"
+                    />
+                  </div>
+
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="api_quota_warning_threshold">Seuil d'alerte quota</label>
+                    <input
+                      class="form-control"
+                      id="api_quota_warning_threshold"
+                      name="api_quota_warning_threshold"
+                      type="number"
+                      min="0"
+                      max="10000"
+                      value="{{ settings.get('api_quota_warning_threshold', quota_warning_threshold) }}"
+                    />
+                    <div class="form-text">Bannière d'alerte lorsque les appels restants passent sous cette valeur.</div>
+                  </div>
+
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="timezone">Fuseau horaire</label>
+                    <input
+                      class="form-control"
+                      id="timezone"
+                      name="timezone"
+                      value="{{ settings.get('timezone', 'Europe/Paris') }}"
+                      placeholder="Europe/Paris"
+                      autocapitalize="none"
+                      autocomplete="off"
+                      spellcheck="false"
+                    />
+                    <div class="form-text">Utilisé pour interpréter les fenêtres horaires (identifiant IANA, ex: Europe/Paris, UTC).</div>
+                  </div>
+
+                  <div class="col-12">
+                    <div class="form-check mb-2">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="turn_off_outside_windows"
+                        name="turn_off_outside_windows"
+                        {% if settings.get('turn_off_outside_windows') %}checked{% endif %}
+                      />
+                      <label class="form-check-label" for="turn_off_outside_windows">Éteindre en dehors des fenêtres horaires</label>
+                    </div>
+                  </div>
+
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="meter_device_id">ID du capteur Meter</label>
+                    <input class="form-control" id="meter_device_id" name="meter_device_id" value="{{ settings.get('meter_device_id') }}" />
+                  </div>
+
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="aircon_device_id">ID de la télécommande IR</label>
+                    <input class="form-control" id="aircon_device_id" name="aircon_device_id" value="{{ settings.get('aircon_device_id') }}" />
+                    <div class="form-text">Identifiant de la télécommande infrarouge (remoteType: Air Conditioner).</div>
+                  </div>
+                </div>
+
+                <hr />
+
+                <div class="section-heading mb-2">
+                  <label class="form-label mb-0">Fenêtre horaire</label>
+                  <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis">optimisé mobile</span>
+                </div>
+                <div class="small text-muted mb-2">Sélectionnez les jours puis choisissez l'heure de début et de fin (format 24h).</div>
+                <div class="border rounded-3 p-3 mb-3 time-window-card">
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <label class="form-label d-block">Jours</label>
+                      <div class="d-flex flex-wrap gap-2">
+                        {% for day in day_choices %}
+                          <div class="form-check form-check-inline day-chip">
+                            <input
+                              class="btn-check"
+                              type="checkbox"
+                              id="day_{{ day.value }}"
+                              name="time_window_days"
+                              value="{{ day.value }}"
+                              aria-describedby="time_window_days_summary"
+                              {% if day.value in time_window_form['days'] %}checked{% endif %}
+                            />
+                            <label class="btn btn-outline-primary btn-sm" for="day_{{ day.value }}">{{ day.label }}</label>
+                          </div>
+                        {% endfor %}
+                      </div>
+                      <div id="time_window_days_summary" class="form-text" aria-live="polite">
+                        {{ time_window_form['days'] | length }} jour(s) sélectionné(s).
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label" for="time_window_start">Début</label>
+                      <select class="form-select" id="time_window_start" name="time_window_start" aria-describedby="time_window_help">
+                        <option value="">Choisir…</option>
+                        {% for choice in time_choices %}
+                          <option value="{{ choice }}" {% if time_window_form['start'] == choice %}selected{% endif %}>{{ choice }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label" for="time_window_end">Fin</label>
+                      <select class="form-select" id="time_window_end" name="time_window_end" aria-describedby="time_window_help">
+                        <option value="">Choisir…</option>
+                        {% for choice in time_choices %}
+                          <option value="{{ choice }}" {% if time_window_form['end'] == choice %}selected{% endif %}>{{ choice }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-12">
+                      <div id="time_window_help" class="form-text">
+                        Astuce : si aucun jour n'est sélectionné, la fenêtre horaire est considérée comme inactive.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <hr />
+
+                {% set winter_profile = settings.get('winter', {}) %}
+                <h2 class="h6">Profil hiver</h2>
+                <div class="row g-2 mb-3">
+                  <div class="col-4">
+                    <label class="form-label" for="winter_min_temp">Min.</label>
+                    <select class="form-select" id="winter_min_temp" name="winter_min_temp">
+                      {% for choice in temp_choices %}
+                        <option value="{{ choice.value }}" {% if (winter_profile.get('min_temp') | float) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}°C
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label" for="winter_max_temp">Max.</label>
+                    <select class="form-select" id="winter_max_temp" name="winter_max_temp">
+                      {% for choice in temp_choices %}
+                        <option value="{{ choice.value }}" {% if (winter_profile.get('max_temp') | float) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}°C
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label" for="winter_target_temp">Cible</label>
+                    <select class="form-select" id="winter_target_temp" name="winter_target_temp">
+                      {% for choice in temp_choices %}
+                        <option value="{{ choice.value }}" {% if (winter_profile.get('target_temp') | float) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}°C
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="winter_ac_mode">Mode clim</label>
+                    <select class="form-select" id="winter_ac_mode" name="winter_ac_mode">
+                      {% for choice in ac_mode_choices %}
+                        <option value="{{ choice.value }}" {% if (winter_profile.get('ac_mode') | int) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="winter_fan_speed">Vitesse ventilateur</label>
+                    <select class="form-select" id="winter_fan_speed" name="winter_fan_speed">
+                      {% for choice in fan_speed_choices %}
+                        <option value="{{ choice.value }}" {% if (winter_profile.get('fan_speed') | int) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                {% set summer_profile = settings.get('summer', {}) %}
+                <h2 class="h6">Profil été</h2>
+                <div class="row g-2">
+                  <div class="col-4">
+                    <label class="form-label" for="summer_min_temp">Min.</label>
+                    <select class="form-select" id="summer_min_temp" name="summer_min_temp">
+                      {% for choice in temp_choices %}
+                        <option value="{{ choice.value }}" {% if (summer_profile.get('min_temp') | float) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}°C
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label" for="summer_max_temp">Max.</label>
+                    <select class="form-select" id="summer_max_temp" name="summer_max_temp">
+                      {% for choice in temp_choices %}
+                        <option value="{{ choice.value }}" {% if (summer_profile.get('max_temp') | float) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}°C
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-4">
+                    <label class="form-label" for="summer_target_temp">Cible</label>
+                    <select class="form-select" id="summer_target_temp" name="summer_target_temp">
+                      {% for choice in temp_choices %}
+                        <option value="{{ choice.value }}" {% if (summer_profile.get('target_temp') | float) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}°C
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="summer_ac_mode">Mode clim</label>
+                    <select class="form-select" id="summer_ac_mode" name="summer_ac_mode">
+                      {% for choice in ac_mode_choices %}
+                        <option value="{{ choice.value }}" {% if (summer_profile.get('ac_mode') | int) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="summer_fan_speed">Vitesse ventilateur</label>
+                    <select class="form-select" id="summer_fan_speed" name="summer_fan_speed">
+                      {% for choice in fan_speed_choices %}
+                        <option value="{{ choice.value }}" {% if (summer_profile.get('fan_speed') | int) == choice.value %}selected{% endif %}>
+                          {{ choice.label }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                <div class="mt-4">
+                  <button class="btn btn-primary w-100 w-md-auto" type="submit">Enregistrer les réglages</button>
+                </div>
+
+                <hr class="my-4" />
+
+                <h2 class="h6">Webhooks IFTTT (Priorité)</h2>
+                <p class="small text-muted">
+                  Renseignez les URLs des webhooks IFTTT pour déclencher vos scènes via le cloud. Les webhooks sont prioritaires sur les scènes SwitchBot natives.
+                </p>
+                <div class="row g-3 mb-4">
+                  {% for key in aircon_scene_keys %}
+                    <div class="col-12 col-md-6">
+                      <label class="form-label" for="webhook_{{ key }}_url">{{ aircon_scene_labels[key] }}</label>
+                      <input
+                        class="form-control"
+                        id="webhook_{{ key }}_url"
+                        name="webhook_{{ key }}_url"
+                        value="{{ ifttt_webhooks[key] }}"
+                        placeholder="https://maker.ifttt.com/trigger/..."
+                        type="url"
+                      />
+                      {% if missing_webhooks[key] %}
+                        <div class="form-text text-warning">Non configuré (fallback vers scène SwitchBot)</div>
+                      {% else %}
+                        <div class="form-text text-success">Prêt</div>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+
+                <h2 class="h6">Scènes favorites SwitchBot (Fallback)</h2>
+                <p class="small text-muted">
+                  Renseignez les IDs des scènes favorites (SwitchBot → Scenes). Elles servent de fallback si les webhooks IFTTT échouent ou ne sont pas configurés.
+                </p>
+                <div class="row g-3">
+                  {% for key in aircon_scene_keys %}
+                    <div class="col-12 col-md-6 col-lg-3">
+                      <label class="form-label" for="scene_{{ key }}_id">{{ aircon_scene_labels[key] }}</label>
+                      <input
+                        class="form-control"
+                        id="scene_{{ key }}_id"
+                        name="scene_{{ key }}_id"
+                        value="{{ aircon_scenes[key] }}"
+                        placeholder="UUID scène"
+                      />
+                      {% if missing_scenes[key] %}
+                        <div class="form-text text-warning">Non configuré</div>
+                      {% else %}
+                        <div class="form-text text-success">Prêt</div>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-xl-3">
+          <div class="card h-100">
+            <div class="card-header">Résumé rapide</div>
+            <div class="card-body">
+              <dl class="row mb-0 small">
+                <dt class="col-7">Mode actuel</dt>
+                <dd class="col-5 text-end text-capitalize">{{ settings.get('mode', 'winter') }}</dd>
+
+                <dt class="col-7">Seuil alerte quota</dt>
+                <dd class="col-5 text-end">{{ quota_warning_threshold }}</dd>
+
+                <dt class="col-7">Fenêtre horaire</dt>
+                <dd class="col-5 text-end">
+                  {% if time_window_form['days'] %}
+                    {{ time_window_form['start'] or '--:--' }} → {{ time_window_form['end'] or '--:--' }}
+                  {% else %}
+                    Aucune
+                  {% endif %}
+                </dd>
+
+                <dt class="col-7">Webhooks IFTTT</dt>
+                <dd class="col-5 text-end">
+                  {{ configured_webhooks_count }} / {{ aircon_scene_keys | length }}
+                </dd>
+
+                <dt class="col-7">Scènes configurées</dt>
+                <dd class="col-5 text-end">
+                  {{ configured_scenes_count }} / {{ aircon_scene_keys | length }}
+                </dd>
+              </dl>
+              <div class="mt-3">
+                <p class="small text-muted mb-2">Besoin d'un rafraîchissement ?</p>
+                <a class="btn btn-outline-light w-100" href="{{ url_for('dashboard.index') }}">Voir l'état en temps réel</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/loaders.js') }}"></script>
+  </body>
+</html>
