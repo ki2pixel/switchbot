@@ -167,6 +167,9 @@ def create_app() -> Flask:
 
     # Initialize HistoryService if PostgreSQL is available
     history_service = None
+    app.logger.info(f"[history] Settings store type: {type(settings_store)}")
+    app.logger.info(f"[history] Is PostgresStore: {isinstance(settings_store, PostgresStore)}")
+    
     if isinstance(settings_store, PostgresStore):
         try:
             history_service = HistoryService(
@@ -176,9 +179,11 @@ def create_app() -> Flask:
             )
             app.logger.info("[history] HistoryService initialized with PostgreSQL backend")
         except Exception as exc:
-            app.logger.warning("[history] Failed to initialize HistoryService: %s", exc)
+            app.logger.error("[history] Failed to initialize HistoryService: %s", exc)
+            import traceback
+            app.logger.error(f"[history] Traceback: {traceback.format_exc()}")
     else:
-        app.logger.info("[history] HistoryService disabled: PostgreSQL backend not available")
+        app.logger.warning("[history] HistoryService disabled: PostgreSQL backend not available")
 
     automation_service = AutomationService(
         settings_store=settings_store,

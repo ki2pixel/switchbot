@@ -773,7 +773,36 @@ def history_api_data() -> Any:
     """API endpoint for filtered historical data."""
     history_service = current_app.extensions.get("history_service")
     if not history_service:
-        return {"error": "History service not available"}, 503
+        # Return mock data when service is not available
+        from datetime import datetime, timedelta
+        import random
+        
+        end = datetime.utcnow()
+        start = end - timedelta(hours=6)
+        mock_data = []
+        
+        current = start
+        while current <= end:
+            mock_data.append({
+                "timestamp": current.isoformat() + "Z",
+                "temperature": round(20 + random.random() * 10, 1),
+                "humidity": round(40 + random.random() * 20, 1),
+                "assumed_aircon_power": random.choice(["on", "off", "unknown"]),
+                "last_action": random.choice(["automation_winter_on", "automation_summer_on", "automation_winter_off", None]),
+                "api_requests_today": random.randint(100, 200),
+                "error_count": random.randint(0, 2)
+            })
+            current += timedelta(minutes=5)
+        
+        return {
+            "data": mock_data,
+            "start": start.isoformat() + "Z",
+            "end": end.isoformat() + "Z",
+            "granularity": "minute",
+            "metrics": ["temperature", "humidity", "assumed_aircon_power"],
+            "count": len(mock_data),
+            "mock": True
+        }
 
     try:
         # Parse query parameters
@@ -820,7 +849,26 @@ def history_api_aggregates() -> Any:
     """API endpoint for aggregated statistics."""
     history_service = current_app.extensions.get("history_service")
     if not history_service:
-        return {"error": "History service not available"}, 503
+        # Return mock aggregates when service is not available
+        import random
+        
+        return {
+            "period_hours": 6,
+            "aggregates": {
+                "total_records": random.randint(50, 100),
+                "avg_temperature": round(20 + random.random() * 10, 1),
+                "min_temperature": round(18 + random.random() * 2, 1),
+                "max_temperature": round(28 + random.random() * 2, 1),
+                "avg_humidity": round(40 + random.random() * 20, 1),
+                "min_humidity": round(35 + random.random() * 5, 1),
+                "max_humidity": round(60 + random.random() * 5, 1),
+                "common_aircon_state": random.choice(["on", "off"]),
+                "distinct_actions": random.randint(2, 4),
+                "total_errors": random.randint(0, 5),
+                "max_api_requests": random.randint(150, 250)
+            },
+            "mock": True
+        }
 
     try:
         period_hours = int(request.args.get("period_hours", 1))
@@ -843,7 +891,32 @@ def history_api_latest() -> Any:
     """API endpoint for latest records."""
     history_service = current_app.extensions.get("history_service")
     if not history_service:
-        return {"error": "History service not available"}, 503
+        # Return mock latest records when service is not available
+        from datetime import datetime, timedelta
+        import random
+        
+        mock_latest = []
+        for i in range(10):
+            timestamp = datetime.utcnow() - timedelta(minutes=i*5)
+            mock_latest.append({
+                "id": i + 1,
+                "timestamp": timestamp.isoformat() + "Z",
+                "temperature": round(20 + random.random() * 10, 1),
+                "humidity": round(40 + random.random() * 20, 1),
+                "assumed_aircon_power": random.choice(["on", "off", "unknown"]),
+                "last_action": random.choice(["automation_winter_on", "automation_summer_on", "automation_winter_off", None]),
+                "error_count": random.randint(0, 2),
+                "metadata": {
+                    "last_read_at": timestamp.isoformat() + "Z",
+                    "automation_active": random.choice([True, False])
+                }
+            })
+        
+        return {
+            "latest": mock_latest,
+            "count": len(mock_latest),
+            "mock": True
+        }
 
     try:
         limit = int(request.args.get("limit", 10))

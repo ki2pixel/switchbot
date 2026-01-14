@@ -280,16 +280,37 @@ class HistoryDashboard {
 
     async loadInitialData() {
         try {
-            await Promise.all([
+            const [historyData, aggregates, latestRecords] = await Promise.all([
                 this.loadHistoryData(),
                 this.loadAggregates(),
                 this.loadLatestRecords()
             ]);
+            
+            // Check if data is mocked
+            const isMockData = historyData.mock || aggregates.mock || latestRecords.mock;
+            if (isMockData) {
+                this.showMockDataWarning();
+            }
+            
             this.updateStatus('success', 'Données chargées');
         } catch (error) {
             console.error('Error loading initial data:', error);
             this.updateStatus('error', 'Erreur de chargement');
         }
+    }
+
+    showMockDataWarning() {
+        // Add a warning banner for mock data
+        const banner = document.createElement('div');
+        banner.className = 'alert alert-warning alert-dismissible fade show mb-3';
+        banner.innerHTML = `
+            <strong>⚠️ Mode démonstration</strong><br>
+            Le service d'historique n'est pas disponible. Données simulées affichées.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.querySelector('.container');
+        container.insertBefore(banner, container.firstChild);
     }
 
     async loadHistoryData() {
