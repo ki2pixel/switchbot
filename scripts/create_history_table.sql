@@ -17,9 +17,11 @@ CREATE TABLE IF NOT EXISTS state_history (
 
 -- Indexes for optimal query performance
 CREATE INDEX IF NOT EXISTS idx_state_history_timestamp ON state_history(timestamp DESC);
-CREATE INDEX IF NOT EXISTS idx_state_history_date_bucket ON state_history(date_trunc('hour', timestamp));
 CREATE INDEX IF NOT EXISTS idx_state_history_aircon_power ON state_history(assumed_aircon_power);
 CREATE INDEX IF NOT EXISTS idx_state_history_metadata ON state_history USING GIN(metadata);
+
+-- Note: We'll create the date bucket index in the application code
+-- to avoid IMMUTABLE function issues with date_trunc()
 
 -- Comment for documentation
 COMMENT ON TABLE state_history IS 'Historical monitoring data for SwitchBot dashboard (6-hour retention)';
