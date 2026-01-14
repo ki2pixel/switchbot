@@ -9,6 +9,7 @@ from flask import Flask
 from .automation import AutomationService
 from .config_store import BaseStore, JsonStore, StoreError
 from .postgres_store import PostgresStore, PostgresStoreError
+from .history_service import HistoryService
 from .ifttt import IFTTTWebhookClient
 from .routes import dashboard_bp
 from .scheduler import SchedulerService
@@ -164,11 +165,27 @@ def create_app() -> Flask:
 
     ifttt_client = IFTTTWebhookClient(timeout=10.0, logger_instance=app.logger)
 
+    # Initialize HistoryService if PostgreSQL is available
+    history_service = None
+    if isinstance(settings_store, PostgresStore):
+        try:
+            history_service = HistoryService(
+                connection_pool=settings_store._pool,
+                logger=app.logger,
+                retention_hours=6,
+            )
+            app.logger.info("[history] HistoryService initialized with PostgreSQL backend")
+        except Exception as exc:
+            app.logger.warning("[history] Failed to initialize HistoryService: %s", exc)
+    else:
+        app.logger.info("[history] HistoryService disabled: PostgreSQL backend not available")
+
     automation_service = AutomationService(
         settings_store=settings_store,
         state_store=state_store,
         switchbot_client=client,
         ifttt_client=ifttt_client,
+        history_service=history_service,
     )
 
     scheduler_service = SchedulerService(
@@ -184,6 +201,8 @@ def create_app() -> Flask:
     app.extensions["automation_service"] = automation_service
     app.extensions["scheduler_service"] = scheduler_service
     app.extensions["quota_tracker"] = quota_tracker
+    if history_service:
+        app.extensions["history_service"] = history_service
 
     app.register_blueprint(dashboard_bp)
 

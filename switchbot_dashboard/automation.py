@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
-from typing import Any
+from typing import Any, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import has_request_context, request
@@ -120,12 +120,14 @@ class AutomationService:
         switchbot_client: SwitchBotClient,
         ifttt_client: IFTTTWebhookClient,
         *,
+        history_service: Optional[Any] = None,  # HistoryService to avoid circular import
         logger: logging.Logger | None = None,
     ) -> None:
         self._settings_store = settings_store
         self._state_store = state_store
         self._client = switchbot_client
         self._ifttt_client = ifttt_client
+        self._history_service = history_service
         self._logger = logger or logging.getLogger(__name__)
 
     def _update_state(self, **updates: Any) -> None:
@@ -887,3 +889,11 @@ class AutomationService:
             outcome = "no_action"
 
         self._log_tick_completion(trigger, outcome=outcome)
+        
+        # Record state in history if history service is available
+        if self._history_service:
+            try:
+                current_state = self._state_store.read()
+                self._history_service.record_state(current_state, timezone_name)
+            except Exception as exc:
+                self._warning("Failed to record state in history", trigger=trigger, error=str(exc))

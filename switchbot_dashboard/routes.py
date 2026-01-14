@@ -760,3 +760,102 @@ def quick_off() -> Any:
         flash_label="Automatisation désactivée et climatisation éteinte.",
         assumed_power="off",
     )
+
+
+@dashboard_bp.get("/history")
+def history_page() -> str:
+    """Render the history monitoring dashboard page."""
+    return render_template("history.html")
+
+
+@dashboard_bp.get("/history/api/data")
+def history_api_data() -> Any:
+    """API endpoint for filtered historical data."""
+    history_service = current_app.extensions.get("history_service")
+    if not history_service:
+        return {"error": "History service not available"}, 503
+
+    try:
+        # Parse query parameters
+        start_str = request.args.get("start")
+        end_str = request.args.get("end")
+        metrics = request.args.getlist("metrics")
+        granularity = request.args.get("granularity", "minute")
+        limit = int(request.args.get("limit", 1000))
+
+        # Default to last 6 hours if no time range specified
+        if not start_str or not end_str:
+            end = dt.datetime.now(dt.timezone.utc)
+            start = end - dt.timedelta(hours=6)
+        else:
+            start = dt.datetime.fromisoformat(start_str.replace("Z", "+00:00"))
+            end = dt.datetime.fromisoformat(end_str.replace("Z", "+00:00"))
+
+        # Validate granularity
+        valid_granularities = ["minute", "5min", "15min", "hour"]
+        if granularity not in valid_granularities:
+            granularity = "minute"
+
+        # Get historical data
+        data = history_service.get_history(start, end, metrics or None, granularity, limit)
+        
+        return {
+            "data": data,
+            "start": start.isoformat(),
+            "end": end.isoformat(),
+            "granularity": granularity,
+            "metrics": metrics or ["timestamp", "temperature", "humidity", "assumed_aircon_power"],
+            "count": len(data),
+        }
+
+    except ValueError as exc:
+        return {"error": f"Invalid parameters: {exc}"}, 400
+    except Exception as exc:
+        current_app.logger.error(f"[history] API error: {exc}")
+        return {"error": "Failed to retrieve historical data"}, 500
+
+
+@dashboard_bp.get("/history/api/aggregates")
+def history_api_aggregates() -> Any:
+    """API endpoint for aggregated statistics."""
+    history_service = current_app.extensions.get("history_service")
+    if not history_service:
+        return {"error": "History service not available"}, 503
+
+    try:
+        period_hours = int(request.args.get("period_hours", 1))
+        if period_hours < 1 or period_hours > 24:
+            period_hours = 1
+
+        aggregates = history_service.get_aggregates(period_hours)
+        return {
+            "period_hours": period_hours,
+            "aggregates": aggregates,
+        }
+
+    except Exception as exc:
+        current_app.logger.error(f"[history] Aggregates API error: {exc}")
+        return {"error": "Failed to retrieve aggregated data"}, 500
+
+
+@dashboard_bp.get("/history/api/latest")
+def history_api_latest() -> Any:
+    """API endpoint for latest records."""
+    history_service = current_app.extensions.get("history_service")
+    if not history_service:
+        return {"error": "History service not available"}, 503
+
+    try:
+        limit = int(request.args.get("limit", 10))
+        if limit < 1 or limit > 100:
+            limit = 10
+
+        latest = history_service.get_latest_records(limit)
+        return {
+            "latest": latest,
+            "count": len(latest),
+        }
+
+    except Exception as exc:
+        current_app.logger.error(f"[history] Latest API error: {exc}")
+        return {"error": "Failed to retrieve latest data"}, 500
