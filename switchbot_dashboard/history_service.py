@@ -58,7 +58,6 @@ class HistoryService:
                 metadata JSONB DEFAULT '{}'
             );
             CREATE INDEX IF NOT EXISTS idx_state_history_timestamp ON state_history(timestamp DESC);
-            CREATE INDEX IF NOT EXISTS idx_state_history_date_bucket ON state_history(DATE(timestamp));
             CREATE INDEX IF NOT EXISTS idx_state_history_aircon_power ON state_history(assumed_aircon_power);
             CREATE INDEX IF NOT EXISTS idx_state_history_metadata ON state_history USING GIN(metadata);
         """)
