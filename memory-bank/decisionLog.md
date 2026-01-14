@@ -231,3 +231,36 @@
 - Décision : Introduire un `FailoverStore` entre deux backends Redis (`REDIS_URL_PRIMARY` / `REDIS_URL_SECONDARY`) avec cooldown et logs `[store]`, en conservant le fallback filesystem.
 - Motivation : Absorber l'épuisement de quota Upstash (500k/mois) ou les erreurs réseau en basculant automatiquement vers un Redis secondaire.
 - Implication : `create_app()` sélectionne les URLs primaires/secondaires (compat `REDIS_URL` legacy) et injecte les stores de bascule pour settings/state. Documentation et `.env.example` mis à jour, tests dédiés ajoutés pour la bascule et le retry post-cooldown.
+
+[2026-01-12 18:55:00] - Correction fuseau affichage « Dernière lecture »
+- Ajout de helpers timezone dans `switchbot_dashboard/routes.py` pour convertir `state.last_read_at` du stockage UTC vers le fuseau paramétré (Europe/Paris par défaut, fallback UTC).
+- Mise à jour de `index()` pour rendre une copie `state_for_view` avec l'horodatage localisé sans modifier la persistance.
+- Ajout de quatre tests de régression (`tests/test_dashboard_routes.py`) couvrant fuseau valide, timezone invalide, suffixe `Z` et timestamps naïfs, garantissant la conversion affichée.
+
+[2026-01-12 19:58:00] - Implémentation complète du système de loaders frontend
+- Décision : Implémenter un système de loaders non bloquants pour améliorer la réactivité perçue lors des actions utilisateur (latences de 0.5-1s sur boutons et navigation).
+- Motivation : L'interface "freeze" pendant les soumissions POST et navigations, créant une mauvaise UX. Les loaders fournissent un feedback visuel immédiat.
+- Architecture :
+  - Loader local sur boutons (overlay avec spinner, texte "Chargement...")
+  - Loader global plein écran pour soumissions et navigation (backdrop blur, spinner centré)
+  - Gestion automatique des timeouts et états ARIA
+  - Intégration dans tous les templates (forms et liens data-loader)
+- Implémentation :
+  - `static/js/loaders.js` : Gestion des loaders, prévention default, délais avant soumission/navigation
+  - `static/css/theme.css` : Styles pour .sb-global-loader et animations GPU
+  - Templates : data-loader ajouté sur tous les formulaires POST et liens de navigation
+- Tests : `tests/test_frontend_loaders.py` (5 tests unitaires validés)
+- Documentation : `docs/frontend-performance.md` complet
+- Validation : Loaders visibles et fonctionnels, tests pytest 5/5 passés pytest passe à 100%.
+
+[2026-01-14 12:45:00] - Migration complète vers PostgreSQL Neon
+- Décision : Migrer l'architecture de stockage double Redis (primaire/secondaire) + fallback filesystem vers PostgreSQL unique (Neon) + fallback filesystem.
+- Motivation : Simplifier l'infrastructure (-2 backends), réduire les coûts (Neon free tier suffisant), améliorer la fiabilité (un seul point de défaillance), et bénéficier des fonctionnalités avancées (JSONB, PITR 6h, extensions).
+- Implémentation :
+  - Création de `PostgresStore` respectant l'interface `BaseStore`
+  - Connection pooling via `psycopg_pool.ConnectionPool`
+  - Script de migration automatique avec validation et dry-run
+  - Tests unitaires complets (15+ cas de test)
+  - Documentation exhaustive (`docs/postgresql-migration.md`)
+- Configuration : `STORE_BACKEND=postgres` par défaut, variables `POSTGRES_URL` et `POSTGRES_SSL_MODE` ajoutées
+- Impact : Architecture simplifiée, coût prévisible (0$), compatibilité Redis conservée (déprécié), fallback filesystem maintenu

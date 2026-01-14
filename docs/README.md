@@ -23,16 +23,17 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 
 ### Architecture moderne
 - **Injection de dépendances** : Services modulaires et testables
-- **Multi-backend de stockage** : Redis ou système de fichiers
-- **Estimation locale des quotas** : Même sans en-têtes de taux
+- **PostgreSQL primaire** : Backend Neon avec connection pooling et fallback filesystem
+- **Cascade IFTTT** : Webhooks IFTTT → scènes SwitchBot → commandes directes
+- **Estimation locale des quotas** : Suivi précis avec alertes configurables
 - **Gestion robuste des erreurs** : Repli élégant en cas d'indisponibilité
 
 ## ⚙️ Prérequis
 
 - **Python** : 3.8 ou supérieur
 - **Compte SwitchBot** : Avec appareils configurés
+- **PostgreSQL** : Neon recommandé pour la production (free tier suffisant)
 - **Token d'API** : Jeton d'API SwitchBot valide
-- **Stockage** : Redis recommandé pour la production
 
 ## 🛠 Installation
 
@@ -81,9 +82,10 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - [Guide d'installation](setup.md) - Configuration détaillée
 - [Guide de l'utilisateur](ui-guide.md) - Utilisation de l'interface
 - [Référence de configuration](configuration.md) - Options avancées
-- [Guide du fuseau horaire](configuration.md#fuseau-horaire-timezone) - Paramétrage du champ `timezone` (IANA) avec fallback UTC
-- [Intégration IFTTT](ifttt-integration.md) - Configuration des webhooks IFTTT et système de fallback cascade
-- [Guide du scheduler](scheduler.md) - Configuration et dépannage du scheduler
+- [Migration PostgreSQL](postgresql-migration.md) - Guide de migration vers Neon
+- [Intégration IFTTT](ifttt-integration.md) - Configuration webhooks et cascade
+- [Performance Frontend](frontend-performance.md) - Optimisations UX
+- [Guide du scheduler](scheduler.md) - Configuration et dépannage
 - [Guide de déploiement](deployment.md) - Mise en production avec monitoring `/healthz`
 - [Guide de tests](testing.md) - Tests manuels et unitaires
 - [Guide de thématisation](theming.md) - Styles CSS et composants UI
@@ -123,7 +125,7 @@ Pour toute question ou problème, veuillez ouvrir une [issue](https://github.com
 
 ---
 
-*Dernière mise à jour : 10 janvier 2025*
+*Dernière mise à jour : 14 janvier 2026*
 
 ## 🔍 Aperçu technique
 

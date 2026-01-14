@@ -3,98 +3,54 @@ description: Docs Updater (Context-Aware with Code Verification)
 ---
 
 # Workflow: Docs Updater (Context-Aware with Code Verification)
-# Commande: /docs-updater
-# Description: Analyse la Memory Bank, inspecte le code source impacté, et met à jour TOUTE la documentation associée.
 
-actions:
-  # ÉTAPE 1 : Extraire le résumé des changements récents depuis la Memory Bank.
-  - tool: memory_bank_reader
-    description: "Lire les fichiers de la `memory-bank` pour extraire un résumé des changements les plus récents."
-    input:
-      context_files:
-        - "progress.md"
-        - "decisionLog.md"
-        - "productContext.md"
-        - "systemPatterns.md"
-    output: RECENT_CHANGES_SUMMARY
+## Étape 0 · Préambule
+- Se conformer aux règles globales (Memory Bank, coding standards, test strategy) avant toute action.
+- N'utiliser que les outils autorisés : `read_file`, `find_by_name`, `list_dir`, `code_search`, `grep_search`, `apply_patch`, `write_to_file`, etc. Éviter `run_command` lorsqu'un outil spécialisé existe.
 
-  # ÉTAPE 2 : Lister les fichiers de documentation pour connaître la structure actuelle.
-  - tool: file_lister
-    description: "Lister tous les fichiers du répertoire /docs (structure complète de la documentation)."
-    input: "./docs"
-    output: DOCS_FILE_STRUCTURE
+## Étape 1 · Acquisition du Contexte (Pourquoi ?)
+1. Utiliser `read_file` pour charger **progress.md**, **decisionLog.md**, **productContext.md**, **systemPatterns.md**.
+2. Synthétiser mentalement les décisions et fonctionnalités récentes.
 
-  # ÉTAPE 3 (HYPOTHÈSE) : L'IA identifie les fichiers de code source pertinents à inspecter.
-  - tool: ai_impact_assessor
-    description: "À partir du résumé des changements, déduire une liste de fichiers de code source à inspecter pour vérification."
-    prompt: |
-      En tant qu'architecte logiciel, analyse le résumé des changements récents ci-dessous.
-      Ton unique objectif est de déduire et de lister les fichiers de code source (ex: .py, .js, html, css) qui ont probablement été modifiés pour implémenter ces changements.
-      Ne donne aucune explication. Réponds uniquement avec une liste de chemins de fichiers au format JSON.
+## Étape 2 · Cartographie de la Documentation (Qu'est déjà documenté ?)
+1. Inventorier la structure de `docs/` via `find_by_name` (ex. `find_by_name docs --pattern "**/*.md"`) ou, pour une vision hiérarchique rapide, `list_dir` sur les sous-dossiers pertinents.
+2. Identifier les fichiers candidats à la mise à jour.
 
-      Exemple de réponse :
-      ["app.py", "admin.html", "index.html"]
+## Étape 3 · Inspection du Code Source (Quoi ?)
+1. À partir des informations de l'Étape 1, cibler les modules/fichiers impactés.
+2. Utiliser `code_search` pour localiser les portions pertinentes, puis `read_file` pour les analyser précisément. Compléter avec `grep_search` si nécessaire.
+3. Vérifier signatures, docstrings, logique métier, et comparer avec l'état de la documentation.
 
-      ---
-      **RÉSUMÉ DES CHANGEMENTS RÉCENTS :**
-      ```
-      {{ RECENT_CHANGES_SUMMARY }}
-      ```
-    output: IMPACTED_FILES_LIST
+## Étape 4 · Triangulation
+Sans outils, croiser :
+- **Pourquoi** (Memory Bank)
+- **Quoi** (code source inspecté)
+- **Existant** (structure docs)
 
-  # ÉTAPE 4 (COLLECTE) : Lire le contenu des fichiers de code source identifiés.
-  - tool: file_reader
-    description: "Lire et concaténer le contenu des fichiers de code source spécifiés."
-    input:
-      files: "{{ IMPACTED_FILES_LIST }}"
-    output: IMPACTED_FILES_CONTENT
+Questions clés :
+- La doc reflète-t-elle encore les comportements actuels ?
+- Des signatures ou paramètres ont-ils changé ?
+- Des patterns récents (systemPatterns) manquent-ils dans les guides ?
 
-  # ÉTAPE 5 (SYNTHÈSE) : L'IA croise toutes les informations pour générer les suggestions finales.
-  - tool: ai_doc_analyzer_final
-    description: "Analyser le résumé des changements, le contenu du code source et la structure des documents pour proposer des mises à jour complètes."
-    prompt: |
-      En tant qu'architecte technique méticuleux, ta mission finale est de garantir la parfaite cohérence entre les évolutions du projet et sa documentation.
+## Étape 5 · Rapport final / Plan de mise à jour
+Rédiger (Markdown) :
 
-      Tu disposes de trois sources d'information cruciales :
-      1.  **LE POURQUOI (Résumé des changements)** : Le contexte de haut niveau expliquant les modifications récentes.
-      2.  **LE QUOI (Contenu du code source)** : Le code des fichiers qui ont été identifiés comme impactés.
-      3.  **L'EXISTANT (Structure de la documentation)** : La liste des fichiers de documentation actuels.
+```
+## 📚 Assistant de Documentation (Analyse Triangulée)
 
-      Ton processus de raisonnement doit être le suivant :
-      1.  **Analyse le contenu du code source (`IMPACTED_FILES_CONTENT`)** pour identifier les changements concrets : fonctions ajoutées/modifiées, paramètres changés, logique métier altérée.
-      2.  **Mets en relation ces changements concrets avec le résumé de haut niveau (`RECENT_CHANGES_SUMMARY`)**. Cela te permet de comprendre l'intention derrière chaque modification de code.
-      3.  **Compare ces informations avec la structure de la documentation (`DOCS_FILE_STRUCTURE`)**. Identifie précisément les documents dans `/docs` qui sont maintenant obsolètes ou incomplets.
-      4.  **Vérifie les docstrings** dans le code fourni. Sont-elles toujours alignées avec la signature et le comportement des fonctions ?
-      5.  **Rédige des suggestions précises et actionnables**. Pour chaque incohérence, propose une mise à jour claire. Fais référence aux fonctions ou aux fichiers spécifiques si nécessaire.
+### 1. Diagnostic des Changements
+[Résumé]
 
-      Présente tes conclusions finales sous forme de liste à puces.
+### 2. Preuves du Code (Code Evidence)
+- `@chemin#Lx-Ly` : divergence constatée
 
-      ---
-      **1. RÉSUMÉ DES CHANGEMENTS (LE POURQUOI) :**
-      ```
-      {{ RECENT_CHANGES_SUMMARY }}
-      ```
+### 3. Plan de Mise à Jour
+#### 📄 Fichier : docs/xxx.md
+- **Problème identifié** : ...
+- **Suggestion précise** :
+  ```markdown
+  [Texte ou diff conceptuel]
+  ```
+```
 
-      **2. CONTENU DU CODE SOURCE IMPACTÉ (LE QUOI) :**
-      ```
-      {{ IMPACTED_FILES_CONTENT }}
-      ```
-
-      **3. STRUCTURE DE LA DOCUMENTATION (L'EXISTANT) :**
-      ```
-      {{ DOCS_FILE_STRUCTURE }}
-      ```
-    output: COMPREHENSIVE_DOCS_SUGGESTIONS
-
-  # ÉTAPE 6 : Afficher le résultat final.
-  - tool: github_commenter
-    description: "Présenter les suggestions de mise à jour de la documentation."
-    prompt: |
-      ## 📚 Assistant de Documentation (Analyse Complète) 📚
-
-      Après avoir analysé les dernières décisions de la Memory Bank et inspecté le code source concerné, voici mes suggestions pour garder toute la documentation synchronisée :
-
-      {{ COMPREHENSIVE_DOCS_SUGGESTIONS }}
-
-      ---
-      *Ces suggestions sont basées à la fois sur le contexte du projet et sur le contenu réel du code. Veuillez les examiner pour assurer la cohérence globale.*
+Conclure en demandant confirmation avant toute modification (`apply_patch` ou `write_to_file`).

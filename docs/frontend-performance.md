@@ -91,6 +91,38 @@ Ajout de l'attribut `data-loader` sur :
 - **Timeout de 2 secondes** pour les liens
 - **Indication visuelle** pendant le chargement de page
 
+## Frontend Loaders System
+
+The dashboard implements a non-blocking loader system to improve perceived responsiveness during user actions (0.5-1s delays on buttons/navigation).
+
+### Implementation
+- **JavaScript**: `static/js/loaders.js` handles:
+  - Button-level loaders (local overlay with spinner)
+  - Full-page loaders for form submissions/navigation
+  - Automatic timeout handling (5s forms, 3s actions, 2s navigation)
+  - ARIA state management (`aria-busy`, `aria-hidden`)
+
+- **CSS**: `static/css/theme.css` provides:
+  - GPU-optimized animations using `transform` and `opacity`
+  - Semi-transparent backdrop with blur effect
+  - Themed spinner using CSS variables
+
+- **Templates**:
+  - All POST forms include `data-loader` attribute
+  - Navigation links triggering loaders marked appropriately
+  - Consistent visual feedback across all pages
+
+### Accessibility
+- WCAG AA compliant contrast ratios
+- Keyboard focus management during loading states
+- Screen reader announcements via ARIA attributes
+
+### Testing
+See `tests/test_frontend_loaders.py` for:
+- Loader visibility tests
+- Timeout handling verification
+- Accessibility compliance checks
+
 ## Accessibilité
 
 ### Attributs ARIA

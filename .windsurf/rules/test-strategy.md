@@ -1,7 +1,7 @@
 ---
 trigger: model_decision
 description: Applied when implementing or modifying test code. Rules for creating test perspective tables (equivalence partitioning/boundary values), Given/When/Then format, and coverage targets
-globs:
+globs: 
 ---
 
 ## Test Strategy Rules
@@ -12,12 +12,13 @@ These rules define the testing process that must be followed when implementing o
 
 ## 1. Test Perspective Table (Equivalence Partitioning / Boundary Values)
 
-1. Before starting any test work, you must first present a "test perspectives table" in Markdown format.
-2. The table must include at least the following columns: `Case ID`, `Input / Precondition`, `Perspective (Equivalence / Boundary)`, `Expected Result`, `Notes`.
-3. Rows must cover normal cases, error cases, and boundary value cases. For boundary values, include at minimum `0 / minimum / maximum / ±1 / empty / NULL`.
-   Boundary value candidates (0 / minimum / maximum / ±1 / empty / NULL) that have no meaning in the specification may be omitted with the reason stated in `Notes`.
-4. If you notice missing perspectives later, update the table after self-review and add necessary cases.
-5. Note that for minor modifications to existing tests (message adjustments, minor expected value corrections, etc.) where no new branches or constraints are added, creating/updating the test perspective table is optional.
+1. **Design Phase:** Before implementing code, generate a "test perspectives table" in Markdown format to ensure comprehensive coverage.
+2. **Non-Blocking Workflow:** **Do not pause** for user confirmation after presenting the table. Proceed immediately to Step 2 (Implementation) within the same response, unless you identify critical ambiguities requiring user input.
+3. The table must include at least: `Case ID`, `Input / Precondition`, `Perspective (Equivalence / Boundary)`, `Expected Result`, `Notes`.
+4. Rows must cover normal cases, error cases, and boundary value cases. For boundary values, include at minimum `0 / minimum / maximum / ±1 / empty / NULL`.
+   Boundary value candidates that have no meaning in the specification may be omitted with the reason stated in `Notes`.
+5. **Self-Correction:** Use the generated table as a checklist during implementation. If you discover new cases while coding, verify that your code covers them, even if you don't update the displayed table text immediately.
+6. Note: For minor modifications (message adjustments, etc.), creating the table is optional.
 
 ### Template Example
 
@@ -91,4 +92,3 @@ Write comments directly above the test code or within steps to keep the scenario
 ---
 
 Follow this rule and always self-check for missing perspectives before designing and implementing tests.
-

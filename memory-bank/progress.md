@@ -170,5 +170,21 @@
 - Mise à jour de `index()` pour rendre une copie `state_for_view` avec l'horodatage localisé sans modifier la persistance.
 - Ajout de quatre tests de régression (`tests/test_dashboard_routes.py`) couvrant fuseau valide, timezone invalide, suffixe `Z` et timestamps naïfs, garantissant la conversion affichée.
 
+[2026-01-12 19:58:00] - Implémentation complète du système de loaders frontend
+- Système de loaders non bloquants pour améliorer la réactivité perçue (latences 0.5-1s sur boutons/navigation)
+- Loader local sur boutons + global plein écran pour soumissions/navigations
+- Gestion timeouts, ARIA, intégration complète dans templates
+- Tests unitaires `tests/test_frontend_loaders.py` (5/5 passés)
+- Documentation `docs/frontend-performance.md`
+
+[2026-01-14 12:45:00] - Migration complète Redis vers Neon PostgreSQL
+- Architecture PostgreSQL implémentée avec PostgresStore respectant BaseStore
+- Connection pooling via psycopg_pool, schéma JSONB optimisé
+- Script migration automatique avec validation et dry-run
+- Intégration application avec fallback filesystem conservé
+- Tests unitaires complets (15+ cas) et documentation exhaustive
+- Configuration .env.example et docs/configuration.md mis à jour
+- Avantages : simplification architecture (-2 backends), coût 0$ (Neon free tier), fonctionnalités avancées (JSONB, PITR)
+
 ## En cours
 - Aucune tâche active.

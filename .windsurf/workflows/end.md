@@ -2,14 +2,20 @@
 description: Terminer la Session et Synchroniser la Memory Bank
 ---
 
-# Terminer la Session et Synchroniser la Memory Bank
+## Workflow `/end`
 
-description: Analyse la conversation de la session actuelle, met à jour la Memory Bank de manière exhaustive, puis nettoie le contexte actif pour la prochaine session.
-
----
-
-1.  Follow the protocol in your rules.
-2.  Now, execute the "UMB" (Update Memory Bank) command as defined in the rules. This involves halting the current task, acknowledging the update, and thoroughly reviewing the entire chat history of this session to synchronize all core memory bank files (`productContext.md`, `activeContext.md`, `systemPatterns.md`, `decisionLog.md`, `progress.md`).
-3.  Based on the final state of `progress.md`, summarize the tasks that were completed during this session.
-4.  Update the `progress.md` file one last time: move the completed tasks to the "Terminé" section with a new timestamp, and set the "En cours" section to "Aucune tâche active."
-5.  Finally, reset the `activeContext.md` file to its neutral, "waiting" state for the next session. Respond with a confirmation message that the memory bank is synchronized and you are ready for the next session.
+1. **Arrêt du travail en cours**  
+   - Annoncer l'activation du mode `UMB` et stopper toute autre tâche.
+2. **Chargement de la Memory Bank**  
+   - Utiliser `read_file` pour relire systématiquement `productContext.md`, `activeContext.md`, `systemPatterns.md`, `decisionLog.md` et `progress.md` avant toute mise à jour.
+3. **Analyse de la session**  
+   - Passer en revue l'historique de la conversation (mémoire interne) et dresser la liste des décisions/progrès à synchroniser.
+4. **Mise à jour des fichiers**  
+   - Employer `edit`/`multi_edit` (via `apply_patch`) ou `write_to_file` selon le besoin pour consigner :  
+     - Nouvelles entrées dans `progress.md` (section "Terminé" + remise à "Aucune tâche active").  
+     - Ajustements dans `activeContext.md` (retour à l'état neutre).  
+     - Toute décision ou information pertinente dans les autres fichiers de la Memory Bank.  
+   - Utiliser `grep_search` si nécessaire pour vérifier la présence d'anciennes entrées et éviter les doublons.
+5. **Résumé final**  
+   - Synthétiser les tâches accomplies en se basant sur `progress.md` mis à jour.  
+   - Confirmer à l'utilisateur que la Memory Bank est synchronisée et prête pour la prochaine session.

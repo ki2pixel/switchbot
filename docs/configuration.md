@@ -81,7 +81,7 @@ Ce fichier contient les réglages métier persistés :
 }
 ```
 
-> ℹ️ **Production et conteneurs Render** : lorsque `STORE_BACKEND=redis` est activé, les fichiers `config/settings.json` et `config/state.json` empaquetés dans l'image Docker ne servent qu'à fournir des valeurs initiales. Toutes les modifications effectuées via l'interface sont écrites dans Redis et survivent aux redeploy/scale. Ne modifiez les fichiers locaux que pour préparer un premier déploiement ou dépanner hors ligne.
+> ℹ️ **Production et conteneurs Render** : lorsque `STORE_BACKEND=postgres` ou `redis` est activé, les fichiers `config/settings.json` et `config/state.json` empaquetés dans l'image Docker ne servent qu'à fournir des valeurs initiales. Toutes les modifications effectuées via l'interface sont écrites dans PostgreSQL/Redis et survivent aux redeploy/scale. Ne modifiez les fichiers locaux que pour préparer un premier déploiement ou dépanner hors ligne.
 
 #### Fuseau horaire (`timezone`) - [2026-01-12]
 
@@ -164,7 +164,8 @@ Le dashboard implémente un système de **cascade à trois niveaux** pour décle
 
 > ⚠️ **Sécurité** : Ne partagez jamais votre clé webhook IFTTT publiquement. Si elle est compromise, régénérez-la dans IFTTT → Webhooks → Settings.
 
-> 📚 **Documentation complète** : Consultez [docs/ifttt-integration.md](./ifttt-integration.md) pour un guide pas-à-pas de l'intégration IFTTT.
+> 📚 **Documentation complète** : Consultez [docs/ifttt-integration.md](./ifttt-integration.md) pour le guide pas-à-pas complet de l'intégration IFTTT, exemples d'applets et dépannage.
+> 📚 **Migration PostgreSQL** : Voir [docs/postgresql-migration.md](./postgresql-migration.md) pour migrer depuis Redis/JSON vers Neon.
 
 #### Répétition OFF paramétrable - [2026-01-11]
 
@@ -318,45 +319,70 @@ curl -s https://votre-instance-render.com/healthz | jq '.status == "ok" and .sch
 
 > 💡 **Astuce** : En production, configurez votre outil de monitoring (Prometheus, Datadog, etc.) pour interroger cet endpoint et alerter en cas de problème.
 
-### 3. Stockage persistant (Redis ou fichiers)
+### 3. Stockage persistant (PostgreSQL recommandé)
 
-Le tableau de bord prend en charge deux modes de stockage pour les paramètres et l'état :
+Le tableau de bord utilise PostgreSQL comme backend principal avec fallback filesystem automatique :
 
-#### Configuration du backend
+#### Configuration recommandée (Production)
+| Variable | Description | Valeur recommandée |
+|----------|-------------|-------------------|
+| `STORE_BACKEND` | Backend de stockage | `postgres` |
+| `POSTGRES_URL` | URL PostgreSQL Neon | `postgresql://...` |
+| `POSTGRES_SSL_MODE` | Mode SSL | `require` |
 
-| Variable | Description |
-|----------|-------------|
-| `STORE_BACKEND` | `filesystem` (par défaut) ou `redis` |
-| `REDIS_URL_PRIMARY` | URL Redis principale (`redis://` ou `rediss://` pour TLS) |
-| `REDIS_URL_SECONDARY` | URL Redis secondaire (fallback automatique si la primaire échoue/quota épuisé) |
-| `REDIS_URL` | Legacy : URL Redis unique (utilisée si `REDIS_URL_PRIMARY` n'est pas définie) |
-| `REDIS_PREFIX` | Préfixe pour les clés (défaut : `switchbot_dashboard`) |
-| `REDIS_TTL_SECONDS` | Durée de vie des clés (optionnel) |
-| `SWITCHBOT_SETTINGS_PATH` | Chemin du fichier de configuration (mode filesystem) |
-| `SWITCHBOT_STATE_PATH` | Chemin du fichier d'état (mode filesystem) |
+#### PostgreSQL (Recommandé)
 
-#### Bascule automatique Redis (primary → secondary)
+**Avantages :**
+- Architecture simplifiée (un seul backend)
+- Coût prévisible (Neon free tier suffisant)
+- Fonctionnalités avancées (JSONB, PITR, extensions)
+- Meilleure intégration avec Render
 
-Si `STORE_BACKEND=redis` et que **deux URLs** sont définies (`REDIS_URL_PRIMARY` + `REDIS_URL_SECONDARY`), le dashboard utilise un store de bascule :
+**Configuration :**
+```bash
+STORE_BACKEND=postgres
+POSTGRES_URL=postgresql://user:password@ep-xxx.aws.neon.tech/dbname?sslmode=require
+POSTGRES_SSL_MODE=require
+```
 
-- **Priorité** : primaire puis secondaire.
-- **Déclenchement** : en cas d'erreur Redis (quota épuisé, limitation de requêtes, erreur réseau…), l'opération est retentée automatiquement sur le backend secondaire.
-- **Retour au primaire** : le système retente le primaire après une courte période de cooldown.
+**Migration :** Voir [PostgreSQL Migration Guide](postgresql-migration.md)
 
-> **ℹ️** Le fallback vers le mode `filesystem` reste géré au démarrage : si aucun backend Redis n'est disponible, l'application retombe sur les fichiers JSON.
+#### Backend legacy (déprécié)
+
+| Variable | Description | Statut |
+|----------|-------------|--------|
+| `STORE_BACKEND` | `redis` ou `filesystem` | Déprécié/Fallback |
+| `REDIS_URL_PRIMARY` | URL Redis principale | Déprécié |
+| `REDIS_URL_SECONDARY` | URL Redis secondaire | Déprécié |
+| `REDIS_URL` | Legacy URL Redis unique | Déprécié |
+| `REDIS_PREFIX` | Préfixe pour les clés | Déprécié |
+| `REDIS_TTL_SECONDS` | Durée de vie des clés | Déprécié |
+| `SWITCHBOT_SETTINGS_PATH` | Chemin du fichier de configuration | Fallback |
+| `SWITCHBOT_STATE_PATH` | Chemin du fichier d'état | Fallback |
 
 #### Recommandations de déploiement
 
 **Pour les environnements conteneurisés (Docker, Render) :**
-- Utilisez Redis pour une persistance fiable entre les redémarrages
-- Configurez `STORE_BACKEND=redis` et `REDIS_URL`
-- Pour des raisons de sécurité, utilisez `rediss://` (TLS) en production
+- Utilisez PostgreSQL (Neon) pour une persistance fiable et simplifiée
+- Configurez `STORE_BACKEND=postgres` et `POSTGRES_URL`
+- Le mode `redis` est déprécié mais reste disponible pour compatibilité
 
 **Pour le développement local :**
 - Le mode `filesystem` est suffisant
 - Les données sont stockées dans `config/settings.json` et `config/state.json`
 
-#### Migration vers Redis
+#### Migration vers PostgreSQL
+
+1. **Prérequis** : Compte Neon PostgreSQL (free tier suffisant)
+2. **Migration** : Utilisez le script de migration automatique
+   ```bash
+   python scripts/migrate_to_postgres.py \
+       --postgres-url "postgresql://user:password@ep-xxx.aws.neon.tech/dbname?sslmode=require" \
+       --dry-run  # Validation d'abord
+   ```
+3. **Documentation** : Voir [PostgreSQL Migration Guide](postgresql-migration.md)
+
+#### Migration vers Redis (déprécié)
 
 1. Sauvegardez vos fichiers de configuration actuels :
    ```bash
@@ -573,3 +599,36 @@ Le flag est automatiquement :
 ---
 
 *Voir aussi [Guide UI](ui-guide.md) pour l'interaction avec les formulaires, [Tests](testing.md) pour la validation, et `memory-bank/systemPatterns.md` pour les patterns architecturaux.*
+
+## Timezone-Aware Automation
+
+The system now handles timezones explicitly for automation windows:
+
+- **Default Timezone**: Europe/Paris
+- **Configuration**: Set via `timezone` field in settings (IANA identifier)
+- **Fallback**: UTC if invalid timezone provided
+- **Implementation**:
+  - `AutomationService` uses `zoneinfo` for conversions
+  - Windows evaluated in local time
+  - Logs include timezone context
+
+## OFF Repeat Functionality
+
+Parameters:
+- `off_repeat_count`: Number of OFF commands to send (default: 2)
+- `off_repeat_interval_seconds`: Delay between OFF commands (default: 10)
+
+Behavior:
+- Scheduled via `AutomationService._schedule_off_repeat_task()`
+- State tracked in `pending_off_repeat`
+- Idempotence: No new OFF actions if `assumed_aircon_power == "off"`
+- Cancelled by ON actions
+
+## Idempotence for OFF Actions
+
+The system prevents duplicate OFF actions when:
+- Aircon is already assumed OFF
+- Pending OFF repeats exist
+- Within cooldown period
+
+Log messages clearly indicate when actions are skipped due to idempotence checks.

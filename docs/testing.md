@@ -567,9 +567,7 @@ python app.py
 - Tests de présence des classes CSS mobile
 - Tests des attributs ARIA
 
-> ℹ️ Les anciens tests `test_aircon_presets.py` ont été supprimés car la logique `aircon_presets` n’existe plus (voir `memory-bank/decisionLog.md`, 2026-01-10).
-
-## Tests d'erreur et résilience
+### Tests d'erreur et résilience
 
 ### 1. API SwitchBot injoignable
 
@@ -748,3 +746,38 @@ def test_off_idempotence_when_already_off():
 ---
 
 *Voir aussi [Configuration](configuration.md) pour les paramètres, [Guide UI](ui-guide.md) pour les interactions, et `memory-bank/progress.md` pour l'historique des tests.*
+
+### Bandeau d'alerte de quota
+- Tests dans `test_dashboard_routes.py` couvrent :
+  - Affichage quand quota ≤ seuil
+  - Masquage quand quota > seuil
+  - Cas limites (seuil = 0)
+
+```
+### Conversion de Timezone
+- `test_dashboard_routes.py` inclut :
+  - Gestion des timezones valides (Europe/Paris)
+  - Fallback pour timezone invalide (UTC)
+  - Formats de timestamp (naïf, suffixe Z)
+```
+### Conversion de Timezone
+- `test_dashboard_routes.py` inclut :
+  - Gestion des timezones valides (Europe/Paris)
+  - Fallback pour timezone invalide (UTC)
+  - Formats de timestamp (naïf, suffixe Z)
+
+```
+
+### Répétition OFF
+- `test_automation_service.py` teste :
+  - Logique de planification
+  - Vérifications d'idempotence
+  - Annulation par les actions ON
+
+```
+
+### Chemins de fallback IFTTT
+- `test_ifttt.py` vérifie :
+  - Cascade webhook → scène → commande
+  - Récupération d'erreur à chaque niveau
+  - Complétude des logs

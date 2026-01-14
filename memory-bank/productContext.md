@@ -1,5 +1,14 @@
 [2026-01-09 15:58:00] - Initial project overview
 
+[2026-01-14 12:45:00] - Migration PostgreSQL Neon
+
+- Architecture de stockage simplifiée : Remplacement du double backend Redis (primaire/secondaire) + fallback filesystem par PostgreSQL unique (Neon) + fallback filesystem.
+- **PostgresStore** : Nouveau module implémentant `BaseStore` avec connection pooling, schéma JSONB, et gestion d'erreurs robuste.
+- **Migration automatique** : Script `scripts/migrate_to_postgres.py` avec validation, dry-run, et support Redis existant.
+- **Configuration** : `STORE_BACKEND=postgres` par défaut, variables `POSTGRES_URL` et `POSTGRES_SSL_MODE` ajoutées.
+- **Avantages** : Architecture simplifiée (-2 backends), coût prévisible (Neon free tier), fonctionnalités avancées (JSONB, PITR 6h, extensions).
+- **Compatibilité** : Support Redis déprécié mais fonctionnel, fallback filesystem conservé pour résilience.
+
 ## Vision
 - Fournir un dashboard Flask local qui orchestre la lecture de capteurs SwitchBot et pilote un climatiseur IR virtuel.
 - Priorité à la résilience locale : toutes les décisions d’automatisation (hysteresis, créneaux) sont calculées côté serveur.

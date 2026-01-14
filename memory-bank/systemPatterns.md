@@ -79,11 +79,21 @@
 - _get_timezone() valide l'identifiant IANA et retombe sur UTC si invalide, avec logs d'avertissement.
 - run_once() calcule now en astimezone pour _is_now_in_windows, assurant la cohérence avec l'heure locale.
 
-## Stockage avec bascule automatique (FailoverStore)
-- `FailoverStore` implémente une bascule transparente entre deux backends Redis (primaire/secondaire) avec cooldown de 60 secondes.
-- Priorité : primaire → secondaire → filesystem (au démarrage si aucun Redis disponible).
-- Logs préfixés `[store]` pour tracer les bascules et erreurs de connexion.
-- L'état de santé des backends est maintenu en mémoire avec timestamps de cooldown.
+[2026-01-14 12:45:00] - Patterns PostgreSQL Neon et simplification architecture
+
+## Services & injections
+- `create_app()` assemble et enregistre **BaseStore** (PostgreSQL `PostgresStore` recommandé, filesystem `JsonStore` fallback, `RedisJsonStore` déprécié), **SwitchBotClient**, **AutomationService**, **SchedulerService** et **ApiQuotaTracker** dans `app.extensions`.  
+- Les vues accèdent uniquement à ces services via `current_app.extensions` (jamais directement aux fichiers, au client HTTP ou au scheduler) et laissent `create_app()` gérer les bascules en cas de `PostgresStoreError` ou `StoreError`.
+
+## Stockage PostgreSQL primaire avec fallback
+- `BaseStore` expose une API homogène `read()/write()` pour `settings` et `state`.  
+- `PostgresStore` est le backend principal : connection pooling `psycopg_pool.ConnectionPool`, schéma JSONB, table `json_store` avec indexation, SSL/TLS obligatoire pour Neon.  
+- `JsonStore` reste le fallback local : verrou `threading.Lock`, écriture via fichier temporaire `.tmp`, UTF-8.  
+- `RedisJsonStore` est déprécié mais fonctionnel avec warning dans les logs.  
+
+## Stockage avec bascule automatique (FailoverStore) - Déprécié
+- `FailoverStore` implémentait une bascule transparente entre deux backends Redis (primaire/secondaire) avec cooldown de 60 secondes.
+- Remplacé par PostgreSQL unique plus fiable et plus simple.
 
 ## Cascade de déclenchement IFTTT → Scènes → Commandes
 - `AutomationService._trigger_aircon_action()` implémente une cascade à trois niveaux pour les actions de climatisation.

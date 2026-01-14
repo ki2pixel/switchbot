@@ -115,6 +115,11 @@ Refactorisé en grille CSS (`status-grid`) pour améliorer la scannabilité mobi
 - **Responsive** : Auto-ajustable pour écrans de différentes tailles
 - **Accessibilité** : Attributs ARIA pour lecteurs d'écran
 
+### Grille pour les cartes de statut
+- Remplace la liste verticale par une grille CSS (`status-grid`)
+- Meilleure lisibilité sur petits écrans
+- Espacement et alignement cohérents
+
 ### Actions rapides
 
 Les boutons du dashboard utilisent automatiquement les webhooks IFTTT avec système de fallback :
@@ -138,6 +143,13 @@ Les boutons affichent des états visuels selon la configuration :
 > - Si le webhook échoue ou est absent, elle bascule sur les scènes SwitchBot
 > - En dernier recours, elle utilise les commandes `setAll`/`turnOff` (nécessite `aircon_device_id`)
 > - Vérifiez les messages d'état pour les erreurs de configuration
+
+## Améliorations Mobile (Janvier 2026)
+
+### Bandeau d'alerte de quota
+- Visible sur la page d'accueil quand `requêtes_restantes ≤ api_quota_warning_threshold`
+- Utilise le même contexte que la page dédiée
+- Design responsive adapté aux petits écrans
 
 ## Page Réglages (`/reglages`) - [2026-01-12]
 
@@ -361,11 +373,9 @@ La jauge de quota en haut à droite de l'interface affiche en temps réel :
 ### Dépannage des scènes
 
 Si une scène ne s'exécute pas correctement :
-1. Vérifiez que l'UUID est correct dans les paramètres
-2. Testez la scène directement depuis l'application SwitchBot
-3. Vérifiez que le device est en ligne et accessible
-4. Consultez les logs de l'application pour les erreurs (niveau `debug` si nécessaire)
-5. Vérifiez que le quota API n'est pas épuisé
+1. Vérifiez que les scènes sont bien créées dans l'application SwitchBot
+2. Vérifiez que l'UUID est correctement copié (sans espaces avant/après)
+3. Vérifiez les logs pour les erreurs d'authentification
 
 ### Bonnes pratiques
 
@@ -510,6 +520,22 @@ Le tableau de bord utilise des messages flash pour informer l'utilisateur du ré
 2. Vérifiez que les appareils sont en ligne dans l'application SwitchBot
 3. Vérifiez les logs pour les erreurs de connexion
 
----
+## Améliorations d'accessibilité
+- Labels ARIA pour les conteneurs de navigation
+- Rôles pour les éléments interactifs
+- Ratios de contraste améliorés (WCAG AA)
 
-*Voir aussi [Configuration](configuration.md) pour les paramètres, [Theming](theming.md) pour la personnalisation visuelle, et `memory-bank/decisionLog.md` pour les décisions UX.*
+## Optimisation de la page Devices
+- Métadonnées secondaires dans des sections `<details>` pliables
+- Externalisation du JS clipboard vers `devices.js`
+- Réduction de la densité visuelle
+
+## Feedback dynamique
+- Compteur live des jours sélectionnés dans les réglages
+- Indicateurs visuels pour les contrôles actifs/inactifs
+- Régions ARIA live pour les lecteurs d'écran
+
+## Optimisations de performance
+- Externalisation des JS (settings.js, devices.js)
+- Réduction des ressources bloquant le rendu
+- Sélecteurs CSS optimisés

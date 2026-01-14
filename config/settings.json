@@ -4,7 +4,7 @@
   "poll_interval_seconds": 30,
   "hysteresis_celsius": 0.3,
   "command_cooldown_seconds": 60,
-  "action_on_cooldown_seconds": 300,
+  "action_on_cooldown_seconds": 420,
   "action_off_cooldown_seconds": 60,
   "off_repeat_count": 2,
   "off_repeat_interval_seconds": 10,

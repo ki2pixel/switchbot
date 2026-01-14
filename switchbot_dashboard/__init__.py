@@ -5,11 +5,10 @@ import os
 from pathlib import Path
 
 from flask import Flask
-from redis import Redis
-from redis.exceptions import RedisError
 
 from .automation import AutomationService
-from .config_store import BaseStore, FailoverStore, JsonStore, RedisJsonStore, StoreError
+from .config_store import BaseStore, JsonStore, StoreError
+from .postgres_store import PostgresStore, PostgresStoreError
 from .ifttt import IFTTTWebhookClient
 from .routes import dashboard_bp
 from .scheduler import SchedulerService
@@ -24,94 +23,63 @@ def _build_store(
     default_path: str,
     path_env: str,
 ) -> BaseStore:
-    backend = os.environ.get("STORE_BACKEND", "filesystem").strip().lower()
-    selected_backend = backend or "filesystem"
+    backend = os.environ.get("STORE_BACKEND", "postgres").strip().lower()
+    selected_backend = backend or "postgres"
 
     def _make_json_store() -> BaseStore:
         path = os.environ.get(path_env, default_path)
         app.logger.info("Using filesystem backend for %s store at %s", kind, path)
         return JsonStore(path)
 
-    if selected_backend != "redis":
-        return _make_json_store()
+    # PostgreSQL backend (preferred)
+    if selected_backend == "postgres":
+        postgres_url = os.environ.get("POSTGRES_URL", "").strip()
+        if not postgres_url:
+            app.logger.error(
+                "[store] STORE_BACKEND=postgres but no POSTGRES_URL configured. Falling back to filesystem for %s store.",
+                kind,
+            )
+            return _make_json_store()
 
-    redis_url_primary = os.environ.get("REDIS_URL_PRIMARY", "").strip()
-    redis_url_legacy = os.environ.get("REDIS_URL", "").strip()
-    redis_url = redis_url_primary or redis_url_legacy
-    redis_url_secondary = os.environ.get("REDIS_URL_SECONDARY", "").strip()
+        try:
+            ssl_mode = os.environ.get("POSTGRES_SSL_MODE", "require").strip()
+            store = PostgresStore(
+                connection_string=postgres_url,
+                kind=kind,
+                logger=app.logger,
+                ssl_mode=ssl_mode,
+            )
+            
+            # Health check
+            if store.health_check():
+                app.logger.info("[store] Using PostgreSQL backend for %s store", kind)
+                return store
+            else:
+                app.logger.error(
+                    "[store] PostgreSQL health check failed for %s store. Falling back to filesystem.",
+                    kind,
+                )
+                store.close()
+                return _make_json_store()
+                
+        except PostgresStoreError as exc:
+            app.logger.error(
+                "[store] PostgreSQL backend unavailable for %s store (%s). Falling back to filesystem.",
+                kind,
+                exc,
+            )
+            return _make_json_store()
 
-    if not redis_url and not redis_url_secondary:
-        app.logger.error(
-            "[store] STORE_BACKEND=redis but no Redis URL configured (REDIS_URL_PRIMARY/REDIS_URL or REDIS_URL_SECONDARY). Falling back to filesystem for %s store.",
+    # Legacy Redis support (deprecated)
+    elif selected_backend == "redis":
+        app.logger.warning(
+            "[store] Redis backend is deprecated. Consider migrating to PostgreSQL. Using filesystem fallback for %s store.",
             kind,
         )
         return _make_json_store()
 
-    redis_prefix = os.environ.get("REDIS_PREFIX", "switchbot_dashboard").strip() or "switchbot_dashboard"
-    ttl_env = os.environ.get("REDIS_TTL_SECONDS", "").strip()
-    ttl_seconds: int | None = None
-    if ttl_env:
-        try:
-            ttl_seconds = max(int(ttl_env), 1)
-        except ValueError:
-            app.logger.warning("Invalid REDIS_TTL_SECONDS=%s. Ignoring TTL configuration.", ttl_env)
-
-    key = f"{redis_prefix}:{kind}"
-
-    def _make_redis_store(redis_url_value: str, *, label: str) -> RedisJsonStore | None:
-        if not redis_url_value:
-            return None
-
-        try:
-            redis_client = Redis.from_url(redis_url_value)
-            redis_client.ping()
-        except (RedisError, ValueError) as exc:
-            app.logger.error(
-                "[store] Redis %s backend unavailable for %s store (%s)",
-                label,
-                kind,
-                exc,
-            )
-            return None
-
-        store = RedisJsonStore(redis_client, key=key, ttl_seconds=ttl_seconds)
-
-        try:
-            store.read()
-        except StoreError as exc:
-            app.logger.error(
-                "[store] Redis %s backend misconfigured for %s store (%s)",
-                label,
-                kind,
-                exc,
-            )
-            return None
-
-        return store
-
-    primary_store = _make_redis_store(redis_url, label="primary")
-    secondary_store = _make_redis_store(redis_url_secondary, label="secondary")
-
-    if primary_store is None and secondary_store is None:
-        app.logger.error(
-            "[store] Redis backend unavailable for %s store. Falling back to filesystem.",
-            kind,
-        )
-        return _make_json_store()
-
-    if primary_store is not None and secondary_store is not None:
-        store: BaseStore = FailoverStore(
-            kind=kind,
-            primary=primary_store,
-            secondary=secondary_store,
-            logger=app.logger,
-        )
-        app.logger.info("[store] Using Redis backend with failover for %s store (key=%s)", kind, key)
-        return store
-
-    store = primary_store or secondary_store
-    app.logger.info("[store] Using Redis backend for %s store (key=%s)", kind, key)
-    return store
+    # Filesystem fallback
+    return _make_json_store()
 
 
 def _mark_temperature_stale(app: Flask, state_store: BaseStore, *, reason: str) -> None:

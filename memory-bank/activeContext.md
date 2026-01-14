@@ -6,7 +6,7 @@
 - Aucun objectif actif.
 
 ## Décisions Clés
-- Aucune décision en cours.
+- Migration PostgreSQL Neon complétée avec succès.
 
 ## Questions/Problèmes Ouverts
 - Aucun problème ouvert.
