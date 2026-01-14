@@ -286,8 +286,10 @@ class HistoryDashboard {
                 this.loadLatestRecords()
             ]);
             
-            // Check if data is mocked
-            const isMockData = historyData.mock || aggregates.mock || latestRecords.mock;
+            // Check if data is mocked (handle undefined safely)
+            const isMockData = (historyData && historyData.mock) || 
+                              (aggregates && aggregates.mock) || 
+                              (latestRecords && latestRecords.mock);
             if (isMockData) {
                 this.showMockDataWarning();
             }
@@ -325,7 +327,8 @@ class HistoryDashboard {
         if (!response.ok) throw new Error('Failed to load history data');
         
         const data = await response.json();
-        this.updateCharts(data.data);
+        this.updateCharts(data.data || []);
+        return data; // Return the full response for mock checking
     }
 
     async loadAggregates() {
@@ -333,7 +336,8 @@ class HistoryDashboard {
         if (!response.ok) throw new Error('Failed to load aggregates');
         
         const data = await response.json();
-        this.updateStatusCards(data.aggregates);
+        this.updateStatusCards(data.aggregates || {});
+        return data; // Return the full response for mock checking
     }
 
     async loadLatestRecords() {
@@ -341,7 +345,8 @@ class HistoryDashboard {
         if (!response.ok) throw new Error('Failed to load latest records');
         
         const data = await response.json();
-        this.updateLatestTable(data.latest);
+        this.updateLatestTable(data.latest || []);
+        return data; // Return the full response for mock checking
     }
 
     updateCharts(historyData) {
