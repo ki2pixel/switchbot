@@ -10,7 +10,7 @@ class HistoryDashboard {
         this.currentFilters = {
             timeRange: '6h',
             granularity: 'minute',
-            metrics: ['temperature', 'humidity', 'assumed_aircon_power', 'api_requests_today', 'error_count']
+            metrics: ['temperature', 'humidity', 'assumed_aircon_power']
         };
         
         this.init();
@@ -159,89 +159,6 @@ class HistoryDashboard {
                 }
             }
         });
-
-        // API Usage Chart
-        this.charts.apiUsage = new Chart(document.getElementById('apiUsageChart'), {
-            type: 'line',
-            data: {
-                datasets: [{
-                    label: 'Requêtes API cumulées',
-                    data: [],
-                    borderColor: '#ffc107',
-                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                ...chartOptions,
-                scales: {
-                    ...chartOptions.scales,
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Requêtes',
-                            color: '#ffc107'
-                        },
-                        ticks: {
-                            color: '#6c757d'
-                        },
-                        grid: {
-                            color: 'rgba(108, 117, 125, 0.2)'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Error Distribution Chart
-        this.charts.errors = new Chart(document.getElementById('errorChart'), {
-            type: 'bar',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Erreurs',
-                    data: [],
-                    backgroundColor: 'rgba(220, 53, 69, 0.6)',
-                    borderColor: '#dc3545',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: {
-                            color: '#6c757d'
-                        },
-                        grid: {
-                            display: false
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Nombre d\'erreurs',
-                            color: '#dc3545'
-                        },
-                        ticks: {
-                            color: '#6c757d'
-                        },
-                        grid: {
-                            color: 'rgba(108, 117, 125, 0.2)'
-                        }
-                    }
-                }
-            }
-        });
     }
 
     bindEvents() {
@@ -380,30 +297,6 @@ class HistoryDashboard {
             airconStates['unknown'] || 0
         ];
         this.charts.airconState.update('none');
-
-        // Update API usage chart
-        const apiData = historyData.map(d => ({
-            x: d.timestamp,
-            y: d.api_requests_today || 0
-        })).filter(d => d.y > 0);
-
-        this.charts.apiUsage.data.datasets[0].data = apiData;
-        this.charts.apiUsage.update('none');
-
-        // Update error chart
-        const errorCounts = historyData.reduce((acc, d) => {
-            const errors = d.error_count || 0;
-            if (errors > 0) {
-                const hour = new Date(d.timestamp).getHours();
-                const label = `${hour}h`;
-                acc[label] = (acc[label] || 0) + errors;
-            }
-            return acc;
-        }, {});
-
-        this.charts.errors.data.labels = Object.keys(errorCounts);
-        this.charts.errors.data.datasets[0].data = Object.values(errorCounts);
-        this.charts.errors.update('none');
     }
 
     updateStatusCards(aggregates) {
@@ -411,10 +304,6 @@ class HistoryDashboard {
             aggregates.avg_temperature ? aggregates.avg_temperature.toFixed(1) : '--';
         document.getElementById('avgHumidity').textContent = 
             aggregates.avg_humidity ? aggregates.avg_humidity.toFixed(1) : '--';
-        document.getElementById('totalRecords').textContent = 
-            aggregates.total_records || '--';
-        document.getElementById('totalErrors').textContent = 
-            aggregates.total_errors || '--';
     }
 
     updateLatestTable(latestRecords) {
@@ -423,7 +312,7 @@ class HistoryDashboard {
         if (!latestRecords || latestRecords.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="text-center text-muted">
+                    <td colspan="5" class="text-center text-muted">
                         Aucun enregistrement trouvé
                     </td>
                 </tr>
@@ -437,7 +326,6 @@ class HistoryDashboard {
             const humidity = record.humidity ? `${record.humidity}%` : '--';
             const airconState = this.formatAirconState(record.assumed_aircon_power);
             const action = record.last_action || '--';
-            const errors = record.error_count || 0;
             
             return `
                 <tr>
@@ -446,7 +334,6 @@ class HistoryDashboard {
                     <td>${humidity}</td>
                     <td>${airconState}</td>
                     <td>${action}</td>
-                    <td>${errors}</td>
                 </tr>
             `;
         }).join('');
