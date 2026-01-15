@@ -300,10 +300,20 @@ class HistoryDashboard {
     }
 
     updateStatusCards(aggregates) {
-        document.getElementById('avgTemp').textContent = 
-            aggregates.avg_temperature ? aggregates.avg_temperature.toFixed(1) : '--';
-        document.getElementById('avgHumidity').textContent = 
-            aggregates.avg_humidity ? aggregates.avg_humidity.toFixed(1) : '--';
+        console.log('updateStatusCards called with:', aggregates);
+        
+        const avgTemp = aggregates.avg_temperature ? parseFloat(aggregates.avg_temperature).toFixed(1) : '--';
+        const avgHumidity = aggregates.avg_humidity ? parseFloat(aggregates.avg_humidity).toFixed(1) : '--';
+        
+        console.log('Processed values - Temp:', avgTemp, 'Humidity:', avgHumidity);
+        
+        const tempElement = document.getElementById('avgTemp');
+        const humidityElement = document.getElementById('avgHumidity');
+        
+        console.log('Elements found:', !!tempElement, !!humidityElement);
+        
+        if (tempElement) tempElement.textContent = avgTemp;
+        if (humidityElement) humidityElement.textContent = avgHumidity;
     }
 
     updateLatestTable(latestRecords) {
