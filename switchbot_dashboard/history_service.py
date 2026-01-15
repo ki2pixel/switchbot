@@ -203,18 +203,21 @@ class HistoryService:
             self._logger.warning("[history] No valid metrics specified: %s", metrics)
             return []
 
-        # Build a simple query without complex GROUP BY
-        # Just get raw data ordered by timestamp, let frontend handle aggregation
-        select_fields_simple = []
-        for metric in metrics:
-            if metric == "timestamp":
-                select_fields_simple.append(sql.SQL("timestamp"))
-            elif metric in ["temperature", "humidity", "assumed_aircon_power", "last_action", "api_requests_today", "error_count", "last_temperature_stale"]:
-                select_fields_simple.append(sql.Identifier(metric))
-
-        if not select_fields_simple:
+        # Build query using subqueries for each metric to avoid GROUP BY issues
+        if not metrics:
             self._logger.warning("[history] No valid metrics specified: %s", metrics)
             return []
+
+        # For now, implement a simple approach without aggregation
+        # Get raw data and let frontend handle the aggregation
+        select_fields_raw = []
+        
+        # Always include timestamp
+        select_fields_raw.append(sql.SQL("timestamp"))
+        
+        for metric in metrics:
+            if metric in ["temperature", "humidity", "assumed_aircon_power", "last_action", "api_requests_today", "error_count", "last_temperature_stale"]:
+                select_fields_raw.append(sql.Identifier(metric))
 
         query = sql.SQL("""
             SELECT {}
@@ -223,7 +226,7 @@ class HistoryService:
             ORDER BY timestamp DESC
             LIMIT %s
         """).format(
-            sql.SQL(", ").join(select_fields_simple)
+            sql.SQL(", ").join(select_fields_raw)
         )
 
         try:
