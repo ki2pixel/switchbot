@@ -808,9 +808,17 @@ def history_api_data() -> Any:
         # Parse query parameters
         start_str = request.args.get("start")
         end_str = request.args.get("end")
-        metrics = request.args.getlist("metrics")
+        metrics_param = request.args.get("metrics")
         granularity = request.args.get("granularity", "minute")
         limit = int(request.args.get("limit", 1000))
+
+        # Parse metrics parameter (can be comma-separated string or list)
+        metrics = []
+        if metrics_param:
+            if isinstance(metrics_param, str):
+                metrics = [m.strip() for m in metrics_param.split(",") if m.strip()]
+            else:
+                metrics = metrics_param
 
         # Default to last 6 hours if no time range specified
         if not start_str or not end_str:
@@ -826,7 +834,7 @@ def history_api_data() -> Any:
             granularity = "minute"
 
         # Get historical data
-        data = history_service.get_history(start, end, metrics or None, granularity, limit)
+        data = history_service.get_history(start, end, metrics, granularity, limit)
         
         # Return empty data structure if no data found
         if not data:

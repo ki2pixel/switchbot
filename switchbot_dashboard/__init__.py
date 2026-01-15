@@ -4,6 +4,8 @@ import logging
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from flask import Flask
 
 from .automation import AutomationService
@@ -15,6 +17,9 @@ from .routes import dashboard_bp
 from .scheduler import SchedulerService
 from .quota import ApiQuotaTracker
 from .switchbot_api import SwitchBotClient
+
+# Load environment variables early
+load_dotenv()
 
 
 def _build_store(

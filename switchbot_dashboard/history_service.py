@@ -173,11 +173,12 @@ class HistoryService:
 
         # Build SELECT clause
         select_fields = []
+        timestamp_included = False
+        
         for metric in metrics:
             if metric == "timestamp":
-                select_fields.append(sql.SQL("date_trunc(%s, timestamp) as timestamp").format(
-                    sql.Literal(granularity)
-                ))
+                select_fields.append(sql.SQL("date_trunc(%s, timestamp) as timestamp"))
+                timestamp_included = True
             elif metric in ["temperature", "humidity"]:
                 select_fields.append(sql.SQL("AVG({}) as {}").format(
                     sql.Identifier(metric), sql.Identifier(metric)
@@ -193,23 +194,44 @@ class HistoryService:
             elif metric == "last_temperature_stale":
                 select_fields.append(sql.SQL("BOOL_OR(last_temperature_stale) as last_temperature_stale"))
 
+        # Always include timestamp for ordering
+        if not timestamp_included:
+            select_fields.insert(0, sql.SQL("date_trunc(%s, timestamp) as timestamp"))
+
+        # If no metrics specified, return empty result
+        if not select_fields:
+            self._logger.warning("[history] No valid metrics specified: %s", metrics)
+            return []
+
+        # Build a simple query without complex GROUP BY
+        # Just get raw data ordered by timestamp, let frontend handle aggregation
+        select_fields_simple = []
+        for metric in metrics:
+            if metric == "timestamp":
+                select_fields_simple.append(sql.SQL("timestamp"))
+            elif metric in ["temperature", "humidity", "assumed_aircon_power", "last_action", "api_requests_today", "error_count", "last_temperature_stale"]:
+                select_fields_simple.append(sql.Identifier(metric))
+
+        if not select_fields_simple:
+            self._logger.warning("[history] No valid metrics specified: %s", metrics)
+            return []
+
         query = sql.SQL("""
             SELECT {}
             FROM state_history
             WHERE timestamp >= %s AND timestamp < %s
-            GROUP BY date_trunc(%s, timestamp)
             ORDER BY timestamp DESC
             LIMIT %s
         """).format(
-            sql.SQL(", ").join(select_fields),
-            sql.Literal(granularity),
-            sql.Literal(limit)
+            sql.SQL(", ").join(select_fields_simple)
         )
 
         try:
             with self._pool.connection() as conn:
                 with conn.cursor(row_factory=dict_row) as cur:
-                    cur.execute(query, (start, end, granularity, limit))
+                    # Simple parameters: start + end + limit
+                    params = [start, end, limit]
+                    cur.execute(query, params)
                     results = cur.fetchall()
 
                     # Convert datetime objects to ISO strings for JSON serialization
@@ -251,13 +273,13 @@ class HistoryService:
                 SUM(error_count) as total_errors,
                 MAX(api_requests_today) as max_api_requests
             FROM state_history
-            WHERE timestamp >= NOW() - INTERVAL '%s hours'
-        """).format(sql.Literal(period_hours))
+            WHERE timestamp >= NOW() - make_interval(hours => %s)
+        """)
 
         try:
             with self._pool.connection() as conn:
                 with conn.cursor(row_factory=dict_row) as cur:
-                    cur.execute(query)
+                    cur.execute(query, (period_hours,))
                     result = cur.fetchone()
                     return result or {}
 
@@ -277,13 +299,13 @@ class HistoryService:
         """
         delete_query = sql.SQL("""
             DELETE FROM state_history
-            WHERE timestamp < NOW() - INTERVAL '%s hours'
-        """).format(sql.Literal(self._retention_hours))
+            WHERE timestamp < NOW() - make_interval(hours => %s)
+        """)
 
         try:
             with self._pool.connection() as conn:
                 with conn.cursor() as cur:
-                    cur.execute(delete_query)
+                    cur.execute(delete_query, (self._retention_hours,))
                     deleted_count = cur.rowcount
                     conn.commit()
                     self._logger.info("[history] Cleaned up %d old records", deleted_count)

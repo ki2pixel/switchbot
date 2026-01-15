@@ -1,14 +1,17 @@
 {
   "last_temperature": 23.5,
   "last_humidity": 37,
-  "last_read_at": "2026-01-10T13:43:02.940028+00:00",
+  "last_read_at": "2026-01-15T10:04:29.944134+00:00",
   "assumed_aircon_power": "unknown",
   "assumed_aircon_mode": null,
   "assumed_aircon_parameter": null,
   "last_action": null,
   "last_action_at": null,
-  "last_error": null,
+  "last_error": "Missing SwitchBot credentials. Set SWITCHBOT_TOKEN and SWITCHBOT_SECRET.",
   "api_quota_day": "2026-01-10",
   "api_requests_total": 76,
-  "api_requests_remaining": 9924
+  "api_requests_remaining": 9924,
+  "last_temperature_stale": true,
+  "last_temperature_stale_reason": "api_error",
+  "last_tick": "2026-01-15T10:04:29.943476+00:00"
 }
