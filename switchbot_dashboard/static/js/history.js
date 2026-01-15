@@ -10,7 +10,7 @@ class HistoryDashboard {
         this.currentFilters = {
             timeRange: '6h',
             granularity: 'minute',
-            metrics: ['temperature', 'humidity', 'assumed_aircon_power']
+            metrics: ['temperature', 'humidity', 'assumed_aircon_power', 'api_requests_today', 'error_count']
         };
         
         this.init();
