@@ -775,12 +775,12 @@ def actions_page() -> str:
     state_store = current_app.extensions["state_store"]
     
     try:
-        settings = settings_store.read("settings")
+        settings = settings_store.read()
     except StoreError:
         settings = {}
     
     try:
-        state = state_store.read("state")
+        state = state_store.read()
     except StoreError:
         state = {}
     
