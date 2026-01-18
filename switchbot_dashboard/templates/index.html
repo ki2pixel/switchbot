@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SwitchBot Dashboard</title>
     
-    <!-- Anti-flash script - Force dark theme immediately -->
+    <!-- Enhanced Anti-flash script - Force dark theme immediately -->
     <script>
       (function() {
         // Force dark theme immediately to prevent white flash
@@ -21,8 +21,34 @@
         
         // Override any inline styles that might cause flash
         var style = document.createElement('style');
-        style.innerHTML = 'html, body { background-color: #030712 !important; color: #f4f7ff !important; }';
+        style.innerHTML = `
+          html, body { 
+            background-color: #030712 !important; 
+            color: #f4f7ff !important; 
+            transition: none !important;
+          }
+          * { 
+            background-color: inherit !important; 
+          }
+        `;
         document.head.appendChild(style);
+        
+        // Prevent any transitions during initial load
+        var noTransition = document.createElement('style');
+        noTransition.innerHTML = `
+          * { 
+            transition: none !important; 
+            animation: none !important;
+          }
+        `;
+        document.head.appendChild(noTransition);
+        
+        // Remove no-transition after page loads
+        window.addEventListener('load', function() {
+          setTimeout(function() {
+            noTransition.parentNode.removeChild(noTransition);
+          }, 100);
+        });
       })();
     </script>
     
@@ -61,15 +87,6 @@
         background-color: inherit !important;
       }
 
-      /* Hide content briefly to prevent flash */
-      body {
-        opacity: 0;
-        transition: opacity 0.15s ease-in;
-      }
-
-      body.loaded {
-        opacity: 1;
-      }
 
       /* Critical Theme Variables */
       :root {
@@ -321,7 +338,7 @@
         border-color: var(--sb-danger);
       }
 
-      /* Critical Bottom Navigation */
+      /* Bottom Navigation - Let sticky-footer.css handle responsive behavior */
       #footer-bar {
         position: fixed;
         bottom: 0;
@@ -369,7 +386,7 @@
         perspective: 1000px;
       }
 
-      /* Critical Responsive */
+      /* Responsive - Let sticky-footer.css handle footer visibility */
       @media (max-width: 768px) {
         .container {
           padding-right: 0.75rem;
@@ -382,20 +399,6 @@
         
         .scene-actions {
           grid-template-columns: 1fr;
-        }
-        
-        #footer-bar {
-          display: flex;
-        }
-      }
-
-      @media (min-width: 769px) {
-        #footer-bar {
-          display: none;
-        }
-        
-        body {
-          padding-bottom: 0;
         }
       }
 
@@ -410,14 +413,15 @@
         }
       }
       
-      /* Prevent flash of unstyled content */
-      body {
-        opacity: 1;
-        transition: opacity 0.1s ease-in-out;
+      /* Prevent flash of unstyled content - Enhanced anti-flash */
+      html, body {
+        background-color: #030712 !important;
+        color: #f4f7ff !important;
+        transition: none !important;
       }
       
-      body.loading {
-        opacity: 0.95;
+      body {
+        opacity: 1 !important;
       }
       
       /* Smooth transitions for navigation */
@@ -469,13 +473,28 @@
   </head>
   <body class="sb-dark">
 
-<!-- Additional anti-flash script for body -->
+<!-- Enhanced anti-flash script for body -->
 <script>
   // Ensure dark theme is applied immediately when body loads
   document.body.style.backgroundColor = '#030712';
   document.body.style.color = '#f4f7ff';
   document.body.style.setProperty('background-color', '#030712', 'important');
   document.body.style.setProperty('color', '#f4f7ff', 'important');
+  
+  // Force dark theme on all elements
+  var allElements = document.querySelectorAll('*');
+  for (var i = 0; i < allElements.length; i++) {
+    var element = allElements[i];
+    if (element.style.backgroundColor === '' || element.style.backgroundColor === 'white' || element.style.backgroundColor === '#ffffff') {
+      element.style.backgroundColor = 'inherit';
+    }
+  }
+  
+  // Add dark theme class immediately
+  document.body.classList.add('sb-dark');
+  
+  // Prevent FOUC (Flash of Unstyled Content)
+  document.body.style.visibility = 'visible';
 </script>
     <div class="container py-4">
       <header class="page-header mb-4">
@@ -660,7 +679,7 @@
     <script src="{{ url_for('static', filename='js/performance-optimizer.js') }}"></script>
     <script src="{{ url_for('static', filename='js/advanced-optimizer.js') }}"></script>
     
-    <!-- Performance Optimization Script -->
+    <!-- Enhanced Performance Optimization Script -->
     <script>
       // Mark critical CSS loading complete
       if ('performance' in window && 'mark' in performance) {
@@ -675,15 +694,32 @@
         });
       }
       
-      // Reveal content smoothly after page loads - Anti-flash completion
+      // Enhanced content reveal - Smooth transition without flash
       window.addEventListener('load', function() {
-        document.body.classList.add('loaded');
+        // Ensure dark theme is maintained
+        document.body.style.backgroundColor = '#030712';
+        document.body.style.color = '#f4f7ff';
+        
+        // Smooth reveal with maintained dark theme
+        setTimeout(function() {
+          document.body.style.opacity = '1';
+          document.body.style.transition = 'opacity 0.2s ease-in';
+        }, 50);
       });
       
       // Fallback in case load event doesn't fire
       setTimeout(function() {
-        document.body.classList.add('loaded');
-      }, 100);
+        document.body.style.opacity = '1';
+        document.body.style.transition = 'opacity 0.2s ease-in';
+      }, 200);
+      
+      // Prevent any white flash during navigation
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+          document.body.style.backgroundColor = '#030712';
+          document.body.style.color = '#f4f7ff';
+        }
+      });
     </script>
   </body>
 </html>

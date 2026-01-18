@@ -17,7 +17,7 @@ body.sb-dark {
   }
   
   #footer-bar {
-    display: flex; /* Show on desktop */
+    display: flex !important; /* Force show on desktop */
   }
   
   #footer-bar .nav-text {
@@ -123,7 +123,7 @@ body.sb-dark {
 /* For tablets and small desktops, show text + icons */
 @media (min-width: 769px) {
   #footer-bar {
-    display: none; /* Hidden on large desktop as per existing rule */
+    display: flex !important; /* Ensure visible on desktop */
   }
 }
 

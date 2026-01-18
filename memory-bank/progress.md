@@ -1,4 +1,37 @@
 ## Terminé
+[2026-01-18 15:01:00] - Correction des problèmes UI : bottom bar invisible et flash blanc
+
+### Problèmes résolus ✅
+
+#### 1. Bottom bar invisible sur mobile et desktop ✅
+- **Analyse** : Conflit entre CSS critique dans index.html et sticky-footer.css
+- **Cause** : Règles `display: none` desktop et `display: flex` mobile contradictoires
+- **Solution** :
+  - Suppression des règles responsive conflictuelles du CSS critique
+  - Laisser sticky-footer.css gérer complètement l'affichage responsive
+  - Ajout de `!important` pour forcer l'affichage sur desktop
+  - Maintien de la cohérence des règles mobile/tablette/desktop
+
+#### 2. Flash blanc persistant au chargement ✅
+- **Analyse** : Script anti-flash pas assez agressif, transitions CSS non contrôlées
+- **Solution** :
+  - Script head renforcé avec CSS inline et prévention des transitions
+  - Script body additionnel pour forcer le thème sombre sur tous les éléments
+  - Script de fin de chargement avec transition fluide maintenue
+  - Gestion du événement `visibilitychange` pour prévenir les flashs de navigation
+
+#### Modifications techniques appliquées ✅
+- **index.html** : CSS critique nettoyé, scripts anti-flash multi-couches
+- **sticky-footer.css** : Règles desktop renforcées avec `!important`
+- **Performance** : Maintien des optimisations LCP/FID/CLS existantes
+- **Cohérence** : Respect du thème sombre et des patterns existants
+
+#### Validation ✅
+- Application Flask démarrée avec succès sur port 5008
+- PostgreSQL backend connecté et HistoryService initialisé
+- Bottom bar visible sur tous les appareils
+- Flash blanc éliminé avec transitions fluides
+
 [2026-01-09 16:47:00] - Implémentation du thème sombre par défaut sur les templates index.html et devices.html.
 [2026-01-09 17:00:00] - Refonte de la page Devices : cartes lisibles, synthèse, copie d'ID et JSON repliables.
 [2026-01-09 17:20:00] - Externalisation complète des styles (theme.css + feuilles spécifiques) et documentation associée.
