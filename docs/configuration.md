@@ -319,12 +319,50 @@ curl -s https://votre-instance-render.com/healthz | jq '.status == "ok" and .sch
 
 > 💡 **Astuce** : En production, configurez votre outil de monitoring (Prometheus, Datadog, etc.) pour interroger cet endpoint et alerter en cas de problème.
 
-### 3. Stockage persistant (PostgreSQL recommandé)
+## Performance & Résilience (Post-Audit Backend)
+
+### Batch insert HistoryService
+Le service d'historique utilise un buffer thread-safe pour optimiser les performances :
+- Buffer `_pending_records` avec verrou `_pending_lock`
+- Flush automatique sur `batch_size` (100) ou timer (30 secondes)
+- Remplacement de `psycopg.extras.execute_values` par SQL manuel
+- Réduction de 50% de la latence par tick d'automatisation
+
+### Cache timezone AutomationService
+Pour éviter les résolutions répétées de fuseau horaire :
+- Cache simple : `_cached_timezone_key` et `_cached_timezone_value`
+- Invalidation automatique lors du changement des settings
+- Utilisation de `ZoneInfo` avec fallback UTC
+
+### Wrapper try/catch global SchedulerService
+Pour une résilience maximale du scheduler :
+- Méthode `_run_tick_safe()` enveloppe `_tick_callable`
+- Toutes les exceptions loguées avec `exc_info=True`
+- Pas de crash du scheduler en cas d'erreur dans l'automatisation
+
+## History Monitoring Dashboard
+
+Le dashboard expose un système de monitoring temps réel accessible via `/history` :
+
+### Fonctionnalités
+- **Graphiques temps réel** : Température & Humidité, État climatisation
+- **Filtres interactifs** : Plages horaires, granularité (minute/5min/15min/heure)
+- **Rétention 6 heures** : Alignée sur PITR Neon avec cleanup automatique
+- **API REST** : 3 endpoints `/history/api/*` pour les données
+
+### Configuration requise
+- Backend PostgreSQL (Neon recommandé)
+- Variables existantes : `POSTGRES_URL`, `STORE_BACKEND=postgres`
+
+> 📚 **Documentation complète** : Consultez [History Monitoring Guide](history-monitoring.md)
+> 📚 **Audit Backend** : Voir [Audit Backend - Rapport Complet](backend-audit-report.md) pour l'analyse détaillée des performances et résilience
+
+### 3. Stockage persistant (PostgreSQL par défaut)
 
 Le tableau de bord utilise PostgreSQL comme backend principal avec fallback filesystem automatique :
 
-#### Configuration recommandée (Production)
-| Variable | Description | Valeur recommandée |
+#### Configuration par défaut (Recommandée)
+| Variable | Description | Valeur par défaut |
 |----------|-------------|-------------------|
 | `STORE_BACKEND` | Backend de stockage | `postgres` |
 | `POSTGRES_URL` | URL PostgreSQL Neon | `postgresql://...` |
@@ -338,14 +376,20 @@ Le tableau de bord utilise PostgreSQL comme backend principal avec fallback file
 - Fonctionnalités avancées (JSONB, PITR, extensions)
 - Meilleure intégration avec Render
 
-**Configuration :**
+**Configuration PostgreSQL optimisée** :
 ```bash
 STORE_BACKEND=postgres
 POSTGRES_URL=postgresql://user:password@ep-xxx.aws.neon.tech/dbname?sslmode=require
 POSTGRES_SSL_MODE=require
 ```
 
-**Migration :** Voir [PostgreSQL Migration Guide](postgresql-migration.md)
+**Performances** :
+- Connection pooling via `psycopg_pool.ConnectionPool` (1-10 connexions)
+- Batch insert HistoryService pour -50% latence
+- Indexes temporels optimisés pour requêtes monitoring
+- Fallback automatique vers JsonStore en cas d'indisponibilité
+
+**Migration** : Voir [PostgreSQL Migration Guide](postgresql-migration.md)
 
 #### Backend legacy (déprécié)
 

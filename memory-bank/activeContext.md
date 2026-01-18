@@ -8,10 +8,14 @@
 ## Décisions Clés
 - Migration PostgreSQL Neon complétée avec succès.
 - Implémentation complète du système d'historique monitoring terminée.
-- Suite de tests corrigée et validée avec 99/116 tests passants.
+- Recommandations court terme de l'audit backend implémentées : batch HistoryService, wrapper SchedulerService, cache AutomationService.
+- Suite de tests entièrement verte (122 passed, 1 skipped) après stabilisation des mocks et fixtures.
+- Dashboard d'historique corrigé et simplifié avec interface épurée fonctionnelle.
+- Correctifs frontend issus de l'audit du 18 janvier appliqués (variables CSS alignées, fallback clipboard, erreurs dashboard gérées côté UI).
+- **Phase 3 Audit Frontend Mobile terminée** : Glassmorphism complet, navigation bottom bar, design system tokens avancés, optimisations performance.
 
 ## Questions/Problèmes Ouverts
-- 13 erreurs PostgreSQL unitaires restantes (mocks complexes, mais fonctionnalités déjà couvertes par les tests d'intégration).
+- Aucun problème ouvert.
 
 ## Prochaines Étapes
 - En attente d'une nouvelle tâche utilisateur.

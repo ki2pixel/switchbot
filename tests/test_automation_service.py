@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 import datetime as dt
+from unittest.mock import MagicMock, patch
 from zoneinfo import ZoneInfo
 
 from switchbot_dashboard.automation import AutomationService, OFF_REPEAT_STATE_KEY, _is_now_in_windows
@@ -121,6 +122,66 @@ def _build_service(
     ifttt_client = DummyIFTTTClient()
     service = AutomationService(settings_store, state_store, client, ifttt_client)
     return service, client, settings_store, state_store
+
+
+@patch("switchbot_dashboard.automation.ZoneInfo")
+def test_get_timezone_caches_valid_zone(mock_zoneinfo: MagicMock) -> None:
+    """Vérifie que les résolutions de timezone sont mises en cache."""
+    mock_zone_instance = MagicMock()
+    mock_zoneinfo.return_value = mock_zone_instance
+
+    settings = _default_settings()
+    settings["timezone"] = "Europe/Paris"
+
+    service, _, _, _ = _build_service(settings=settings, temperature=20.0)
+
+    tz1 = service._get_timezone(settings, trigger="test")
+    tz2 = service._get_timezone(settings, trigger="test")
+
+    assert tz1 == (mock_zone_instance, "Europe/Paris")
+    assert tz2 == (mock_zone_instance, "Europe/Paris")
+    mock_zoneinfo.assert_called_once_with("Europe/Paris")
+
+
+def test_get_timezone_fallback_cached(caplog: Any) -> None:
+    """Vérifie que les timezones invalides se replient vers UTC et sont mises en cache."""
+    settings = _default_settings()
+    settings["timezone"] = "Invalid/Timezone"
+
+    service, _, _, _ = _build_service(settings=settings, temperature=20.0)
+
+    caplog.set_level(logging.WARNING)
+
+    tz1 = service._get_timezone(settings, trigger="test")
+    tz2 = service._get_timezone(settings, trigger="test")
+
+    assert tz1[1] == "UTC"
+    assert tz1[0] is dt.timezone.utc
+    assert tz2 == tz1
+    warnings = [record for record in caplog.records if "Invalid timezone" in record.message]
+    assert len(warnings) == 1  # logged once thanks au cache
+
+
+@patch("switchbot_dashboard.automation.ZoneInfo")
+def test_get_timezone_cache_invalidated_on_change(mock_zoneinfo: MagicMock) -> None:
+    """Vérifie que changer de timezone invalide le cache."""
+    paris_zone = MagicMock(name="paris")
+    ny_zone = MagicMock(name="ny")
+    mock_zoneinfo.side_effect = [paris_zone, ny_zone]
+
+    settings = _default_settings()
+    settings["timezone"] = "Europe/Paris"
+
+    service, _, _, _ = _build_service(settings=settings, temperature=20.0)
+
+    tz1 = service._get_timezone(settings, trigger="test")
+    assert tz1 == (paris_zone, "Europe/Paris")
+
+    settings["timezone"] = "America/New_York"
+    tz2 = service._get_timezone(settings, trigger="test")
+    assert tz2 == (ny_zone, "America/New_York")
+
+    assert mock_zoneinfo.call_count == 2
 
 
 def test_run_once_prefers_winter_scene_and_records_quota() -> None:

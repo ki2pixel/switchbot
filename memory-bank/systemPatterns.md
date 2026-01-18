@@ -113,7 +113,20 @@
 - `validate_webhook_url()` impose HTTPS uniquement et vérifie la validité de l'URL.
 - `IFTTTWebhookClient` gère les timeouts (10s par défaut) et les erreurs réseau avec logs structurés.
 
-[2026-01-14 16:00:00] - Patterns système d'historique monitoring
+[2026-01-15 11:47:00] - Patterns de correction du dashboard d'historique
+
+## Correction des bugs d'affichage du dashboard
+- **Chargement environnement** : Ajout de `load_dotenv()` au début de `create_app()` pour garantir la disponibilité des variables PostgreSQL.
+- **Simplification SQL** : Remplacement des requêtes `GROUP BY` complexes par des requêtes simples évitant les erreurs PostgreSQL.
+- **Conversion types** : Pattern pour convertir les chaînes PostgreSQL en nombres JavaScript (`parseFloat()` avant `.toFixed()`).
+- **Parsing paramètres** : Gestion des paramètres métriques comme chaînes séparées par virgules dans les routes API.
+- **Interface épurée** : Pattern de suppression des éléments superflus pour maintenir une expérience utilisateur cohérente.
+
+## Frontend monitoring simplifié
+- **Graphiques conservés** : Température & Humidité (pleine largeur) + État Climatisation (pleine largeur, hauteur limitée).
+- **Cartes de statut** : Température et humidité moyennes avec conversion et affichage correct des valeurs.
+- **Tableau optimisé** : 5 colonnes (suppression colonne erreurs), format responsive.
+- **Filtres simplifiés** : 3 checkboxes (température, humidité, climatisation) sans métriques superflues.
 
 ## Service d'historique monitoring
 - `HistoryService` utilise le connection pool PostgreSQL existant pour stocker/récupérer les données historiques dans la table `state_history`.  
@@ -134,4 +147,29 @@
 - Filtres interactifs : plages horaires personnalisées, granularité (minute/5min/15min/heure), sélection de métriques.  
 - Mise à jour temps réel avec polling automatique et gestion d'état de chargement.  
 - Gestion d'erreurs robuste : affichage de données vides valides quand aucune donnée disponible, messages informatifs.
+
+
+## Patterns de performance et résilience (post-audit backend)
+
+### Batch insert HistoryService
+- `HistoryService` utilise un buffer thread-safe (`_pending_records`) avec verrou `_pending_lock` pour accumuler les enregistrements.
+- Flush automatique sur `batch_size` atteint ou via timer (`flush_interval_seconds`).
+- Remplacement de `psycopg.extras.execute_values` par SQL manuel pour éviter les dépendances dépréciées.
+- Méthodes `_flush_pending_records_locked()` et `_build_record_tuple()` pour la construction optimisée des tuples.
+
+### Wrapper try/catch global SchedulerService
+- `SchedulerService._run_tick_safe()` enveloppe `_tick_callable` dans un try/catch global.
+- Toutes les exceptions sont loguées avec `exc_info=True` sans crasher le scheduler.
+- Utilisé dans `start()` (tick immédiat) et `_schedule_or_reschedule_locked()` (ticks périodiques).
+
+### Cache timezone AutomationService
+- `AutomationService` maintient un cache simple : `_cached_timezone_key` et `_cached_timezone_value`.
+- `_get_timezone()` vérifie le cache avant résolution `ZoneInfo`, stocke le résultat.
+- Invalidation automatique lors du changement des settings (nouvelle clé de cache).
+
+### Tests robustes avec mocks centralisés
+- `tests/conftest.py` fournit une fixture autouse pour patcher `ConnectionPool` et `_ensure_table_exists`.
+- `PostgresStore` tests utilisent des mocks dédiés avec reset entre chaque test.
+- `FakePostgresStore` dans les tests d'intégration pour éviter les connexions réelles.
+- `BaseStore` marqué `@runtime_checkable` pour les assertions isinstance dans les tests.
 

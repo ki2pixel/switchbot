@@ -5,6 +5,12 @@
   flex-direction: column;
   gap: 0.45rem;
   border-color: rgba(255, 255, 255, 0.25);
+  transition: transform var(--sb-transition-fast), box-shadow var(--sb-transition-fast);
+}
+
+.scene-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .scene-action[disabled],
@@ -73,6 +79,43 @@
   opacity: 0.7;
 }
 
+/* Thumb Zone Optimization */
+.scene-actions-wrapper {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .scene-actions-wrapper {
+    display: block;
+    position: sticky;
+    bottom: 1rem;
+    background: var(--sb-glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--sb-glass-border);
+    border-radius: 1.25rem;
+    padding: 1rem;
+    margin: 1rem -1rem -1rem;
+    box-shadow: var(--sb-glass-shadow);
+    z-index: 10;
+  }
+  
+  .scene-actions-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  
+  .scene-action {
+    min-height: 56px;
+    padding: 1rem;
+  }
+  
+  .scene-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+
 .status-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -87,6 +130,12 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  transition: transform var(--sb-transition-fast), box-shadow var(--sb-transition-fast);
+}
+
+.status-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
 .status-label {
@@ -110,4 +159,15 @@
 
 .status-badge {
   align-self: flex-start;
+}
+
+/* Status Grid Mobile Fix */
+@media (max-width: 480px) {
+  .status-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .status-item {
+    padding: 1rem;
+  }
 }

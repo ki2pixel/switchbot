@@ -130,13 +130,14 @@ class PostgresStore:
                     data = result["data"]
                     if isinstance(data, str):
                         return json.loads(data)
-                    elif isinstance(data, dict):
+                    if isinstance(data, dict):
                         return data
-                    else:
-                        raise PostgresStoreError(
-                            f"Invalid data type in PostgreSQL for {self._kind} store"
-                        )
+                    raise PostgresStoreError(
+                        f"Invalid data type in PostgreSQL for {self._kind} store"
+                    )
 
+        except PostgresStoreError:
+            raise
         except Exception as exc:
             self._logger.error(
                 "[postgres] Read failed for %s store (%s)", self._kind, exc

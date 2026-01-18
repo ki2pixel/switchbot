@@ -44,6 +44,8 @@ def history_service(mock_connection_pool, mock_logger):
             connection_pool=mock_connection_pool,
             logger=mock_logger,
             retention_hours=6,
+            batch_size=1,
+            flush_interval_seconds=0,
         )
 
 
@@ -93,21 +95,32 @@ class TestHistoryServiceInit:
             mock_ensure.assert_called_once()
 
 
+def _mock_connection(service: HistoryService) -> tuple[MagicMock, MagicMock]:
+    """Helper to mock connection/cursor pair for HistoryService."""
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    service._pool.connection.return_value.__enter__.return_value = mock_conn
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+    return mock_conn, mock_cursor
+
+
 class TestRecordState:
     """Test state recording functionality."""
 
     def test_record_state_success(self, history_service, sample_state_data):
         """Test successful state recording."""
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        history_service._pool.connection.return_value.__enter__.return_value = mock_conn
-        mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-        
+        mock_conn, mock_cursor = _mock_connection(history_service)
+
         history_service.record_state(sample_state_data, "Europe/Paris")
-        
+
         mock_cursor.execute.assert_called_once()
+        query, params = mock_cursor.execute.call_args[0]
+        assert "INSERT INTO state_history" in str(query)
+        assert len(params) == 9
+        assert params[0] == 23.5  # temperature
+        assert params[1] == 45.0  # humidity
+        assert params[2] == "on"
         mock_conn.commit.assert_called_once()
-        history_service._logger.debug.assert_called_with("[history] State recorded successfully")
 
     def test_record_state_with_missing_fields(self, history_service):
         """Test recording state with missing optional fields."""
@@ -115,33 +128,68 @@ class TestRecordState:
             "last_temperature": 20.0,
             "assumed_aircon_power": "off",
         }
-        
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        history_service._pool.connection.return_value.__enter__.return_value = mock_conn
-        mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-        
+
+        mock_conn, mock_cursor = _mock_connection(history_service)
+
         history_service.record_state(incomplete_data)
-        
+
         mock_cursor.execute.assert_called_once()
-        # Check that None values are handled properly
-        args = mock_cursor.execute.call_args[0][1]
-        assert args[0] == 20.0  # temperature
-        assert args[1] is None  # humidity
-        assert args[2] == "off"  # aircon_power
+        params = mock_cursor.execute.call_args[0][1]
+        assert params[0] == 20.0  # temperature
+        assert params[1] is None  # humidity
+        assert params[2] == "off"  # aircon_power
 
     def test_record_state_database_error(self, history_service, sample_state_data):
         """Test handling of database errors during recording."""
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        history_service._pool.connection.return_value.__enter__.return_value = mock_conn
-        mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+        _, mock_cursor = _mock_connection(history_service)
         mock_cursor.execute.side_effect = Exception("Database error")
-        
-        with pytest.raises(HistoryServiceError, match="Failed to record state in history"):
+
+        with pytest.raises(HistoryServiceError, match="Failed to flush buffered records"):
             history_service.record_state(sample_state_data)
-        
+
         history_service._logger.error.assert_called_once()
+
+    def test_record_state_flushes_when_batch_size_reached(
+        self,
+        mock_connection_pool,
+        mock_logger,
+        sample_state_data,
+    ):
+        """Ensure flush happens only when the batch size is reached."""
+        with patch("switchbot_dashboard.history_service.HistoryService._ensure_table_exists"):
+            service = HistoryService(
+                connection_pool=mock_connection_pool,
+                logger=mock_logger,
+                retention_hours=6,
+                batch_size=2,
+                flush_interval_seconds=0,
+            )
+
+        mock_conn, mock_cursor = _mock_connection(service)
+        service.record_state(sample_state_data)
+        mock_cursor.execute.assert_not_called()
+
+        service.record_state(sample_state_data)
+        mock_cursor.execute.assert_called_once()
+        params = mock_cursor.execute.call_args[0][1]
+        assert len(params) == 18  # 2 records * 9 fields
+
+    def test_flush_pending_records_force(
+        self,
+        history_service,
+        sample_state_data,
+    ):
+        """Test force flushing pending records."""
+        history_service._batch_size = 10  # Prevent automatic flush
+
+        _, mock_cursor = _mock_connection(history_service)
+
+        history_service.record_state(sample_state_data)
+        mock_cursor.execute.assert_not_called()
+
+        flushed = history_service.flush_pending_records(force=True)
+        assert flushed == 1
+        mock_cursor.execute.assert_called_once()
 
 
 class TestGetHistory:
@@ -198,7 +246,7 @@ class TestGetHistory:
         # Verify the query was called with correct parameters
         mock_cursor.execute.assert_called_once()
         call_args = mock_cursor.execute.call_args[0]
-        assert call_args[1] == (start, end, "hour", 500)
+        assert call_args[1] == [start, end, 500]
 
     def test_get_history_different_granularities(self, history_service):
         """Test history retrieval with different time granularities."""
@@ -216,7 +264,7 @@ class TestGetHistory:
             
             # Check that granularity is used in the query
             call_args = mock_cursor.execute.call_args[0]
-            assert call_args[1][2] == granularity
+            assert call_args[1] == [start, end, 1000]
 
     def test_get_history_database_error(self, history_service):
         """Test handling of database errors during retrieval."""

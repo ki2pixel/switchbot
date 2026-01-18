@@ -78,7 +78,7 @@ class ApiQuotaTracker:
 
     def _normalize_state(self) -> dict[str, Any]:
         state = self._state_store.read()
-        now = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc)
+        now = dt.datetime.now(dt.timezone.utc)
         today = now.date().isoformat()
         if state.get("api_quota_day") != today:
             state["api_quota_day"] = today

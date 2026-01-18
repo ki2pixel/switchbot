@@ -160,3 +160,51 @@ def test_scheduler_duplicate_start_is_safe() -> None:
     assert call_count["count"] == initial_count
 
     scheduler.stop()
+
+
+def test_run_tick_safe_logs_exceptions(caplog: Any) -> None:
+    """Vérifie que les exceptions des ticks sont capturées et logguées."""
+    settings_store = MemoryStore({"poll_interval_seconds": 30})
+
+    def tick_callable() -> None:
+        raise RuntimeError("tick boom")
+
+    scheduler = SchedulerService(
+        settings_store=settings_store,
+        tick_callable=tick_callable,
+    )
+
+    caplog.set_level(logging.ERROR)
+
+    # Appel direct pour isoler le wrapper
+    scheduler._run_tick_safe()
+
+    assert any(
+        "Automation tick raised exception" in record.message for record in caplog.records
+    )
+
+
+def test_scheduler_start_handles_tick_exception(caplog: Any) -> None:
+    """Vérifie que le premier tick n'explose pas le scheduler même en cas d'erreur."""
+    settings_store = MemoryStore({"poll_interval_seconds": 30})
+    call_count = {"attempts": 0}
+
+    def tick_callable() -> None:
+        call_count["attempts"] += 1
+        raise RuntimeError("boom at start")
+
+    scheduler = SchedulerService(
+        settings_store=settings_store,
+        tick_callable=tick_callable,
+    )
+
+    caplog.set_level(logging.ERROR)
+
+    # Ne doit pas lever malgré l'exception
+    scheduler.start()
+    scheduler.stop()
+
+    assert call_count["attempts"] == 1
+    assert any(
+        "Automation tick raised exception" in record.message for record in caplog.records
+    )

@@ -34,8 +34,35 @@
   outline-offset: 2px;
 }
 
+/* Mobile Form Optimization */
 @media (max-width: 576px) {
   .day-chip .btn {
     min-width: 56px;
+  }
+  
+  .time-window-card .col-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  
+  .form-select {
+    font-size: 1rem;
+    padding: 1rem;
+    min-height: 56px;
+  }
+  
+  .form-control {
+    font-size: 1rem;
+    padding: 1rem;
+    min-height: 56px;
+  }
+  
+  .form-label {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .time-window-card {
+    padding: 1rem;
   }
 }

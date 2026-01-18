@@ -56,7 +56,7 @@ def _is_now_in_windows(time_windows: list[dict[str, Any]], now: dt.datetime) -> 
 
 
 def _utc_now_iso() -> str:
-    return dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc).isoformat()
+    return dt.datetime.now(dt.timezone.utc).isoformat()
 
 
 def _ensure_utc(value: dt.datetime) -> dt.datetime:
@@ -129,6 +129,8 @@ class AutomationService:
         self._ifttt_client = ifttt_client
         self._history_service = history_service
         self._logger = logger or logging.getLogger(__name__)
+        self._cached_timezone_key: str | None = None
+        self._cached_timezone_value: tuple[dt.tzinfo, str] | None = None
 
     def _update_state(self, **updates: Any) -> None:
         state = self._state_store.read()
@@ -163,15 +165,28 @@ class AutomationService:
     def _get_timezone(self, settings: dict[str, Any], *, trigger: str) -> tuple[dt.tzinfo, str]:
         raw_timezone = settings.get("timezone")
         timezone_name = str(raw_timezone or "").strip() or DEFAULT_TIMEZONE
+        cache_key = timezone_name
+        if (
+            self._cached_timezone_key == cache_key
+            and self._cached_timezone_value is not None
+        ):
+            return self._cached_timezone_value
+
         try:
-            return ZoneInfo(timezone_name), timezone_name
+            timezone_obj = ZoneInfo(timezone_name)
+            resolved_name = timezone_name
         except ZoneInfoNotFoundError:
             self._warning(
                 "Invalid timezone; falling back to UTC",
                 trigger=trigger,
                 timezone=timezone_name,
             )
-            return dt.timezone.utc, "UTC"
+            timezone_obj = dt.timezone.utc
+            resolved_name = "UTC"
+
+        self._cached_timezone_key = cache_key
+        self._cached_timezone_value = (timezone_obj, resolved_name)
+        return timezone_obj, resolved_name
 
     def _log_quota_snapshot(self, context: str) -> None:
         state = self._state_store.read()
@@ -505,6 +520,16 @@ class AutomationService:
         state_reason: str,
         force_direct: bool = False,
     ) -> bool:
+        if not force_direct:
+            state = self._state_store.read()
+            if state.get("assumed_aircon_power") == "off":
+                self._debug(
+                    "Skipping off action: already assumed off",
+                    trigger=trigger,
+                    state_reason=state_reason,
+                )
+                return False
+
         handled = self._trigger_aircon_action(
             action_key="off",
             state_reason=state_reason,
@@ -897,3 +922,14 @@ class AutomationService:
                 self._history_service.record_state(current_state, timezone_name)
             except Exception as exc:
                 self._warning("Failed to record state in history", trigger=trigger, error=str(exc))
+            else:
+                try:
+                    deleted = self._history_service.cleanup_old_records()
+                    if deleted:
+                        self._debug(
+                            "Cleaned up old history records",
+                            trigger=trigger,
+                            deleted=deleted,
+                        )
+                except Exception as exc:
+                    self._warning("Failed to cleanup history records", trigger=trigger, error=str(exc))

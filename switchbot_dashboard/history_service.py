@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import logging
+import threading
 from typing import Any, Optional
 
 import psycopg
@@ -27,6 +28,8 @@ class HistoryService:
         *,
         logger: logging.Logger,
         retention_hours: int = 6,
+        batch_size: int = 4,
+        flush_interval_seconds: int = 60,
     ) -> None:
         """
         Initialize history service with PostgreSQL connection pool.
@@ -35,10 +38,17 @@ class HistoryService:
             connection_pool: PostgreSQL connection pool from PostgresStore
             logger: Logger instance for error reporting
             retention_hours: Data retention period (default: 6 hours for Neon PITR)
+            batch_size: Number of records to buffer before flushing (default: 4)
+            flush_interval_seconds: Maximum seconds to keep buffered data before flushing
         """
         self._pool = connection_pool
         self._logger = logger
         self._retention_hours = retention_hours
+        self._batch_size = max(1, batch_size)
+        self._flush_interval_seconds = max(0, flush_interval_seconds)
+        self._pending_records: list[tuple[Any, ...]] = []
+        self._pending_lock = threading.Lock()
+        self._flush_timer: threading.Timer | None = None
         self._ensure_table_exists()
 
     def _ensure_table_exists(self) -> None:
@@ -72,7 +82,13 @@ class HistoryService:
             self._logger.error("[history] Failed to create table (%s)", exc)
             raise HistoryServiceError("Failed to ensure history table exists") from exc
 
-    def record_state(self, state_data: dict[str, Any], timezone: str = "UTC") -> None:
+    def record_state(
+        self,
+        state_data: dict[str, Any],
+        timezone: str = "UTC",
+        *,
+        force_flush: bool = False,
+    ) -> None:
         """
         Record a new state snapshot in history.
 
@@ -83,54 +99,18 @@ class HistoryService:
         Raises:
             HistoryServiceError: If recording fails
         """
-        insert_query = sql.SQL("""
-            INSERT INTO state_history (
-                temperature, humidity, assumed_aircon_power, last_action,
-                api_requests_today, error_count, last_temperature_stale,
-                timezone, metadata
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """)
+        record_tuple = self._build_record_tuple(state_data, timezone)
 
-        try:
-            # Extract relevant fields from state data
-            temperature = state_data.get("last_temperature")
-            humidity = state_data.get("last_humidity")
-            aircon_power = state_data.get("assumed_aircon_power", "unknown")
-            last_action = state_data.get("last_action")
-            api_requests = state_data.get("api_requests_today", 0)
-            error_count = state_data.get("error_count", 0)
-            temp_stale = state_data.get("last_temperature_stale", False)
+        with self._pending_lock:
+            self._pending_records.append(record_tuple)
 
-            # Prepare metadata with additional fields
-            metadata = {
-                "last_read_at": state_data.get("last_read_at"),
-                "last_tick": state_data.get("last_tick"),
-                "automation_active": state_data.get("automation_active"),
-                "pending_off_repeat": state_data.get("pending_off_repeat"),
-            }
+            if len(self._pending_records) >= self._batch_size:
+                self._flush_pending_records_locked()
+            else:
+                self._schedule_flush_timer_locked()
 
-            with self._pool.connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        insert_query,
-                        (
-                            temperature,
-                            humidity,
-                            aircon_power,
-                            last_action,
-                            api_requests,
-                            error_count,
-                            temp_stale,
-                            timezone,
-                            Jsonb(metadata),
-                        ),
-                    )
-                    conn.commit()
-                    self._logger.debug("[history] State recorded successfully")
-
-        except Exception as exc:
-            self._logger.error("[history] Failed to record state (%s)", exc)
-            raise HistoryServiceError("Failed to record state in history") from exc
+        if force_flush:
+            self.flush_pending_records(force=True)
 
     def get_history(
         self,
@@ -317,6 +297,120 @@ class HistoryService:
         except Exception as exc:
             self._logger.error("[history] Failed to cleanup old records (%s)", exc)
             raise HistoryServiceError("Failed to cleanup old records") from exc
+
+    def flush_pending_records(self, *, force: bool = False) -> int:
+        """Flush buffered records to PostgreSQL."""
+        with self._pending_lock:
+            if not self._pending_records:
+                return 0
+
+            if not force and len(self._pending_records) < self._batch_size:
+                return 0
+
+            return self._flush_pending_records_locked()
+
+    def _build_record_tuple(
+        self,
+        state_data: dict[str, Any],
+        timezone: str,
+    ) -> tuple[Any, ...]:
+        """Build the tuple representing a state row."""
+        temperature = state_data.get("last_temperature")
+        humidity = state_data.get("last_humidity")
+        aircon_power = state_data.get("assumed_aircon_power", "unknown")
+        last_action = state_data.get("last_action")
+        api_requests = state_data.get("api_requests_today", 0)
+        error_count = state_data.get("error_count", 0)
+        temp_stale = state_data.get("last_temperature_stale", False)
+
+        metadata = {
+            "last_read_at": state_data.get("last_read_at"),
+            "last_tick": state_data.get("last_tick"),
+            "automation_active": state_data.get("automation_active"),
+            "pending_off_repeat": state_data.get("pending_off_repeat"),
+        }
+
+        return (
+            temperature,
+            humidity,
+            aircon_power,
+            last_action,
+            api_requests,
+            error_count,
+            temp_stale,
+            timezone,
+            Jsonb(metadata),
+        )
+
+    def _schedule_flush_timer_locked(self) -> None:
+        """Schedule a timer-based flush if needed (lock must be held)."""
+        if self._flush_interval_seconds <= 0:
+            return
+
+        if self._flush_timer is not None:
+            return
+
+        timer = threading.Timer(self._flush_interval_seconds, self._flush_due)
+        timer.daemon = True
+        timer.start()
+        self._flush_timer = timer
+
+    def _flush_due(self) -> None:
+        """Flush callback triggered by the timer."""
+        with self._pending_lock:
+            self._flush_timer = None
+            if not self._pending_records:
+                return
+
+            try:
+                self._flush_pending_records_locked()
+            except HistoryServiceError as exc:
+                self._logger.error("[history] Timed flush failed (%s)", exc)
+
+    def _cancel_flush_timer_locked(self) -> None:
+        """Cancel the scheduled flush timer if it exists."""
+        if self._flush_timer is not None:
+            self._flush_timer.cancel()
+            self._flush_timer = None
+
+    def _flush_pending_records_locked(self) -> int:
+        """Flush pending records to PostgreSQL (lock must be held)."""
+        if not self._pending_records:
+            return 0
+
+        records = list(self._pending_records)
+        self._pending_records.clear()
+        self._cancel_flush_timer_locked()
+
+        column_count = len(records[0])
+        placeholders = "(" + ", ".join(["%s"] * column_count) + ")"
+        values_segment = ", ".join([placeholders] * len(records))
+        insert_query = sql.SQL(
+            """
+            INSERT INTO state_history (
+                temperature, humidity, assumed_aircon_power, last_action,
+                api_requests_today, error_count, last_temperature_stale,
+                timezone, metadata
+            ) VALUES {}
+            """
+        ).format(sql.SQL(values_segment))
+        flat_params: list[Any] = []
+        for record in records:
+            flat_params.extend(record)
+
+        try:
+            with self._pool.connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(insert_query, flat_params)
+                    conn.commit()
+                    self._logger.debug(
+                        "[history] Flushed %d buffered records", len(records)
+                    )
+        except Exception as exc:
+            self._logger.error("[history] Failed to flush records (%s)", exc)
+            raise HistoryServiceError("Failed to flush buffered records") from exc
+
+        return len(records)
 
     def _get_time_bucket_expression(self, granularity: str) -> sql.SQL:
         """Get PostgreSQL time bucket expression for given granularity."""

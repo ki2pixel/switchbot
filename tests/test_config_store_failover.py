@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 from typing import Any, Iterator
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -170,15 +171,25 @@ def test_create_app_uses_postgres_store_when_configured(monkeypatch, tmp_path) -
     monkeypatch.setenv("SCHEDULER_ENABLED", "false")
 
     # Mock PostgresStore to avoid real database connection
-    from switchbot_dashboard.postgres_store import PostgresStore
-    
-    def mock_postgres_store(*args, **kwargs):
-        store = MagicMock()
-        store.health_check.return_value = True
-        store.close.return_value = None
-        return store
-    
-    monkeypatch.setattr(PostgresStore, "__new__", mock_postgres_store)
+    class FakePostgresStore:
+        def __init__(self, *args, **kwargs):
+            self._data: dict[str, Any] = {"meter_device_id": "dummy"}
+            self._pool = MagicMock()
+
+        def read(self) -> dict[str, Any]:
+            return self._data
+
+        def write(self, data: dict[str, Any]) -> None:
+            self._data = dict(data)
+
+        def health_check(self) -> bool:
+            return True
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setattr("switchbot_dashboard.postgres_store.PostgresStore", FakePostgresStore)
+    monkeypatch.setattr("switchbot_dashboard.PostgresStore", FakePostgresStore, raising=False)
 
     # Avoid real SwitchBot/automation calls
     def fake_poll(self: AutomationService) -> None:

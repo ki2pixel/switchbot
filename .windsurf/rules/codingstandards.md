@@ -27,6 +27,8 @@ Ce document décrit les règles obligatoires pour tout nouveau code ou refactori
 
 ## 3. Backend Python (Flask) & Stockage
 
+- **Clean Code** : Pas de code mort commenté (supprimer directement). Commentaires : Expliquer le "Pourquoi" (intention métier), pas le "Comment" (syntaxe évidente).
+
 ### Typage et Validation
 - **Typage** : Activer `from __future__ import annotations` et typer toutes les signatures publiques.
 - **Validation** : Centraliser la validation via les helpers (`_as_bool`, `_as_int`, etc.). Ne jamais consommer `request.form` directement.
@@ -53,6 +55,7 @@ Ce document décrit les règles obligatoires pour tout nouveau code ou refactori
 
 ## 4. Frontend & Templates Jinja
 
+- **Clean Code** : Pas de code mort commenté (supprimer directement). Commentaires : Expliquer le "Pourquoi" (intention métier), pas le "Comment" (syntaxe évidente).
 - **Structure** : Séparer strictement HTML et CSS. Styles spécifiques dans `static/css/devices.css`, etc.
 - **Thème Sombre** : Utiliser exclusivement les variables CSS de `theme.css`. Pas de codes couleur "magiques" (#FFF).
 - **Accessibilité** : Respecter WCAG (labels, `aria-*`, contrastes).

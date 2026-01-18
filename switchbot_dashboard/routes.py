@@ -93,7 +93,7 @@ DEFAULT_TIMEZONE = "Europe/Paris"
 
 
 def _utc_now_iso() -> str:
-    return dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc).isoformat()
+    return dt.datetime.now(dt.timezone.utc).isoformat()
 
 
 def _parse_iso_datetime(value: str) -> dt.datetime | None:
@@ -774,11 +774,10 @@ def history_api_data() -> Any:
     history_service = current_app.extensions.get("history_service")
     if not history_service:
         # Return mock data when service is not available
-        from datetime import datetime, timedelta
         import random
         
-        end = datetime.utcnow()
-        start = end - timedelta(hours=6)
+        end = dt.datetime.now(dt.timezone.utc)
+        start = end - dt.timedelta(hours=6)
         mock_data = []
         
         current = start
@@ -864,8 +863,8 @@ def history_api_data() -> Any:
         # Return empty data structure on error to avoid breaking the frontend
         return {
             "data": [],
-            "start": start.isoformat() if 'start' in locals() else dt.datetime.utcnow().isoformat(),
-            "end": end.isoformat() if 'end' in locals() else dt.datetime.utcnow().isoformat(),
+            "start": start.isoformat() if 'start' in locals() else dt.datetime.now(dt.timezone.utc).isoformat(),
+            "end": end.isoformat() if 'end' in locals() else dt.datetime.now(dt.timezone.utc).isoformat(),
             "granularity": "minute",
             "metrics": ["timestamp", "temperature", "humidity", "assumed_aircon_power"],
             "count": 0,
@@ -959,12 +958,11 @@ def history_api_latest() -> Any:
     history_service = current_app.extensions.get("history_service")
     if not history_service:
         # Return mock latest records when service is not available
-        from datetime import datetime, timedelta
         import random
         
         mock_latest = []
         for i in range(10):
-            timestamp = datetime.utcnow() - timedelta(minutes=i*5)
+            timestamp = dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=i * 5)
             mock_latest.append({
                 "id": i + 1,
                 "timestamp": timestamp.isoformat() + "Z",

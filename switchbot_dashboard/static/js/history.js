@@ -24,6 +24,10 @@ class HistoryDashboard {
     }
 
     initCharts() {
+        // Viewport-based responsive configuration
+        const isMobile = window.innerWidth <= 768;
+        const isSmallMobile = window.innerWidth <= 480;
+        
         const chartOptions = {
             responsive: true,
             maintainAspectRatio: false,
@@ -33,11 +37,14 @@ class HistoryDashboard {
             },
             plugins: {
                 legend: {
+                    position: isMobile ? 'bottom' : 'top',
                     labels: {
                         color: '#e9ecef',
                         font: {
-                            size: 12
-                        }
+                            size: isSmallMobile ? 10 : (isMobile ? 11 : 12)
+                        },
+                        padding: isSmallMobile ? 10 : 20,
+                        boxWidth: isSmallMobile ? 12 : 15
                     }
                 },
                 tooltip: {
@@ -45,7 +52,14 @@ class HistoryDashboard {
                     titleColor: '#ffffff',
                     bodyColor: '#e9ecef',
                     borderColor: '#495057',
-                    borderWidth: 1
+                    borderWidth: 1,
+                    titleFont: {
+                        size: isSmallMobile ? 11 : 12
+                    },
+                    bodyFont: {
+                        size: isSmallMobile ? 10 : 11
+                    },
+                    padding: isSmallMobile ? 6 : 10
                 }
             },
             scales: {
@@ -53,12 +67,16 @@ class HistoryDashboard {
                     type: 'time',
                     time: {
                         displayFormats: {
-                            minute: 'HH:mm',
-                            hour: 'HH:mm'
+                            minute: isSmallMobile ? 'H:mm' : 'HH:mm',
+                            hour: isSmallMobile ? 'H:mm' : 'HH:mm'
                         }
                     },
                     ticks: {
-                        color: '#6c757d'
+                        color: '#6c757d',
+                        font: {
+                            size: isSmallMobile ? 9 : 10
+                        },
+                        maxTicksLimit: isSmallMobile ? 6 : 8
                     },
                     grid: {
                         color: 'rgba(108, 117, 125, 0.2)'
@@ -99,12 +117,19 @@ class HistoryDashboard {
                         display: true,
                         position: 'left',
                         title: {
-                            display: true,
+                            display: !isMobile,
                             text: 'Température (°C)',
-                            color: '#dc3545'
+                            color: '#dc3545',
+                            font: {
+                                size: isSmallMobile ? 9 : 10
+                            }
                         },
                         ticks: {
-                            color: '#6c757d'
+                            color: '#6c757d',
+                            font: {
+                                size: isSmallMobile ? 9 : 10
+                            },
+                            maxTicksLimit: isSmallMobile ? 4 : 6
                         },
                         grid: {
                             color: 'rgba(108, 117, 125, 0.2)'
@@ -115,12 +140,19 @@ class HistoryDashboard {
                         display: true,
                         position: 'right',
                         title: {
-                            display: true,
+                            display: !isMobile,
                             text: 'Humidité (%)',
-                            color: '#0d6efd'
+                            color: '#0d6efd',
+                            font: {
+                                size: isSmallMobile ? 9 : 10
+                            }
                         },
                         ticks: {
-                            color: '#6c757d'
+                            color: '#6c757d',
+                            font: {
+                                size: isSmallMobile ? 9 : 10
+                            },
+                            maxTicksLimit: isSmallMobile ? 4 : 6
                         },
                         grid: {
                             drawOnChartArea: false
@@ -153,8 +185,26 @@ class HistoryDashboard {
                         position: 'bottom',
                         labels: {
                             color: '#e9ecef',
-                            padding: 20
+                            padding: isSmallMobile ? 10 : 20,
+                            font: {
+                                size: isSmallMobile ? 10 : 11
+                            },
+                            boxWidth: isSmallMobile ? 12 : 15
                         }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(33, 37, 41, 0.9)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#e9ecef',
+                        borderColor: '#495057',
+                        borderWidth: 1,
+                        titleFont: {
+                            size: isSmallMobile ? 11 : 12
+                        },
+                        bodyFont: {
+                            size: isSmallMobile ? 10 : 11
+                        },
+                        padding: isSmallMobile ? 6 : 10
                     }
                 }
             }
@@ -240,12 +290,33 @@ class HistoryDashboard {
             metrics: this.currentFilters.metrics
         });
 
-        const response = await fetch(`/history/api/data?${params}`);
-        if (!response.ok) throw new Error('Failed to load history data');
-        
-        const data = await response.json();
-        this.updateCharts(data.data || []);
-        return data; // Return the full response for mock checking
+        try {
+            const response = await fetch(`/history/api/data?${params}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            this.updateCharts(data.data || []);
+            return data; // Return the full response for mock checking
+        } catch (error) {
+            console.error('Failed to load history data:', error);
+            this.updateStatus('error', 'Erreur de chargement des données');
+            this.renderChartErrorState(error);
+            throw error;
+        }
+    }
+
+    renderChartErrorState(error) {
+        document.querySelectorAll('.chart-container').forEach((container) => {
+            container.innerHTML = `
+                <div class="d-flex flex-column align-items-center justify-content-center text-muted py-4">
+                    <div class="fs-3 mb-2">⚠️</div>
+                    <div class="text-center">Impossible de charger les données</div>
+                    <small class="d-block mt-2">${error.message}</small>
+                </div>
+            `;
+        });
     }
 
     async loadAggregates() {

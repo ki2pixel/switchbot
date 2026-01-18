@@ -64,12 +64,59 @@
   border-radius: 1rem;
   padding: 0.75rem 1rem;
   background: rgba(255, 255, 255, 0.03);
+  transition: all var(--sb-transition-normal) ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.device-details::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(138, 180, 255, 0.1), transparent);
+  transition: left var(--sb-transition-slow) ease;
+}
+
+.device-details:hover {
+  border-color: var(--sb-accent);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 15px rgba(138, 180, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.device-details:hover::before {
+  left: 100%;
 }
 
 .device-details summary {
   cursor: pointer;
   font-weight: 600;
   color: var(--sb-text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  transition: color var(--sb-transition-fast) ease;
+  position: relative;
+}
+
+.device-details summary::after {
+  content: '▶';
+  font-size: 0.8rem;
+  transition: transform var(--sb-transition-fast) ease;
+  color: var(--sb-accent);
+  margin-left: 0.5rem;
+}
+
+.device-details[open] summary::after {
+  transform: rotate(90deg);
+}
+
+.device-details:hover summary {
+  color: var(--sb-accent);
 }
 
 .device-details[open] summary {
@@ -117,11 +164,57 @@
   border-radius: 1rem;
   padding: 1rem;
   background: rgba(5, 10, 24, 0.55);
+  transition: all var(--sb-transition-normal) ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.raw-block::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(138, 180, 255, 0.08), transparent);
+  transition: left var(--sb-transition-slow) ease;
+}
+
+.raw-block:hover {
+  border-color: var(--sb-accent);
+  background: rgba(5, 10, 24, 0.65);
+  box-shadow: 0 4px 15px rgba(138, 180, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.raw-block:hover::before {
+  left: 100%;
 }
 
 .raw-block summary {
   cursor: pointer;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--sb-text);
+  transition: color var(--sb-transition-fast) ease;
+}
+
+.raw-block summary::after {
+  content: '▶';
+  font-size: 0.8rem;
+  transition: transform var(--sb-transition-fast) ease;
+  color: var(--sb-accent);
+  margin-left: 0.5rem;
+}
+
+.raw-block[open] summary::after {
+  transform: rotate(90deg);
+}
+
+.raw-block:hover summary {
+  color: var(--sb-accent);
 }
 
 .raw-block[open] summary {
@@ -141,5 +234,21 @@
   .btn-copy {
     width: 100%;
     padding: 0.6rem 0.85rem;
+  }
+  
+  .device-details,
+  .raw-block {
+    padding: 0.6rem 0.8rem;
+  }
+  
+  .device-details summary,
+  .raw-block summary {
+    font-size: 0.95rem;
+    padding: 0.3rem 0;
+  }
+  
+  .device-details summary::after,
+  .raw-block summary::after {
+    font-size: 0.75rem;
   }
 }

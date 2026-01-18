@@ -25,26 +25,44 @@ def test_postgres_url():
     return os.environ.get("TEST_POSTGRES_URL", "postgresql://test:test@localhost/test")
 
 
+def _setup_mock_pool(pool_cls: MagicMock) -> dict[str, MagicMock]:
+    """Configure a fake connection pool returning mocked connection/cursor."""
+    mock_pool = MagicMock()
+    mock_connection = MagicMock()
+    mock_cursor = MagicMock()
+    mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
+    mock_pool.connection.return_value.__enter__.return_value = mock_connection
+    mock_pool.close = MagicMock()
+    pool_cls.return_value = mock_pool
+    return {
+        "cls": pool_cls,
+        "pool": mock_pool,
+        "connection": mock_connection,
+        "cursor": mock_cursor,
+    }
+
+
 @pytest.fixture
-def postgres_store(test_postgres_url, mock_logger):
+def mocked_pool():
+    """Patch ConnectionPool globally for tests."""
+    with patch("switchbot_dashboard.postgres_store.ConnectionPool") as pool_cls:
+        context = _setup_mock_pool(pool_cls)
+        yield context
+
+
+@pytest.fixture
+def postgres_store(test_postgres_url, mock_logger, mocked_pool):
     """PostgreSQL store fixture for testing (always mocked)."""
-    # Always use mocked connection for unit tests
-    with patch("psycopg_pool.ConnectionPool") as mock_pool:
-        # Mock connection pool
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
-        mock_pool.return_value.connection.return_value.__enter__.return_value = mock_connection
-        
-        # Mock the _ensure_table_exists method to avoid real database calls
-        with patch("switchbot_dashboard.postgres_store.PostgresStore._ensure_table_exists"):
-            store = PostgresStore(
-                connection_string=test_postgres_url,
-                kind="test",
-                logger=mock_logger,
-            )
-            yield store
-            store.close()
+    with patch("switchbot_dashboard.postgres_store.PostgresStore._ensure_table_exists"):
+        store = PostgresStore(
+            connection_string=test_postgres_url,
+            kind="test",
+            logger=mock_logger,
+        )
+        mocked_pool["cursor"].reset_mock()
+        mocked_pool["connection"].reset_mock()
+        yield store
+        store.close()
 
 
 @pytest.fixture
@@ -73,43 +91,35 @@ class TestPostgresStore:
 
     def test_initialization_failure(self, test_postgres_url, mock_logger):
         """Test store initialization failure."""
-        with patch("psycopg_pool.ConnectionPool") as mock_pool:
-            mock_pool.side_effect = Exception("Connection failed")
-            
+        with patch("switchbot_dashboard.postgres_store.ConnectionPool") as pool_cls:
+            pool_cls.side_effect = Exception("Connection failed")
+
             with pytest.raises(PostgresStoreError) as exc_info:
                 PostgresStore(
                     connection_string=test_postgres_url,
                     kind="test",
                     logger=mock_logger,
                 )
-            
+
             assert "Failed to initialize PostgreSQL connection pool" in str(exc_info.value)
 
-    def test_read_success(self, postgres_store, mock_logger):
+    def test_read_success(self, postgres_store, mock_logger, mocked_pool):
         """Test successful data read."""
-        # Mock database response
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
+        mock_cursor = mocked_pool["cursor"]
         mock_cursor.fetchone.return_value = {"data": {"key": "value"}}
-        mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
-        postgres_store._pool.connection.return_value.__enter__.return_value = mock_connection
-        
+
         result = postgres_store.read()
-        
+
         assert result == {"key": "value"}
         mock_cursor.execute.assert_called_once()
 
-    def test_read_empty_result(self, postgres_store, mock_logger):
+    def test_read_empty_result(self, postgres_store, mock_logger, mocked_pool):
         """Test read when no data exists."""
-        # Mock empty database response
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
+        mock_cursor = mocked_pool["cursor"]
         mock_cursor.fetchone.return_value = None
-        mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
-        postgres_store._pool.connection.return_value.__enter__.return_value = mock_connection
-        
+
         result = postgres_store.read()
-        
+
         assert result == {}
 
     def test_read_database_error(self, postgres_store, mock_logger):
@@ -122,20 +132,15 @@ class TestPostgresStore:
         
         assert "PostgreSQL read failed" in str(exc_info.value)
 
-    def test_write_success(self, postgres_store, mock_logger):
+    def test_write_success(self, postgres_store, mock_logger, mocked_pool):
         """Test successful data write."""
         test_data = {"key": "value", "number": 42}
-        
-        # Mock database operations
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
-        postgres_store._pool.connection.return_value.__enter__.return_value = mock_connection
-        
-        # Should not raise exception
+
+        mock_connection = mocked_pool["connection"]
+        mock_cursor = mocked_pool["cursor"]
+
         postgres_store.write(test_data)
-        
-        # Verify execute was called
+
         mock_cursor.execute.assert_called_once()
         mock_connection.commit.assert_called_once()
 
@@ -151,17 +156,13 @@ class TestPostgresStore:
         
         assert "PostgreSQL write failed" in str(exc_info.value)
 
-    def test_health_check_success(self, postgres_store):
+    def test_health_check_success(self, postgres_store, mocked_pool):
         """Test successful health check."""
-        # Mock successful health check
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
+        mock_cursor = mocked_pool["cursor"]
         mock_cursor.fetchone.return_value = (1,)
-        mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
-        postgres_store._pool.connection.return_value.__enter__.return_value = mock_connection
-        
+
         result = postgres_store.health_check()
-        
+
         assert result is True
 
     def test_health_check_failure(self, postgres_store):
@@ -181,11 +182,11 @@ class TestPostgresStore:
         
         assert result is False
 
-    def test_close_success(self, postgres_store, mock_logger):
+    def test_close_success(self, postgres_store, mock_logger, mocked_pool):
         """Test successful store cleanup."""
-        mock_pool = postgres_store._pool
+        mock_pool = mocked_pool["pool"]
         postgres_store.close()
-        
+
         mock_pool.close.assert_called_once()
         assert postgres_store._pool is None
 
@@ -199,15 +200,11 @@ class TestPostgresStore:
         # Should log warning
         mock_logger.warning.assert_called_once()
 
-    def test_data_type_handling(self, postgres_store, mock_logger):
+    def test_data_type_handling(self, postgres_store, mock_logger, mocked_pool):
         """Test handling of different data types in read."""
-        # Test string JSON data
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
+        mock_cursor = mocked_pool["cursor"]
+
         mock_cursor.fetchone.return_value = {"data": '{"key": "value"}'}
-        mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
-        postgres_store._pool.connection.return_value.__enter__.return_value = mock_connection
-        
         result = postgres_store.read()
         assert result == {"key": "value"}
 
@@ -225,10 +222,11 @@ class TestPostgresStore:
 
     def test_connection_parameters(self, test_postgres_url, mock_logger):
         """Test connection parameter configuration."""
-        with patch("psycopg_pool.ConnectionPool") as mock_pool:
+        with patch("switchbot_dashboard.postgres_store.ConnectionPool") as mock_pool, patch(
+            "switchbot_dashboard.postgres_store.PostgresStore._ensure_table_exists"
+        ):
             mock_pool.return_value = MagicMock()
-            
-            # Test with custom SSL mode
+
             PostgresStore(
                 connection_string=test_postgres_url,
                 kind="test",
@@ -236,8 +234,7 @@ class TestPostgresStore:
                 ssl_mode="verify-full",
                 max_connections=5,
             )
-            
-            # Verify connection pool was called with correct parameters
+
             mock_pool.assert_called_once_with(
                 conninfo=test_postgres_url,
                 min_size=1,

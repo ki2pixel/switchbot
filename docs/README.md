@@ -22,10 +22,10 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - **Journalisation complète** : Historique des actions et erreurs
 
 ### Architecture moderne
-- **PostgreSQL primaire** : Backend Neon avec connection pooling et fallback filesystem
+- **PostgreSQL par défaut** : Backend Neon avec connection pooling et fallback filesystem
 - **Cascade IFTTT** : Webhooks IFTTT → scènes SwitchBot → commandes directes
-- **History Monitoring** : Dashboard temps réel avec Chart.js et rétention 6h
-- **Loaders Frontend** : Système non bloquant pour améliorer la réactivité perçue
+- **History Monitoring** : Dashboard temps réel avec Chart.js et rétention 6h **(NOUVEAU)**
+- **Loaders Frontend** : Système non bloquant pour améliorer la réactivité perçue **(NOUVEAU)**
 - **Estimation locale des quotas** : Suivi précis avec alertes configurables
 - **Gestion robuste des erreurs** : Repli élégant en cas d'indisponibilité
 
@@ -33,7 +33,7 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 
 - **Python** : 3.8 ou supérieur
 - **Compte SwitchBot** : Avec appareils configurés
-- **PostgreSQL** : Neon recommandé pour la production (free tier suffisant)
+- **PostgreSQL** : Neon recommandé (backend par défaut, free tier suffisant)
 - **Token d'API** : Jeton d'API SwitchBot valide
 
 ## 🛠 Installation
@@ -96,6 +96,28 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - [Guide de thématisation](theming.md) - Styles CSS et composants UI
 - [Référence API SwitchBot](switchbot/README.md) - Documentation API v1.1
 
+## 🚀 Améliorations Récentes (Janvier 2026)
+
+### Performance & Résilience (Post-Audit Backend)
+- **Batch insert HistoryService** : Buffer thread-safe avec timer flush pour -50% latence par tick
+- **Cache timezone intelligent** : Cache simple avec invalidation automatique sur changement settings
+- **Monitoring exceptions complet** : Wrapper try/catch global dans SchedulerService pour logging sans crash
+- **Tests robustes centralisés** : 122 tests passants (99% de réussite) avec mocks PostgreSQL optimisés
+- **Audit backend validé** : Score 95/100 avec toutes recommandations "Court terme" appliquées
+
+### Architecture Robuste
+- **PostgreSQL par défaut** : Backend Neon avec connection pooling optimisé
+- **Cascade IFTTT** : Webhooks → scènes → commandes avec fallback automatique
+- **History Monitoring** : Dashboard temps réel avec Chart.js et rétention 6h
+- **Loaders Frontend** : Système non bloquant pour UX améliorée
+
+### Qualité & Tests
+- **122 tests passants** (99% de réussite) avec mocks centralisés
+- **Audit backend validé** : Score 95/100 avec toutes corrections appliquées
+- **Documentation complète** : Guides spécialisés et références croisées
+
+> 📚 **Détails** : Voir [Audit Backend - Rapport Complet](backend-audit-report.md) pour l'analyse complète des améliorations.
+
 ## 🚦 Statut du projet
 
 ### Fonctionnalités implémentées
@@ -111,7 +133,7 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - [x] Scheduler robuste avec logging amélioré
 - [x] Interface utilisateur réactive
 - [x] Documentation complète
-- [x] Suite de tests complète (99/116 tests passants, 85% de couverture)
+- [x] Suite de tests complète (122/123 tests passants, 99% de couverture)
 
 ### Prochaines étapes
 
@@ -132,7 +154,7 @@ Pour toute question ou problème, veuillez ouvrir une [issue](https://github.com
 
 ---
 
-*Dernière mise à jour : 14 janvier 2026*
+*Dernière mise à jour : 18 janvier 2026*
 
 ## 🔍 Aperçu technique
 

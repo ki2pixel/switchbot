@@ -16,6 +16,17 @@ class SchedulerService:
         self._lock = threading.Lock()
         self._logger = logger or logging.getLogger(__name__)
 
+    def _run_tick_safe(self) -> None:
+        """Execute tick callable while guarding against uncaught exceptions."""
+        try:
+            self._tick_callable()
+        except Exception as exc:  # pragma: no cover - exercised via tests
+            self._logger.error(
+                "[scheduler] Automation tick raised exception: %s",
+                exc,
+                exc_info=True,
+            )
+
     def _get_interval_seconds(self) -> int:
         settings = self._settings_store.read()
         raw = settings.get("poll_interval_seconds", 120)
@@ -41,10 +52,7 @@ class SchedulerService:
             self._logger.info("[scheduler] BackgroundScheduler started successfully")
             self._schedule_or_reschedule_locked()
             self._logger.info("[scheduler] Triggering immediate first tick")
-            try:
-                self._tick_callable()
-            except Exception as exc:
-                self._logger.error("[scheduler] Immediate first tick failed: %s", exc, exc_info=True)
+            self._run_tick_safe()
 
     def _schedule_or_reschedule_locked(self) -> None:
         if self._scheduler is None:
@@ -59,7 +67,7 @@ class SchedulerService:
             existing_job.remove()
 
         self._scheduler.add_job(
-            func=self._tick_callable,
+            func=self._run_tick_safe,
             trigger="interval",
             seconds=interval,
             id=self._job_id,

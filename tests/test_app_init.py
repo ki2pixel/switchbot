@@ -14,6 +14,7 @@ def test_create_app_marks_temperature_stale_then_refresh(monkeypatch, tmp_path):
 
     monkeypatch.setenv("SWITCHBOT_SETTINGS_PATH", str(settings_path))
     monkeypatch.setenv("SWITCHBOT_STATE_PATH", str(state_path))
+    monkeypatch.setenv("STORE_BACKEND", "filesystem")
     monkeypatch.setenv("FLASK_DEBUG", "1")
     monkeypatch.delenv("WERKZEUG_RUN_MAIN", raising=False)
 

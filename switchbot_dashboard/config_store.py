@@ -6,7 +6,7 @@ import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Protocol, TypeVar
+from typing import Any, Protocol, TypeVar, runtime_checkable
 
 from redis import Redis
 from redis.exceptions import RedisError
@@ -16,6 +16,7 @@ class StoreError(RuntimeError):
     """Raised when a storage backend cannot satisfy a read/write operation."""
 
 
+@runtime_checkable
 class BaseStore(Protocol):
     def read(self) -> dict[str, Any]:
         ...

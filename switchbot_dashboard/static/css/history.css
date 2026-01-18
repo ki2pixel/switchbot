@@ -5,8 +5,8 @@
 
 /* Page Layout */
 .history-filters .card {
-  border: 1px solid var(--sb-border-color);
-  background: var(--sb-surface);
+  border: 1px solid var(--sb-outline);
+  background: var(--sb-card);
 }
 
 .history-filters .metric-checkboxes {
@@ -17,15 +17,15 @@
 
 .history-filters .form-check {
   background: var(--sb-surface-elevated);
-  border: 1px solid var(--sb-border-color);
+  border: 1px solid var(--sb-outline);
   border-radius: 0.375rem;
   padding: 0.5rem 0.75rem;
   margin: 0;
 }
 
 .history-filters .form-check-input:checked {
-  background-color: var(--sb-primary);
-  border-color: var(--sb-primary);
+  background-color: var(--sb-accent);
+  border-color: var(--sb-accent);
 }
 
 .history-filters .form-check-label {
@@ -115,16 +115,42 @@
   color: var(--sb-text-primary);
 }
 
-/* Responsive chart heights */
+/* Responsive chart heights with mobile optimization */
+@media (max-width: 992px) {
+  .chart-container {
+    height: 280px;
+  }
+}
+
 @media (max-width: 768px) {
   .chart-container {
-    height: 250px;
+    height: 240px;
+  }
+  
+  .chart-container canvas {
+    max-height: 220px;
   }
 }
 
 @media (max-width: 576px) {
   .chart-container {
     height: 200px;
+    padding: 0.75rem;
+  }
+  
+  .chart-container canvas {
+    max-height: 180px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-container {
+    height: 180px;
+    padding: 0.5rem;
+  }
+  
+  .chart-container canvas {
+    max-height: 160px;
   }
 }
 
