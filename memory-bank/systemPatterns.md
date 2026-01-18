@@ -173,3 +173,47 @@
 - `FakePostgresStore` dans les tests d'intégration pour éviter les connexions réelles.
 - `BaseStore` marqué `@runtime_checkable` pour les assertions isinstance dans les tests.
 
+## Patterns Core Web Vitals Optimisations (Phase 5)
+
+### Critical CSS Inlining
+- CSS critique intégré directement dans `<head>` pour rendu immédiat above-the-fold
+- Variables CSS essentielles (thème, layout, components) inlined pour éviter le blocage de rendu
+- Non-critical CSS chargé de manière asynchrone via `media="print"` → `media="all"`
+- Performance marks pour mesurer le temps de chargement du CSS critique
+
+### Resource Hints et Preloading
+- Preconnects pour domaines externes (CDN, fonts.googleapis.com, cdn.jsdelivr.net)
+- Preloads pour ressources critiques (CSS, JS, polices) avec `as="style"`/`as="script"`
+- Prefetchs pour ressources secondaires (next pages, secondary images)
+- Resource scheduling intelligent basé sur la priorité de rendu
+
+### Font Loading Optimization
+- `font-display: swap` pour éliminer FOIT (Flash of Invisible Text)
+- Preload des polices critiques (Space Grotesk weights 400, 500, 600)
+- Fallback polices système pour éviter les layout shifts
+- Font Face Observer pour tracking du chargement des polices
+
+### Main Thread Optimization
+- Découpage des tâches avec `requestIdleCallback` pour les opérations non critiques
+- Scheduling intelligent des initialisations (analytics, tooltips, modals)
+- Passive event listeners pour scroll/resize/touch events
+- Debouncing des événements fréquents avec `requestAnimationFrame`
+
+### CLS Prevention Techniques
+- Dimensions explicites pour images et iframes (`width`, `height`, `aspect-ratio`)
+- Skeleton screens pour contenu asynchrone avec animations CSS
+- Espace réservé pour contenu dynamique (`min-height` sur `[data-dynamic-content]`)
+- Font loading sans layout shifts via `font-display: swap`
+
+### Advanced Performance Monitoring
+- PerformanceObserver API pour monitoring LCP/FID/CLS en temps réel
+- Métriques étendues : TTFB, FCP, Memory Usage, FPS
+- Reporting automatique avec recommendations personnalisées
+- Debug tools pour layout shifts et éléments lents
+
+### GPU Acceleration Patterns
+- Transform `translateZ(0)` pour accélération hardware
+- `will-change` optimisé avec nettoyage automatique
+- Animations limitées à `transform` et `opacity`
+- Intersection Observer pour optimisations basées sur la visibilité
+

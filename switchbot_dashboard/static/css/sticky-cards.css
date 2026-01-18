@@ -1,0 +1,125 @@
+/* StickyMobile Cards - Adapted for SwitchBot Dashboard Theme */
+/* Extracted from StickyMobile template with dark mode integration */
+
+/* Card Style Component */
+.card-style {
+  overflow: hidden;
+  margin: 0px 16px 30px 16px;
+  border-radius: 15px;
+  border: none;
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.08);
+  background: var(--sb-card);
+  color: var(--sb-text);
+}
+
+.card-style .card-body {
+  padding: 15px;
+}
+
+.card-style .card-overlay {
+  border-radius: 15px;
+}
+
+/* Content Box Component */
+.content-box {
+  background-color: var(--sb-card);
+  border-radius: 15px;
+  margin-left: 15px;
+  margin-right: 15px;
+  box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--sb-card-border);
+}
+
+/* Content Component */
+.content {
+  margin: 20px 15px 20px 15px;
+}
+
+.content p:last-child {
+  margin-bottom: 0px;
+}
+
+.content-full {
+  margin: 0px;
+}
+
+.content-boxed {
+  padding: 20px 15px 0px 15px;
+}
+
+/* Utility Classes - Border Radius */
+.rounded-0 {
+  border-radius: 0px !important;
+}
+
+.rounded-xs {
+  border-radius: 5px !important;
+}
+
+.rounded-s {
+  border-radius: 8px !important;
+}
+
+.rounded-sm {
+  border-radius: 10px !important;
+}
+
+.rounded-m {
+  border-radius: 15px !important;
+}
+
+.rounded-l {
+  border-radius: 30px !important;
+}
+
+.rounded-xl {
+  border-radius: 50px !important;
+}
+
+/* Utility Classes - Shadows */
+.shadow-none {
+  box-shadow: 0px 0px 0px 0px rgba(0, 0, 0, 0) !important;
+}
+
+.shadow-0 {
+  box-shadow: 0px 0px 0px 0px rgba(0, 0, 0, 0) !important;
+}
+
+.shadow-xs {
+  box-shadow: 0px 0px 5px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+.shadow-s {
+  box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+.shadow-m {
+  box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.08) !important;
+}
+
+.shadow-l {
+  box-shadow: 0 5px 15px 0 rgba(0, 0, 0, 0.09) !important;
+}
+
+.shadow-xl {
+  box-shadow: 0 5px 30px 0 rgba(0, 0, 0, 0.11), 0 5px 15px 0 rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Dark Mode Integration */
+@media (prefers-color-scheme: dark) {
+  .card-style {
+    box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.4);
+  }
+  
+  .content-box {
+    box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.3);
+  }
+  
+  .shadow-l {
+    box-shadow: 0 5px 15px 0 rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  .shadow-xl {
+    box-shadow: 0 5px 30px 0 rgba(0, 0, 0, 0.4), 0 5px 15px 0 rgba(0, 0, 0, 0.3) !important;
+  }
+}

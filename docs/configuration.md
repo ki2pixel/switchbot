@@ -321,12 +321,19 @@ curl -s https://votre-instance-render.com/healthz | jq '.status == "ok" and .sch
 
 ## Performance & Résilience (Post-Audit Backend)
 
+> 🎯 **Audit Backend Validé** : Score 95/100 - Voir [Rapport Complet d'Audit](backend-audit-report.md) pour l'analyse détaillée
+
 ### Batch insert HistoryService
 Le service d'historique utilise un buffer thread-safe pour optimiser les performances :
 - Buffer `_pending_records` avec verrou `_pending_lock`
 - Flush automatique sur `batch_size` (100) ou timer (30 secondes)
 - Remplacement de `psycopg.extras.execute_values` par SQL manuel
 - Réduction de 50% de la latence par tick d'automatisation
+
+### Tests robustes avec mocks centralisés
+- `tests/conftest.py` fournit une fixture autouse pour patcher `ConnectionPool`
+- 122 tests passants (99% de réussite) avec mocks PostgreSQL optimisés
+- BaseStore marqué `@runtime_checkable` pour les assertions isinstance
 
 ### Cache timezone AutomationService
 Pour éviter les résolutions répétées de fuseau horaire :

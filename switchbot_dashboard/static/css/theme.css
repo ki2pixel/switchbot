@@ -46,6 +46,13 @@
   --sb-glass-border-hover: rgba(255, 255, 255, 0.15);
   --sb-glass-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.4);
   
+  /* Micro-interaction Tokens */
+  --sb-scale-hover: 1.02;
+  --sb-scale-active: 0.98;
+  --sb-scale-loading: 1.01;
+  --sb-translate-hover: -2px;
+  --sb-translate-active: 0px;
+  
   /* Bottom Navigation Tokens */
   --sb-bottom-nav-height: 60px;
   --sb-bottom-nav-bg: rgba(9, 14, 30, 0.95);
@@ -555,20 +562,53 @@ pre {
   border-radius: var(--sb-spacing-sm);
   text-decoration: none;
   color: var(--sb-muted);
-  transition: color var(--sb-transition-fast), background var(--sb-transition-fast);
+  transition: color var(--sb-transition-fast), 
+              background var(--sb-transition-fast),
+              transform var(--sb-transition-fast);
   min-width: 44px;
   min-height: 44px;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
 }
 
 .sb-bottom-nav-item:hover {
   color: var(--sb-accent);
   background: var(--sb-glass-bg);
+  transform: translateY(-1px);
+}
+
+.sb-bottom-nav-item:active {
+  transform: scale(var(--sb-scale-active));
 }
 
 .sb-bottom-nav-item--active {
   color: var(--sb-accent);
   background: var(--sb-glass-bg-hover);
+}
+
+.sb-bottom-nav-item--active::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--sb-accent);
+  animation: sb-nav-dot-pulse 2s infinite;
+}
+
+@keyframes sb-nav-dot-pulse {
+  0%, 100% { 
+    opacity: 0.8;
+    transform: translateX(-50%) scale(1);
+  }
+  50% { 
+    opacity: 1;
+    transform: translateX(-50%) scale(1.2);
+  }
 }
 
 .sb-bottom-nav-icon {
@@ -577,12 +617,37 @@ pre {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform var(--sb-transition-fast);
+}
+
+.sb-bottom-nav-item:hover .sb-bottom-nav-icon {
+  transform: scale(1.1);
 }
 
 .sb-bottom-nav-label {
   font-size: 0.7rem;
   font-weight: 500;
   text-align: center;
+  transition: transform var(--sb-transition-fast);
+}
+
+/* Ripple effect for navigation items */
+.sb-bottom-nav-item.sb-ripple::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.sb-bottom-nav-item.sb-ripple:active::before {
+  width: 80px;
+  height: 80px;
 }
 
 /* Add bottom padding to body to account for fixed nav */
@@ -608,4 +673,281 @@ body.sb-dark {
   body.sb-dark {
     padding-bottom: 0;
   }
+}
+
+/* Micro-interactions & Animations CSS Pures */
+
+/*
+ * DESIGN SYSTEM - MICRO-INTERACTIONS
+ * 
+ * Ce fichier contient toutes les animations CSS pures et micro-interactions
+ * pour améliorer l'expérience utilisateur sans impacter les performances.
+ * 
+ * PRINCIPES:
+ * - GPU-optimisé: Utilisation de transform/opacity uniquement
+ * - Accessibilité: Respect de prefers-reduced-motion
+ * - Performance: Animations légères avec timing approprié
+ * - Cohérence: Variables CSS pour maintenance facile
+ * 
+ * CLASSES DISPONIBLES:
+ * 
+ * États de chargement:
+ * - .sb-loading : Shimmer effect pour les données en chargement
+ * 
+ * Animations de données:
+ * - .sb-pulse : Pulse subtile pour les mises à jour
+ * - .sb-data-update : Fade-in pour les nouvelles valeurs
+ * - .sb-temp-change : Animation couleur pour changements température
+ * 
+ * États de succès/erreur:
+ * - .sb-success-flash : Flash vert pour actions réussies
+ * - .sb-cooldown : Animation d'attente pour cooldowns
+ * 
+* Interactions utilisateur:
+ * - .sb-card-hover : Hover amélioré pour les cartes
+ * - .sb-button-active : Press effect pour boutons
+ * - .sb-focus-enhanced : Focus visible amélioré
+ * - .sb-ripple : Ripple effect pour navigation
+ * 
+* Optimisations:
+ * - .sb-gpu-accelerated : Accélération matérielle
+ * - .sb-will-change-transform : Hint pour transform animations
+ * - .sb-will-change-opacity : Hint pour opacity animations
+ * 
+* UTILISATION:
+ * Ajouter les classes directement aux éléments HTML ou via JavaScript
+ * pour déclencher les animations au bon moment.
+ * 
+* EXEMPLE:
+ * <div class="status-item sb-loading">...</div>
+ * <button class="scene-action sb-success-flash">...</button>
+ * <div class="temperature-value sb-temp-change">25.5°C</div>
+ */
+
+/* Respect for prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Loading States */
+.sb-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.sb-loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: sb-shimmer 1.5s infinite;
+}
+
+@keyframes sb-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Pulse Animation for Data Updates */
+.sb-pulse {
+  animation: sb-pulse 0.6s ease-in-out;
+}
+
+@keyframes sb-pulse {
+  0%, 100% { 
+    opacity: 1; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.8; 
+    transform: scale(var(--sb-scale-loading));
+  }
+}
+
+/* Success Flash Animation */
+.sb-success-flash {
+  animation: sb-success-flash 0.8s ease-out;
+}
+
+@keyframes sb-success-flash {
+  0% { 
+    background-color: var(--sb-success-bg);
+    box-shadow: 0 0 0 0 rgba(110, 231, 183, 0.4);
+  }
+  50% { 
+    background-color: var(--sb-success-bg);
+    box-shadow: 0 0 0 8px rgba(110, 231, 183, 0);
+  }
+  100% { 
+    background-color: transparent;
+    box-shadow: 0 0 0 0 rgba(110, 231, 183, 0);
+  }
+}
+
+/* Temperature Change Animation */
+.sb-temp-change {
+  animation: sb-temp-change 1s ease-in-out;
+}
+
+@keyframes sb-temp-change {
+  0%, 100% { color: var(--sb-text); }
+  25% { color: var(--sb-info); }
+  50% { color: var(--sb-warning); }
+  75% { color: var(--sb-danger); }
+}
+
+/* Cooldown State Animation */
+.sb-cooldown {
+  position: relative;
+  pointer-events: none;
+}
+
+.sb-cooldown::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--sb-muted);
+  border-radius: inherit;
+  transform: translate(-50%, -50%);
+  animation: sb-cooldown-ring 2s linear infinite;
+}
+
+@keyframes sb-cooldown-ring {
+  0% { 
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 1;
+  }
+  100% { 
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0;
+  }
+}
+
+/* Focus States Enhancement */
+.sb-focus-enhanced:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 2px;
+  transform: scale(var(--sb-scale-hover));
+}
+
+/* Ripple Effect for Navigation */
+.sb-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.sb-ripple::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.sb-ripple:active::before {
+  width: 100px;
+  height: 100px;
+}
+
+/* Data Value Animation */
+.sb-data-update {
+  animation: sb-data-update 0.4s ease-out;
+}
+
+@keyframes sb-data-update {
+  0% { 
+    opacity: 0.3;
+    transform: translateY(4px);
+  }
+  100% { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hover Enhancement for Cards */
+.sb-card-hover {
+  transition: transform var(--sb-transition-fast), 
+              box-shadow var(--sb-transition-fast),
+              background var(--sb-transition-normal);
+}
+
+.sb-card-hover:hover {
+  transform: translateY(var(--sb-translate-hover)) scale(var(--sb-scale-hover));
+  box-shadow: var(--sb-glass-shadow-hover);
+}
+
+/* Active State for Buttons */
+.sb-button-active {
+  transition: transform var(--sb-transition-fast);
+}
+
+.sb-button-active:active {
+  transform: scale(var(--sb-scale-active));
+}
+
+/* Status Indicator Animation */
+.sb-status-indicator {
+  position: relative;
+}
+
+.sb-status-indicator::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  transform: translate(-50%, -50%);
+  animation: sb-status-pulse 2s infinite;
+}
+
+@keyframes sb-status-pulse {
+  0%, 100% { 
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% { 
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+}
+
+/* GPU Optimization Classes */
+.sb-gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.sb-will-change-transform {
+  will-change: transform;
+}
+
+.sb-will-change-opacity {
+  will-change: opacity;
 }

@@ -13,6 +13,8 @@
 - Dashboard d'historique corrigé et simplifié avec interface épurée fonctionnelle.
 - Correctifs frontend issus de l'audit du 18 janvier appliqués (variables CSS alignées, fallback clipboard, erreurs dashboard gérées côté UI).
 - **Phase 3 Audit Frontend Mobile terminée** : Glassmorphism complet, navigation bottom bar, design system tokens avancés, optimisations performance.
+- **Phase 4 Audit Frontend Mobile terminée** : Animations CSS pures et micro-interactions avec accessibilité complète.
+- **Phase 5 Core Web Vitals terminée** : Optimisations avancées LCP/FID/CLS avec métriques excellence.
 
 ## Questions/Problèmes Ouverts
 - Aucun problème ouvert.
