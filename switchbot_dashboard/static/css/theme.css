@@ -325,7 +325,8 @@ dl dd {
 .btn-outline-secondary,
 .btn-outline-success,
 .btn-outline-danger,
-.btn-outline-primary {
+.btn-outline-primary,
+.btn-outline-light {
   border-color: rgba(255, 255, 255, 0.35);
   color: var(--sb-text);
 }
@@ -333,7 +334,9 @@ dl dd {
 .btn-outline-secondary:hover,
 .btn-outline-success:hover,
 .btn-outline-danger:hover,
-.btn-outline-primary:hover {
+.btn-outline-primary:hover,
+.btn-outline-light:hover,
+.btn-outline-light:focus-visible {
   background: rgba(255, 255, 255, 0.08);
   color: var(--sb-text);
 }
