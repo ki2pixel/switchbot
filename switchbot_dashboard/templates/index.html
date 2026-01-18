@@ -5,29 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SwitchBot Dashboard</title>
     
-    <!-- Enhanced Anti-flash script - Force dark theme immediately -->
+    <!-- Critical Theme Bootstrapping -->
     <script>
       (function() {
-        // Force dark theme immediately to prevent white flash
-        document.documentElement.style.colorScheme = 'dark';
-        document.documentElement.style.backgroundColor = '#030712';
-        document.documentElement.style.color = '#f4f7ff';
-        
-        // Apply to body immediately if it exists
-        if (document.body) {
-          document.body.style.backgroundColor = '#030712';
-          document.body.style.color = '#f4f7ff';
-        }
-        
-        // Override any inline styles that might cause flash
-        var style = document.createElement('style');
-        style.innerHTML = `
-          html, body { 
-            background-color: #030712 !important; 
-            color: #f4f7ff !important; 
-          }
-        `;
-        document.head.appendChild(style);
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const root = document.documentElement;
+        root.dataset.theme = 'dark';
+        root.style.setProperty('color-scheme', prefersDark ? 'dark' : 'light');
       })();
     </script>
     
