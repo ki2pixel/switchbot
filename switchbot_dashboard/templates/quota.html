@@ -23,12 +23,6 @@
             Surveillez votre consommation SwitchBot et anticipez les coupures.
           </p>
         </div>
-        <div class="page-header-actions" role="navigation" aria-label="Actions de la page quota">
-          <form method="post" action="{{ url_for('dashboard.quota_refresh') }}" data-loader>
-            <button class="btn btn-outline-primary" type="submit">Rafraîchir maintenant</button>
-          </form>
-          <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.index') }}" data-loader>Retour</a>
-        </div>
       </header>
 
       {% with messages = get_flashed_messages(with_categories=true) %}

@@ -112,9 +112,11 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - **Loaders Frontend** : Système non bloquant pour UX améliorée
 
 ### Qualité & Tests
-- **122 tests passants** (99% de réussite) avec mocks centralisés
-- **Audit backend validé** : Score 95/100 avec toutes corrections appliquées
-- **Documentation complète** : Guides spécialisés et références croisées
+- **122 tests passants** (99% de réussite) avec mocks PostgreSQL optimisés
+- **Audit backend validé** : Score 95/100 avec optimisations "Court terme" appliquées
+- **Performance batch insert** : Buffer thread-safe pour -50% latence
+- **Cache timezone intelligent** : Invalidation automatique et résolutions répétées évitées
+- **Wrapper try/catch global** : Monitoring exceptions complet sans crash scheduler
 
 > 📚 **Détails** : Voir [Audit Backend - Rapport Complet](backend-audit-report.md) pour l'analyse complète des améliorations.
 

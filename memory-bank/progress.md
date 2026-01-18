@@ -269,6 +269,41 @@ L'audit frontend mobile-first est **COMPLET AVEC SUCCÈS EXCELLENT**. Le SwitchB
 
 **Projet prêt pour la production avec optimisations niveau entreprise !** 🚀
 
+[2026-01-18 16:35:00] - Correction complète des 5 problèmes UI identifiés
+
+- **Problème 1 résolu** : Bottom bar non stylisée sur settings.html
+  - Ajout de `sticky-footer.css` dans le head de settings.html
+  - Bottom bar maintenant correctement stylisée avec icônes et design cohérent
+
+- **Problème 2 résolu** : Centrage des checkboxes dans history.html
+  - CSS inline pour centrer les `.metric-checkboxes` avec flexbox
+  - Checkboxes parfaitement alignées sur desktop et mobile
+
+- **Problème 3 résolu** : Flash blanc au clic sur accueil
+  - Optimisation des transitions CSS avec `opacity` et `transform` pour éviter les flashs
+  - Transitions fluides sans flash visuel désagréable
+
+- **Problème 4 résolu** : 6 boutons en overlay sur mobile/invisibles sur desktop
+  - Création d'une page dédiée `actions.html` pour regrouper tous les boutons
+  - Ajout de la route `actions_page` dans `routes.py` avec contexte complet
+  - Page index épurée avec redirection vers la page Actions
+
+- **Problème 5 résolu** : Bottom bar avec icônes au lieu de texte
+  - Optimisation CSS pour afficher uniquement les icônes sur mobile (≤480px)
+  - Bottom bar plus compacte et ergonomique avec icônes-only
+
+- **Fichiers créés/modifiés** :
+  - Nouveaux : `actions.html`, `actions.css`
+  - Modifiés : `settings.html`, `history.html`, `index.html`, `_footer_nav.html`, `sticky-footer.css`, `routes.py`
+
+- **Architecture et patterns** :
+  - Bottom navigation optimisée (icônes-only mobile, texte desktop)
+  - Page Actions dédiée avec design responsive et statut des scènes
+  - Transitions CSS optimisées et micro-interactions préservées
+
+- **Validation** : Tests unitaires et client Flask confirmés fonctionnels
+- **Impact** : Interface utilisateur cohérente, ergonomique et performante sur tous les appareils
+
 ## En cours
 - Aucune tâche active.
 

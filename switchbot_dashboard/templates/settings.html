@@ -23,11 +23,6 @@
             Configurez les fenêtres horaires, profils hiver/été, scènes et seuils avancés.
           </p>
         </div>
-        <div class="page-header-actions d-flex flex-wrap gap-2" role="navigation" aria-label="Navigation principale">
-          <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.index') }}" data-loader>Retour à l'accueil</a>
-          <a class="btn btn-outline-primary" href="{{ url_for('dashboard.quota') }}" data-loader>Quota API</a>
-          <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.devices') }}" data-loader>Appareils</a>
-        </div>
       </header>
 
       {% with messages = get_flashed_messages(with_categories=true) %}

@@ -24,12 +24,6 @@
             Déclenchez manuellement les scènes et commandes de climatisation.
           </p>
         </div>
-        <div class="page-header-actions d-flex flex-wrap gap-2" role="navigation" aria-label="Navigation principale">
-          <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.index') }}" data-loader>Retour à l'accueil</a>
-          <a class="btn btn-outline-primary" href="{{ url_for('dashboard.settings_page') }}" data-loader>Réglages</a>
-          <a class="btn btn-outline-info" href="{{ url_for('dashboard.history_page') }}" data-loader>Historique</a>
-          <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.devices') }}" data-loader>Appareils</a>
-        </div>
       </header>
 
       {% with messages = get_flashed_messages(with_categories=true) %}

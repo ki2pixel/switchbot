@@ -326,7 +326,7 @@ curl -s https://votre-instance-render.com/healthz | jq '.status == "ok" and .sch
 ### Batch insert HistoryService
 Le service d'historique utilise un buffer thread-safe pour optimiser les performances :
 - Buffer `_pending_records` avec verrou `_pending_lock`
-- Flush automatique sur `batch_size` (100) ou timer (30 secondes)
+- Flush automatique sur `batch_size` (4) ou timer (60 secondes)
 - Remplacement de `psycopg.extras.execute_values` par SQL manuel
 - Réduction de 50% de la latence par tick d'automatisation
 

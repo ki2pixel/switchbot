@@ -69,7 +69,7 @@ body.sb-dark {
   font-family: "Roboto", sans-serif !important;
 }
 
-/* Hide text on mobile, show only icons */
+/* Hide text on mobile AND desktop - show only icons for cleaner navigation */
 @media (max-width: 480px) {
   #footer-bar .nav-text {
     display: none !important;
@@ -82,6 +82,29 @@ body.sb-dark {
   #footer-bar i {
     font-size: 1.25rem;
     margin-bottom: 0;
+  }
+}
+
+/* Hide text on desktop too for icon-only navigation */
+@media (min-width: 481px) and (max-width: 768px) {
+  #footer-bar .nav-text {
+    display: none !important;
+  }
+  
+  #footer-bar a {
+    padding-top: 1rem;
+  }
+  
+  #footer-bar i {
+    font-size: 1.1rem;
+    margin-bottom: 0;
+  }
+}
+
+/* For tablets and small desktops, show text + icons */
+@media (min-width: 769px) {
+  #footer-bar {
+    display: none; /* Hidden on large desktop as per existing rule */
   }
 }
 

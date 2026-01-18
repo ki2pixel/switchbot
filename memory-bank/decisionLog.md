@@ -318,7 +318,20 @@
 - Standards : WCAG AA respecté, Core Web Vitals maintenus, mobile-first préservé
 - Fichiers : theme.css (+230 lignes), index.css (+150 lignes), micro-interactions-test.js (nouveau)
 
-[2026-01-18 14:00:00] - Implémentation complète Phase 5 Optionnelle : Optimisations Core Web Vitals Avancées
+[2026-01-18 16:35:00] - Correction complète des 5 problèmes UI identifiés
+- Décision : Résoudre les problèmes UI signalés par l'utilisateur après finalisation du plan d'intégration UI.
+- Motivation : Améliorer l'expérience utilisateur sur tous les appareils avec une interface cohérente et ergonomique.
+- Implémentation :
+  - **Problème 1** : Ajout de `sticky-footer.css` dans settings.html pour styliser la bottom bar
+  - **Problème 2** : CSS inline pour centrer les checkboxes de métriques dans history.html
+  - **Problème 3** : Optimisation des transitions CSS dans index.html pour éliminer les flashs blancs
+  - **Problème 4** : Création de page `actions.html` dédiée et route `actions_page` pour regrouper les 6 boutons
+  - **Problème 5** : Optimisation CSS pour afficher uniquement les icônes sur mobile (≤480px)
+- Architecture : Bottom navigation optimisée avec icônes-only mobile, page Actions dédiée avec design responsive, transitions fluides
+- Validation : Tests unitaires et client Flask confirment le bon fonctionnement de toutes les corrections
+- Impact : Interface utilisateur maintenant cohérente, ergonomique et performante sur tous les appareils
+- Fichiers : 2 nouveaux (actions.html, actions.css), 6 modifiés (templates, CSS, routes)
+- État : **Tous les problèmes résolus avec succès** ✅
 - Décision : Implémenter la Phase 5 optionnelle du plan UI Integration avec optimisations Core Web Vitals avancées pour atteindre un niveau de performance excellence.
 - Motivation : Dépasser les standards Google (LCP < 2.5s, FID < 100ms, CLS < 0.1) pour atteindre des métriques excellence (LCP < 1.8s, FID < 50ms, CLS < 0.05) et fournir une expérience utilisateur de classe mondiale.
 - Implémentation :

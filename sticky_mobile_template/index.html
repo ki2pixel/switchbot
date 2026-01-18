@@ -6,6 +6,41 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover" />
 <title>StickyMobile BootStrap</title>
+
+<!-- Anti-flash script - Force dark theme immediately -->
+<script>
+  (function() {
+    // Force dark theme immediately to prevent white flash
+    document.documentElement.style.colorScheme = 'dark';
+    document.documentElement.style.backgroundColor = '#030712';
+    document.documentElement.style.color = '#f4f7ff';
+  })();
+</script>
+
+<!-- Critical CSS for dark theme - Inline to prevent flash -->
+<style>
+  :root {
+    color-scheme: dark;
+    --sb-bg: #030712;
+    --sb-text: #f4f7ff;
+  }
+  
+  html, body {
+    background-color: #030712 !important;
+    color: #f4f7ff !important;
+  }
+  
+  /* Hide content briefly to prevent flash */
+  body {
+    opacity: 0;
+    transition: opacity 0.15s ease-in;
+  }
+  
+  body.loaded {
+    opacity: 1;
+  }
+</style>
+
 <link rel="stylesheet" type="text/css" href="styles/bootstrap.css">
 <link rel="stylesheet" type="text/css" href="styles/style.css">
 <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,500,500i,700,700i,900,900i|Source+Sans+Pro:300,300i,400,400i,600,600i,700,700i,900,900i&display=swap" rel="stylesheet">
@@ -14,7 +49,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="app/icons/icon-192x192.png">
 </head>
     
-<body class="theme-light" data-highlight="highlight-red" data-gradient="body-default">
+<body class="theme-dark" data-highlight="highlight-red" data-gradient="body-default">
     
 <div id="preloader"><div class="spinner-border color-highlight" role="status"></div></div>
     
@@ -490,4 +525,17 @@
 
 <script type="text/javascript" src="scripts/bootstrap.min.js"></script>
 <script type="text/javascript" src="scripts/custom.js"></script>
+
+<!-- Anti-flash completion script -->
+<script>
+  // Reveal content smoothly after page loads
+  window.addEventListener('load', function() {
+    document.body.classList.add('loaded');
+  });
+  
+  // Fallback in case load event doesn't fire
+  setTimeout(function() {
+    document.body.classList.add('loaded');
+  }, 100);
+</script>
 </body>

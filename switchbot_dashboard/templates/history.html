@@ -51,11 +51,6 @@
             Visualisez les tendances et analysez les données historiques.
           </p>
         </div>
-        <div class="page-header-actions" role="navigation" aria-label="Navigation secondaire">
-          <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.index') }}" data-loader>
-            Retour au dashboard
-          </a>
-        </div>
       </header>
 
       <!-- Filters Section -->
@@ -91,18 +86,24 @@
               </div>
               <div class="col-md-4">
                 <label class="form-label">Métriques</label>
-                <div class="metric-checkboxes">
-                  <div class="form-check form-check-inline">
+                <div class="metric-checkboxes d-flex flex-wrap gap-3">
+                  <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="metricTemp" value="temperature" checked>
-                    <label class="form-check-label" for="metricTemp">Température</label>
+                    <label class="form-check-label d-flex align-items-center" for="metricTemp">
+                      <span>Température</span>
+                    </label>
                   </div>
-                  <div class="form-check form-check-inline">
+                  <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="metricHumidity" value="humidity" checked>
-                    <label class="form-check-label" for="metricHumidity">Humidité</label>
+                    <label class="form-check-label d-flex align-items-center" for="metricHumidity">
+                      <span>Humidité</span>
+                    </label>
                   </div>
-                  <div class="form-check form-check-inline">
+                  <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="metricAircon" value="assumed_aircon_power" checked>
-                    <label class="form-check-label" for="metricAircon">Climatisation</label>
+                    <label class="form-check-label d-flex align-items-center" for="metricAircon">
+                      <span>Climatisation</span>
+                    </label>
                   </div>
                 </div>
               </div>
