@@ -14,14 +14,23 @@
 
 #### 2. Flash blanc persistant au chargement ✅
 - **Analyse** : Script anti-flash pas assez agressif, transitions CSS non contrôlées
-- **Solution** :
+- **Solution initiale** :
   - Script head renforcé avec CSS inline et prévention des transitions
   - Script body additionnel pour forcer le thème sombre sur tous les éléments
   - Script de fin de chargement avec transition fluide maintenue
   - Gestion du événement `visibilitychange` pour prévenir les flashs de navigation
 
+#### 3. Corrections suite aux retours utilisateur ✅
+- **Problème FontAwesome bloqué** : Suppression des attributs integrity/crossorigin qui causaient le blocage
+- **Styles cassés** : Simplification du CSS critique pour maintenir les transitions UX
+- **Scripts anti-flash surchargés** : Réduction de l'agressivité pour ne pas interférer avec les styles
+- **Bottom bar mobile sans icônes** : Résolution du problème FontAwesome qui empêchait l'affichage
+
 #### Modifications techniques appliquées ✅
-- **index.html** : CSS critique nettoyé, scripts anti-flash multi-couches
+- **index.html** : 
+  - FontAwesome simplifié (sans integrity/crossorigin)
+  - CSS critique réduit pour maintenir les transitions
+  - Scripts anti-flash simplifiés (3 couches au lieu de 5)
 - **sticky-footer.css** : Règles desktop renforcées avec `!important`
 - **Performance** : Maintien des optimisations LCP/FID/CLS existantes
 - **Cohérence** : Respect du thème sombre et des patterns existants
@@ -31,6 +40,8 @@
 - PostgreSQL backend connecté et HistoryService initialisé
 - Bottom bar visible sur tous les appareils
 - Flash blanc éliminé avec transitions fluides
+- FontAwesome fonctionnel pour les icônes
+- Styles UI préservés et fonctionnels
 
 [2026-01-09 16:47:00] - Implémentation du thème sombre par défaut sur les templates index.html et devices.html.
 [2026-01-09 17:00:00] - Refonte de la page Devices : cartes lisibles, synthèse, copie d'ID et JSON repliables.

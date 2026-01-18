@@ -25,30 +25,9 @@
           html, body { 
             background-color: #030712 !important; 
             color: #f4f7ff !important; 
-            transition: none !important;
-          }
-          * { 
-            background-color: inherit !important; 
           }
         `;
         document.head.appendChild(style);
-        
-        // Prevent any transitions during initial load
-        var noTransition = document.createElement('style');
-        noTransition.innerHTML = `
-          * { 
-            transition: none !important; 
-            animation: none !important;
-          }
-        `;
-        document.head.appendChild(noTransition);
-        
-        // Remove no-transition after page loads
-        window.addEventListener('load', function() {
-          setTimeout(function() {
-            noTransition.parentNode.removeChild(noTransition);
-          }, 100);
-        });
       })();
     </script>
     
@@ -417,14 +396,9 @@
       html, body {
         background-color: #030712 !important;
         color: #f4f7ff !important;
-        transition: none !important;
       }
       
-      body {
-        opacity: 1 !important;
-      }
-      
-      /* Smooth transitions for navigation */
+      /* Allow transitions for smooth UX */
       .btn {
         transition: all 0.15s ease-in-out, transform 0.1s ease-out;
       }
@@ -461,7 +435,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/sticky-footer.css') }}" media="print" onload="this.media='all'" />
     
     <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3KnG48sFoc5yK5NkZYkrwUO6LJ8UWQ7NkTLsrK2MmHU7Nj3mmLlVr2j7fzG2bZj2rFJqxRwW5+KQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     
     <!-- Critical JS for Performance -->
     <script>
@@ -478,23 +452,9 @@
   // Ensure dark theme is applied immediately when body loads
   document.body.style.backgroundColor = '#030712';
   document.body.style.color = '#f4f7ff';
-  document.body.style.setProperty('background-color', '#030712', 'important');
-  document.body.style.setProperty('color', '#f4f7ff', 'important');
-  
-  // Force dark theme on all elements
-  var allElements = document.querySelectorAll('*');
-  for (var i = 0; i < allElements.length; i++) {
-    var element = allElements[i];
-    if (element.style.backgroundColor === '' || element.style.backgroundColor === 'white' || element.style.backgroundColor === '#ffffff') {
-      element.style.backgroundColor = 'inherit';
-    }
-  }
   
   // Add dark theme class immediately
   document.body.classList.add('sb-dark');
-  
-  // Prevent FOUC (Flash of Unstyled Content)
-  document.body.style.visibility = 'visible';
 </script>
     <div class="container py-4">
       <header class="page-header mb-4">
@@ -694,31 +654,10 @@
         });
       }
       
-      // Enhanced content reveal - Smooth transition without flash
+      // Ensure dark theme is maintained after load
       window.addEventListener('load', function() {
-        // Ensure dark theme is maintained
         document.body.style.backgroundColor = '#030712';
         document.body.style.color = '#f4f7ff';
-        
-        // Smooth reveal with maintained dark theme
-        setTimeout(function() {
-          document.body.style.opacity = '1';
-          document.body.style.transition = 'opacity 0.2s ease-in';
-        }, 50);
-      });
-      
-      // Fallback in case load event doesn't fire
-      setTimeout(function() {
-        document.body.style.opacity = '1';
-        document.body.style.transition = 'opacity 0.2s ease-in';
-      }, 200);
-      
-      // Prevent any white flash during navigation
-      document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-          document.body.style.backgroundColor = '#030712';
-          document.body.style.color = '#f4f7ff';
-        }
       });
     </script>
   </body>
