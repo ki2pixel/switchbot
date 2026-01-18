@@ -444,15 +444,28 @@
 </script>
     <div class="sb-page__gradient"></div>
     <main class="sb-page__content">
-      <div class="container py-4">
-        <header class="page-header mb-4">
-          <div class="page-header-main">
-            <h1 class="h3 mb-0">SwitchBot Dashboard</h1>
-            <p class="page-subtitle text-muted mb-0">
-              Surveillez l'état actuel et déclenchez vos actions rapides.
-            </p>
+      <div class="container py-5 py-lg-6">
+        <section class="sb-card sb-card-hero sb-card-hover mb-4" role="region" aria-label="Présentation SwitchBot">
+          <div class="sb-card-hero__content">
+            <div class="sb-card-hero__text">
+              <p class="sb-card__eyebrow">Tableau de bord</p>
+              <h1 class="sb-hero__title">SwitchBot Dashboard</h1>
+              <p class="sb-hero__subtitle">
+                Surveillez l'état actuel, vos quotas et déclenchez les actions clés sans quitter cette page.
+              </p>
+            </div>
+            <div class="sb-hero__cta">
+              <a class="btn btn-outline-light sb-button-active" href="{{ url_for('dashboard.settings_page') }}" data-loader>
+                <i class="fas fa-sliders-h me-2"></i>
+                Voir les réglages
+              </a>
+              <a class="btn btn-primary sb-button-active" href="{{ url_for('dashboard.actions_page') }}" data-loader>
+                <i class="fas fa-bolt me-2"></i>
+                Actions rapides
+              </a>
+            </div>
           </div>
-        </header>
+        </section>
 
         {% if show_quota_warning %}
           <section class="sb-card sb-card--warning sb-card-hover mb-3 quota-panel" role="status">
