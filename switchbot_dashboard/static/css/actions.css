@@ -1,0 +1,161 @@
+/* Actions Page Styles */
+
+.actions-section,
+.scenes-section,
+.status-info {
+  margin-bottom: 2rem;
+}
+
+.action-btn,
+.scene-btn {
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 0.75rem;
+  text-align: center;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn:hover,
+.scene-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.action-btn:active,
+.scene-btn:active {
+  transform: translateY(0);
+}
+
+.scene-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.scene-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.scene-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.scene-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.scene-info {
+  flex-grow: 1;
+  text-align: left;
+}
+
+.scene-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.scene-status {
+  font-size: 0.875rem;
+}
+
+.status-item {
+  background: var(--sb-card);
+  border: 1px solid var(--sb-card-border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  text-align: center;
+  backdrop-filter: blur(20px);
+}
+
+.status-label {
+  font-size: 0.875rem;
+  color: var(--sb-muted);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--sb-text);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .action-btn,
+  .scene-btn {
+    min-height: 70px;
+    font-size: 0.9rem;
+  }
+  
+  .scene-content {
+    gap: 0.75rem;
+  }
+  
+  .scene-icon {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .scene-title {
+    font-size: 0.95rem;
+  }
+  
+  .scene-status {
+    font-size: 0.8rem;
+  }
+}
+
+/* Icon colors */
+.scene-icon--winter {
+  color: #6ee7b7;
+}
+
+.scene-icon--summer {
+  color: #4bc9f0;
+}
+
+.scene-icon--fan {
+  color: #f6c343;
+}
+
+.scene-icon--off {
+  color: #ff6b81;
+}
+
+/* GPU optimization */
+.action-btn,
+.scene-btn,
+.status-item {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .action-btn,
+  .scene-btn {
+    transition: none;
+  }
+  
+  .action-btn:hover,
+  .scene-btn:hover {
+    transform: none;
+  }
+}

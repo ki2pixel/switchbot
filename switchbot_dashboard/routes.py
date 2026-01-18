@@ -768,6 +768,37 @@ def history_page() -> str:
     return render_template("history.html")
 
 
+@dashboard_bp.get("/actions")
+def actions_page() -> str:
+    """Render the actions page with all manual controls."""
+    settings_store = current_app.extensions["settings_store"]
+    state_store = current_app.extensions["state_store"]
+    
+    try:
+        settings = settings_store.read("settings")
+    except StoreError:
+        settings = {}
+    
+    try:
+        state = state_store.read("state")
+    except StoreError:
+        state = {}
+    
+    # Get scene configuration for status display
+    aircon_scenes = settings.get("aircon_scenes", {})
+    missing_scenes = {
+        key: not aircon_scenes.get(key)
+        for key in ["winter", "summer", "fan", "off"]
+    }
+    
+    return render_template(
+        "actions.html",
+        settings=settings,
+        state=state,
+        missing_scenes=missing_scenes,
+    )
+
+
 @dashboard_bp.get("/history/api/data")
 def history_api_data() -> Any:
     """API endpoint for filtered historical data."""

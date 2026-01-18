@@ -14,6 +14,33 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/sticky-footer.css') }}" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3KnG48sFoc5yK5NkZYkrwUO6LJ8UWQ7NkTLsrK2MmHU7Nj3mmLlVr2j7fzG2bZj2rFJqxRwW5+KQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+      /* Centrage des checkboxes de métriques */
+      .metric-checkboxes {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      
+      .metric-checkboxes .form-check {
+        display: flex;
+        align-items: center;
+        margin: 0;
+      }
+      
+      .metric-checkboxes .form-check-input {
+        margin-right: 0.5rem;
+      }
+      
+      @media (max-width: 768px) {
+        .metric-checkboxes {
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+      }
+    </style>
   </head>
   <body class="sb-dark">
     <div class="container py-4">
