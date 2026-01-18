@@ -84,33 +84,15 @@
     }
     
     optimizeFontLoading() {
-      // Font loading optimization with font-display: swap
-      const fontFaces = [
-        {
-          family: 'Space Grotesk',
-          weights: [400, 500, 600],
-          display: 'swap'
-        },
-        {
-          family: 'Inter',
-          weights: [400, 500, 600],
-          display: 'swap'
-        }
-      ];
+      // Ensure the Google Fonts stylesheet is promoted to stylesheet quickly
+      const fontStylesheet = document.querySelector('link[href*="fonts.googleapis.com"]');
+      if (fontStylesheet && fontStylesheet.rel === 'preload') {
+        fontStylesheet.onload = function() {
+          this.rel = 'stylesheet';
+        };
+      }
       
-      fontFaces.forEach(fontFace => {
-        fontFace.weights.forEach(weight => {
-          const link = document.createElement('link');
-          link.rel = 'preload';
-          link.as = 'font';
-          link.type = 'font/woff2';
-          link.crossOrigin = 'anonymous';
-          link.href = `https://fonts.gstatic.com/s/${fontFace.family.toLowerCase().replace(' ', '')}/v15/...-${weight}.woff2`;
-          document.head.appendChild(link);
-        });
-      });
-      
-      // Create font load promise
+      // Create font load promise (swap handled by CSS)
       this.fontLoadPromise = new Promise((resolve) => {
         if (document.fonts && document.fonts.ready) {
           document.fonts.ready.then(() => {
@@ -329,9 +311,6 @@
       
       // Initialize non-critical JavaScript
       this.initializeNonCriticalJS();
-      
-      // Preload next page resources
-      this.preloadNextPageResources();
     }
     
     loadNonCriticalCSS() {
@@ -365,25 +344,6 @@
           new MicroInteractions();
         }
       }, 200);
-    }
-    
-    preloadNextPageResources() {
-      // Analyze current page and preload likely next pages
-      const currentPage = window.location.pathname;
-      let likelyNextPages = [];
-      
-      if (currentPage === '/') {
-        likelyNextPages = ['/settings', '/quota', '/history'];
-      } else if (currentPage === '/settings') {
-        likelyNextPages = ['/', '/quota'];
-      }
-      
-      likelyNextPages.forEach(page => {
-        const link = document.createElement('link');
-        link.rel = 'prefetch';
-        link.href = page;
-        document.head.appendChild(link);
-      });
     }
     
     setupAdvancedLCP() {
@@ -593,13 +553,16 @@
     }
     
     preloadSecondaryResources() {
-      // Preload secondary images and resources
-      const secondaryResources = [
-        '/static/images/dashboard-bg.jpg',
-        '/static/icons/app-icon-192.png'
-      ];
+      // Secondary resources are now opt-in via data-secondary-resource attributes
+      const resources = Array.from(document.querySelectorAll('[data-secondary-resource]'))
+        .map(el => el.getAttribute('data-secondary-resource'))
+        .filter(Boolean);
       
-      secondaryResources.forEach(resource => {
+      if (!resources.length) {
+        return;
+      }
+      
+      resources.forEach(resource => {
         const link = document.createElement('link');
         link.rel = 'preload';
         link.as = 'image';
