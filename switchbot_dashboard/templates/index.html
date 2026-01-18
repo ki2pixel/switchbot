@@ -428,8 +428,10 @@
         performance.mark('critical-css-start');
       }
     </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}" />
   </head>
-  <body class="sb-dark">
+  <body class="sb-dark sb-page sb-dashboard">
 
 <!-- Enhanced anti-flash script for body -->
 <script>
@@ -440,169 +442,105 @@
   // Add dark theme class immediately
   document.body.classList.add('sb-dark');
 </script>
-    <div class="container py-4">
-      <header class="page-header mb-4">
-        <div class="page-header-main">
-          <h1 class="h3 mb-0">SwitchBot Dashboard</h1>
-          <p class="page-subtitle text-muted mb-0">
-            Surveillez l'état actuel et déclenchez vos actions rapides.
-          </p>
-        </div>
-      </header>
-
-      {% if show_quota_warning %}
-        <div class="quota-banner quota-alert alert alert-warning mb-3" role="status">
-          <div class="quota-banner__main">
-            <strong>Attention : quota API faible.</strong>
-            <span>
-              Il ne reste que {{ api_requests_remaining }} appels (seuil {{ quota_warning_threshold }}).
-            </span>
+    <div class="sb-page__gradient"></div>
+    <main class="sb-page__content">
+      <div class="container py-4">
+        <header class="page-header mb-4">
+          <div class="page-header-main">
+            <h1 class="h3 mb-0">SwitchBot Dashboard</h1>
+            <p class="page-subtitle text-muted mb-0">
+              Surveillez l'état actuel et déclenchez vos actions rapides.
+            </p>
           </div>
-          <a class="btn btn-outline-light btn-sm" href="{{ url_for('dashboard.quota') }}">Voir le quota</a>
-        </div>
-      {% endif %}
+        </header>
 
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <div class="mb-3" aria-live="polite" aria-atomic="true">
-            {% for category, message in messages %}
-              {% if category == 'error' %}
-                <div class="alert alert-danger" role="alert" data-auto-dismiss="6000">
-                  {{ message }}
-                </div>
-              {% else %}
-                <div class="alert alert-success" role="alert" data-auto-dismiss="6000">
-                  {{ message }}
-                </div>
-              {% endif %}
-            {% endfor %}
-          </div>
+        {% if show_quota_warning %}
+          <section class="sb-card sb-card--warning sb-card-hover mb-3 quota-panel" role="status">
+            <div class="quota-panel__icon">
+              <i class="fas fa-triangle-exclamation"></i>
+            </div>
+            <div class="quota-panel__content">
+              <p class="quota-panel__title">Attention : quota API faible</p>
+              <p class="quota-panel__subtitle">
+                Il ne reste que {{ api_requests_remaining }} appels (seuil {{ quota_warning_threshold }}).
+              </p>
+            </div>
+            <div class="quota-panel__action">
+              <a class="btn btn-outline-light btn-sm" href="{{ url_for('dashboard.quota') }}" data-loader>
+                Voir le quota
+              </a>
+            </div>
+          </section>
         {% endif %}
-      {% endwith %}
 
-      <div class="content">
-        <div class="row g-3">
-          <div class="col-12">
-            <div class="card card-style">
-              <div class="card-body">
-                <h5 class="card-title mb-4">Statut actuel</h5>
-                
-                <!-- Temperature Card -->
-                <div class="card card-style mb-3">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center">
-                      <div class="me-3">
-                        <i class="fas fa-thermometer-half fa-2x text-primary"></i>
-                      </div>
-                      <div class="flex-grow-1">
-                        <h6 class="mb-1">Température</h6>
-                        <p class="mb-0 h4">{{ state.get('last_temperature') }}</p>
-                        {% if state.get('last_temperature_stale') %}
-                          <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis">
-                            Donnée potentiellement obsolète
-                          </span>
-                        {% endif %}
-                      </div>
-                    </div>
-                  </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <section class="mb-3" aria-live="polite" aria-atomic="true">
+              {% for category, message in messages %}
+                <article class="alert {{ 'alert-danger' if category == 'error' else 'alert-success' }}" role="alert" data-auto-dismiss="6000">
+                  {{ message }}
+                </article>
+              {% endfor %}
+            </section>
+          {% endif %}
+        {% endwith %}
+
+        <section class="sb-card sb-card-hover mb-4">
+          <div class="sb-card__header">
+            <div>
+              <p class="sb-card__eyebrow">Statut actuel</p>
+              <h2 class="sb-card__title">Données en temps réel</h2>
+            </div>
+            <div class="sb-card__meta text-muted">Dernière mise à jour {{ state.get('last_read_at') }}</div>
+          </div>
+          <div class="sb-card__body">
+            <div class="status-grid">
+              <article class="status-item sb-card-hover">
+                <div class="status-label">Température</div>
+                <div class="status-value temperature-value">
+                  {{ state.get('last_temperature') }}
                 </div>
+                {% if state.get('last_temperature_stale') %}
+                  <span class="badge bg-secondary-subtle text-secondary-emphasis status-badge">
+                    Donnée potentiellement obsolète
+                  </span>
+                {% endif %}
+              </article>
 
-                <!-- Humidity Card -->
-                <div class="card card-style mb-3">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center">
-                      <div class="me-3">
-                        <i class="fas fa-tint fa-2x text-info"></i>
-                      </div>
-                      <div class="flex-grow-1">
-                        <h6 class="mb-1">Humidité</h6>
-                        <p class="mb-0 h4">{{ state.get('last_humidity') }}</p>
-                      </div>
-                    </div>
-                  </div>
+              <article class="status-item sb-card-hover">
+                <div class="status-label">Humidité</div>
+                <div class="status-value humidity-value">
+                  {{ state.get('last_humidity') }}
                 </div>
+              </article>
 
-                <!-- Last Reading Card -->
-                <div class="card card-style mb-3">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center">
-                      <div class="me-3">
-                        <i class="fas fa-clock fa-2x text-muted"></i>
-                      </div>
-                      <div class="flex-grow-1">
-                        <h6 class="mb-1">Dernière lecture</h6>
-                        <p class="mb-0 h5 text-muted">{{ state.get('last_read_at') }}</p>
-                      </div>
-                    </div>
-                  </div>
+              <article class="status-item sb-card-hover">
+                <div class="status-label">Climatisation supposée</div>
+                <div class="status-value">
+                  {% if state.get('assumed_aircon_power') == 'on' %}
+                    <span class="text-success">ON</span>
+                  {% else %}
+                    <span class="text-secondary">OFF</span>
+                  {% endif %}
                 </div>
+                <p class="status-value--muted mb-0">
+                  {{ state.get('last_action') or 'Aucune action' }}
+                </p>
+              </article>
 
-                <!-- Aircon Status Card -->
-                <div class="card card-style mb-3">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center">
-                      <div class="me-3">
-                        {% if state.get('assumed_aircon_power') == 'on' %}
-                          <i class="fas fa-power-off fa-2x text-success"></i>
-                        {% else %}
-                          <i class="fas fa-power-off fa-2x text-secondary"></i>
-                        {% endif %}
-                      </div>
-                      <div class="flex-grow-1">
-                        <h6 class="mb-1">Climatisation (supposée)</h6>
-                        <p class="mb-0 h4">
-                          {% if state.get('assumed_aircon_power') == 'on' %}
-                            <span class="text-success">ON</span>
-                          {% else %}
-                            <span class="text-secondary">OFF</span>
-                          {% endif %}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+              <article class="status-item sb-card-hover">
+                <div class="status-label">Dernière erreur</div>
+                <div class="status-value status-value--muted">
+                  {{ state.get('last_error') or 'Aucune erreur' }}
                 </div>
-
-                <!-- Last Action Card -->
-                <div class="card card-style mb-3">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center">
-                      <div class="me-3">
-                        <i class="fas fa-play-circle fa-2x text-warning"></i>
-                      </div>
-                      <div class="flex-grow-1">
-                        <h6 class="mb-1">Dernière action</h6>
-                        <p class="mb-0 h5 text-muted">{{ state.get('last_action') }}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Last Error Card -->
-                <div class="card card-style mb-3">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center">
-                      <div class="me-3">
-                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
-                      </div>
-                      <div class="flex-grow-1">
-                        <h6 class="mb-1">Dernière erreur</h6>
-                        <p class="mb-0 h5 text-muted">{{ state.get('last_error') }}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
+              </article>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <!-- Mobile thumb zone optimization -->
-      <div class="scene-actions-wrapper">
-        <div class="scene-actions-container">
-          <div class="text-center mb-3">
-            <p class="text-muted mb-0">
+        <section class="scene-actions-wrapper sb-card sb-card-hover">
+          <div class="scene-actions-container text-center">
+            <p class="text-muted mb-0 scene-actions__subtitle">
               <i class="fas fa-bolt me-2"></i>
               Accédez à toutes les actions manuelles via la page <strong>Actions</strong>
             </p>
@@ -611,9 +549,9 @@
               Voir les actions
             </a>
           </div>
-        </div>
+        </section>
       </div>
-    </div>
+    </main>
     
     {% include '_footer_nav.html' %}
     

@@ -498,6 +498,47 @@
 - **Skeleton Screens** : Screens de chargement pour contenu dynamique (CLS prevention)
 - **Main Thread Optimization** : Scheduling intelligent des tâches et code splitting avancé
 
+### Détails Techniques d'Implémentation
+
+#### Critical CSS Inlining
+- **Fichier** : `static/css/critical.css`
+- **Contenu** : Variables CSS essentielles, layout above-the-fold, composants critiques
+- **Intégration** : Inline dans `<head>` de `templates/index.html`
+- **Performance** : Évite le blocage de rendu CSS
+
+#### Resource Hints & Preloading
+- **Preconnects** : CDN FontAwesome, Google Fonts, cdn.jsdelivr.net
+- **Preloads** : CSS critique, JavaScript essentiel, polices principales
+- **Prefetchs** : Pages secondaires, ressources non critiques
+- **Resource Scheduling** : Priorités basées sur l'importance pour le rendu
+
+#### Font Loading Strategy
+- **font-display: swap** : Élimine Flash of Invisible Text
+- **Preload Space Grotesk** : Weights 400, 500, 600 avec `crossorigin`
+- **Fallback System** : Polices système pour éviter layout shifts
+- **Font Face Observer** : Monitoring du chargement des polices
+
+#### Advanced Performance Optimizer
+- **Fichier** : `static/js/advanced-optimizer.js` (500+ lignes)
+- **Fonctionnalités** :
+  - PerformanceObserver API pour LCP/FID/CLS
+  - Scheduling intelligent avec requestIdleCallback
+  - Code splitting dynamique
+  - Monitoring temps réel des métriques
+- **Debug Tools** : Layout shifts detection, éléments lents identification
+
+#### Skeleton Screens & CLS Prevention
+- **Technique** : Espaces réservés avec dimensions explicites
+- **Animations** : CSS animations fluides pour le chargement
+- **Dimensions** : `width`, `height`, `aspect-ratio` sur tous les médias
+- **Dynamic Content** : `min-height` sur `[data-dynamic-content]`
+
+#### Main Thread Optimization
+- **Task Scheduling** : Découpage des tâches non critiques
+- **Passive Listeners** : Scroll/resize/touch events optimisés
+- **Debouncing** : requestAnimationFrame pour events fréquents
+- **Lazy Loading** : Intersection Observer pour contenu asynchrone
+
 ### Fichiers créés/modifiés
 - `static/css/critical.css` : CSS critique inlined pour above-the-fold content
 - `static/js/advanced-optimizer.js` : Optimisations avancées Core Web Vitals (500+ lignes)

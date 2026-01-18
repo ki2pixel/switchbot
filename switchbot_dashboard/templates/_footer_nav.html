@@ -1,6 +1,6 @@
 <!-- StickyMobile Bottom Navigation Bar -->
 <div id="footer-bar" class="footer-bar-1" role="navigation" aria-label="Navigation mobile">
-  <a href="{{ url_for('dashboard.index') }}" class="{% if request.endpoint == 'dashboard.index' %}active-nav{% endif %}" aria-current="{% if request.endpoint == 'dashboard.index' %}page{% endif %}">
+  <a href="{{ url_for('dashboard.index') }}" class="{% if request.endpoint == 'dashboard.index' %}active-nav{% endif %}" data-loader aria-current="{% if request.endpoint == 'dashboard.index' %}page{% endif %}">
     <i class="fas fa-home"></i>
     <span class="nav-text">Accueil</span>
   </a>

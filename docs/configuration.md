@@ -319,6 +319,22 @@ curl -s https://votre-instance-render.com/healthz | jq '.status == "ok" and .sch
 
 > 💡 **Astuce** : En production, configurez votre outil de monitoring (Prometheus, Datadog, etc.) pour interroger cet endpoint et alerter en cas de problème.
 
+## Performance Frontend & Core Web Vitals
+
+### Optimisations Phase 5 (Core Web Vitals Avancées)
+- **Critical CSS Inlining** : CSS essentiel inlined dans `<head>` pour rendu immédiat
+- **Resource Hints** : Preconnects CDN, preloads CSS/JS/fonts critiques
+- **Font Loading** : `font-display: swap` + preloads pour éliminer FOIT/FOUT
+- **GPU Acceleration** : Transform `translateZ(0)` et animations optimisées
+- **CLS Prevention** : Skeleton screens et dimensions explicites
+- **Performance Monitoring** : PerformanceObserver API pour LCP/FID/CLS temps réel
+
+### Système de Loaders Frontend
+- **Loaders non bloquants** : Feedback visuel immédiat lors actions utilisateur
+- **Timeouts configurés** : 5s formulaires, 3s actions, 2s navigation
+- **Accessibilité** : Attributs ARIA complets, gestion clavier
+- **Performance** : Animations GPU avec `transform` et `opacity`
+
 ## Performance & Résilience (Post-Audit Backend)
 
 > 🎯 **Audit Backend Validé** : Score 95/100 - Voir [Rapport Complet d'Audit](backend-audit-report.md) pour l'analyse détaillée
