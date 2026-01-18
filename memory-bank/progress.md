@@ -22,15 +22,19 @@
 
 #### 3. Corrections suite aux retours utilisateur ✅
 - **Problème FontAwesome bloqué** : Suppression des attributs integrity/crossorigin qui causaient le blocage
+- **Correction complète** : Appliquée sur TOUS les templates (index.html, actions.html, quota.html, history.html, devices.html, settings.html)
 - **Styles cassés** : Simplification du CSS critique pour maintenir les transitions UX
 - **Scripts anti-flash surchargés** : Réduction de l'agressivité pour ne pas interférer avec les styles
 - **Bottom bar mobile sans icônes** : Résolution du problème FontAwesome qui empêchait l'affichage
 
 #### Modifications techniques appliquées ✅
-- **index.html** : 
-  - FontAwesome simplifié (sans integrity/crossorigin)
-  - CSS critique réduit pour maintenir les transitions
-  - Scripts anti-flash simplifiés (3 couches au lieu de 5)
+- **Templates corrigés** : 
+  - index.html : FontAwesome simplifié, CSS critique réduit, scripts anti-flash simplifiés
+  - actions.html : FontAwesome corrigé (integrity/crossorigin supprimés)
+  - quota.html : FontAwesome corrigé (integrity/crossorigin supprimés)
+  - history.html : FontAwesome corrigé (integrity/crossorigin supprimés)
+  - devices.html : FontAwesome corrigé (integrity/crossorigin supprimés)
+  - settings.html : FontAwesome ajouté (manquant initialement)
 - **sticky-footer.css** : Règles desktop renforcées avec `!important`
 - **Performance** : Maintien des optimisations LCP/FID/CLS existantes
 - **Cohérence** : Respect du thème sombre et des patterns existants
