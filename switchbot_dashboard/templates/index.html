@@ -5,6 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SwitchBot Dashboard</title>
     
+    <!-- Anti-flash script - Force dark theme immediately -->
+    <script>
+      (function() {
+        // Force dark theme immediately to prevent white flash
+        document.documentElement.style.colorScheme = 'dark';
+        document.documentElement.style.backgroundColor = '#030712';
+        document.documentElement.style.color = '#f4f7ff';
+        
+        // Apply to body immediately if it exists
+        if (document.body) {
+          document.body.style.backgroundColor = '#030712';
+          document.body.style.color = '#f4f7ff';
+        }
+        
+        // Override any inline styles that might cause flash
+        var style = document.createElement('style');
+        style.innerHTML = 'html, body { background-color: #030712 !important; color: #f4f7ff !important; }';
+        document.head.appendChild(style);
+      })();
+    </script>
+    
     <!-- Critical CSS Inlined for LCP Optimization -->
     <style>
       /* Critical CSS - Above the Fold Content */
@@ -33,6 +54,21 @@
         min-height: 100vh;
         padding-bottom: 80px;
         padding-bottom: calc(80px + env(safe-area-inset-bottom));
+      }
+
+      /* Override any possible light theme */
+      * {
+        background-color: inherit !important;
+      }
+
+      /* Hide content briefly to prevent flash */
+      body {
+        opacity: 0;
+        transition: opacity 0.15s ease-in;
+      }
+
+      body.loaded {
+        opacity: 1;
       }
 
       /* Critical Theme Variables */
@@ -432,6 +468,15 @@
     </script>
   </head>
   <body class="sb-dark">
+
+<!-- Additional anti-flash script for body -->
+<script>
+  // Ensure dark theme is applied immediately when body loads
+  document.body.style.backgroundColor = '#030712';
+  document.body.style.color = '#f4f7ff';
+  document.body.style.setProperty('background-color', '#030712', 'important');
+  document.body.style.setProperty('color', '#f4f7ff', 'important');
+</script>
     <div class="container py-4">
       <header class="page-header mb-4">
         <div class="page-header-main">
@@ -629,6 +674,16 @@
           console.log('🚀 Advanced Performance Optimizer initialized');
         });
       }
+      
+      // Reveal content smoothly after page loads - Anti-flash completion
+      window.addEventListener('load', function() {
+        document.body.classList.add('loaded');
+      });
+      
+      // Fallback in case load event doesn't fire
+      setTimeout(function() {
+        document.body.classList.add('loaded');
+      }, 100);
     </script>
   </body>
 </html>
