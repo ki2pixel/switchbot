@@ -14,6 +14,17 @@
     document.documentElement.style.colorScheme = 'dark';
     document.documentElement.style.backgroundColor = '#030712';
     document.documentElement.style.color = '#f4f7ff';
+    
+    // Apply to body immediately if it exists
+    if (document.body) {
+      document.body.style.backgroundColor = '#030712';
+      document.body.style.color = '#f4f7ff';
+    }
+    
+    // Override any inline styles that might cause flash
+    var style = document.createElement('style');
+    style.innerHTML = 'html, body { background-color: #030712 !important; color: #f4f7ff !important; }';
+    document.head.appendChild(style);
   })();
 </script>
 
@@ -30,6 +41,11 @@
     color: #f4f7ff !important;
   }
   
+  /* Override any possible light theme */
+  * {
+    background-color: inherit !important;
+  }
+  
   /* Hide content briefly to prevent flash */
   body {
     opacity: 0;
@@ -38,6 +54,12 @@
   
   body.loaded {
     opacity: 1;
+  }
+  
+  /* Prevent any white backgrounds */
+  .theme-light {
+    background-color: #030712 !important;
+    color: #f4f7ff !important;
   }
 </style>
 
@@ -50,6 +72,15 @@
 </head>
     
 <body class="theme-dark" data-highlight="highlight-red" data-gradient="body-default">
+
+<!-- Additional anti-flash script for body -->
+<script>
+  // Ensure dark theme is applied immediately when body loads
+  document.body.style.backgroundColor = '#030712';
+  document.body.style.color = '#f4f7ff';
+  document.body.style.setProperty('background-color', '#030712', 'important');
+  document.body.style.setProperty('color', '#f4f7ff', 'important');
+</script>
     
 <div id="preloader"><div class="spinner-border color-highlight" role="status"></div></div>
     
