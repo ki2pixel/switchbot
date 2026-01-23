@@ -89,16 +89,6 @@ class HistoryService:
         *,
         force_flush: bool = False,
     ) -> None:
-        """
-        Record a new state snapshot in history.
-
-        Args:
-            state_data: State dictionary from automation service
-            timezone: Timezone used for timestamp calculations
-
-        Raises:
-            HistoryServiceError: If recording fails
-        """
         record_tuple = self._build_record_tuple(state_data, timezone)
 
         with self._pending_lock:
@@ -120,22 +110,6 @@ class HistoryService:
         granularity: str = "minute",
         limit: int = 1000,
     ) -> list[dict[str, Any]]:
-        """
-        Retrieve historical data with optional filtering and aggregation.
-
-        Args:
-            start: Start datetime (inclusive)
-            end: End datetime (exclusive)
-            metrics: List of metrics to retrieve (default: all)
-            granularity: Time granularity ('minute', '5min', '15min', 'hour')
-            limit: Maximum number of records to return
-
-        Returns:
-            List of historical records
-
-        Raises:
-            HistoryServiceError: If retrieval fails
-        """
         if metrics is None:
             metrics = [
                 "timestamp",
@@ -271,15 +245,6 @@ class HistoryService:
             raise HistoryServiceError("Failed to get aggregated statistics") from exc
 
     def cleanup_old_records(self) -> int:
-        """
-        Clean up records older than retention period.
-
-        Returns:
-            Number of records deleted
-
-        Raises:
-            HistoryServiceError: If cleanup fails
-        """
         delete_query = sql.SQL("""
             DELETE FROM state_history
             WHERE timestamp < NOW() - make_interval(hours => %s)
@@ -314,7 +279,6 @@ class HistoryService:
         state_data: dict[str, Any],
         timezone: str,
     ) -> tuple[Any, ...]:
-        """Build the tuple representing a state row."""
         temperature = state_data.get("last_temperature")
         humidity = state_data.get("last_humidity")
         aircon_power = state_data.get("assumed_aircon_power", "unknown")

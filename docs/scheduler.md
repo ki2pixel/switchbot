@@ -203,6 +203,29 @@ Si charge élevée :
 2. Augmenter `threads` avant `workers`
 3. Considérer Redis pour stores partagés
 
+## Résilience post-audit (Janvier 2026)
+
+### Wrapper `_run_tick_safe()`
+- Chaque tick est exécuté via `SchedulerService._run_tick_safe()`, qui enveloppe l'appel automation dans un `try/except`.
+- En cas d'exception :
+  - Le log `[scheduler] Tick failed (will retry next interval)` est émis avec `exc_info=True`.
+  - Le scheduler reste actif et planifie le tick suivant (plus de blocage permanent).
+- Ce wrapper est utilisé :
+  - Lors du tick immédiat déclenché au démarrage.
+  - Lors de la planification périodique (intervalle configuré).
+
+### Cache timezone AutomationService
+- `AutomationService` conserve en mémoire le fuseau résolu (`_cached_timezone_key/_cached_timezone_value`).
+- Lorsqu'un POST `/reglages` modifie `timezone`, le cache est invalidé (nouvelle résolution `ZoneInfo` au tick suivant).
+- Avantages :
+  - Moins d'allocations lors des ticks fréquents (>=15 s).
+  - Logs plus lisibles (la résolution du fuseau n'apparaît qu'en cas de changement réel).
+
+### Conséquences opérationnelles
+- Un bug ponctuel dans `run_once()` n'arrête plus l'automatisation (protection automatique).
+- Les logs `[scheduler]` fournissent diagnostics explicites sans polluer (`DEBUG` au lieu de `WARNING` pour les cas attendus).
+- Aucun paramètre supplémentaire n'est requis : ces protections sont activées tant que `SCHEDULER_ENABLED=true`.
+
 ---
 
-**Dernière mise à jour** : 11 Janvier 2026
+**Dernière mise à jour** : 23 Janvier 2026

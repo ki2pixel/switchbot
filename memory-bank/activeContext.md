@@ -16,6 +16,7 @@
 - **Phase 4 Audit Frontend Mobile terminée** : Animations CSS pures et micro-interactions avec accessibilité complète.
 - **Phase 5 Core Web Vitals terminée** : Optimisations avancées LCP/FID/CLS avec métriques excellence.
 - **Correction complète des 5 problèmes UI identifiés** : Bottom bar stylisée, checkboxes centrées, flash blanc éliminé, page Actions dédiée, icônes-only mobile.
+- **Audit frontend 23 janv** : Points 1→4 confirmés résolus (offline-first, optimisations history.js, failsafe loaders.js, nettoyage scripts tests) et documentation synchronisée.
 
 ## Questions/Problèmes Ouverts
 - Aucun problème ouvert.

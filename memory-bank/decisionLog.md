@@ -364,3 +364,14 @@
 - Verdict final : L'audit frontend mobile-first est **COMPLET AVEC SUCCÈS EXCELLENT**. Le SwitchBot Dashboard atteint désormais un niveau de performance et d'expérience utilisateur de classe mondiale.
 
 [2026-01-18 15:30:00] - Implémentation des recommandations court terme de l'audit backend
+
+[2026-01-23 19:34:00] - Clôture audit frontend 23 janv (points 1→4)
+- Décision : Finaliser les quatre recommandations restantes de l’audit frontend 2026-01-23 pour garantir une expérience 100 % locale, performante et résiliente.
+- Motivation : Supprimer la dépendance aux CDNs, stabiliser le graphique historique sur mobile, éviter les loaders bloqués et éliminer les scripts test en production.
+- Implémentation :
+  1. **Offline-first** : Bootstrap, Chart.js, adapter date-fns, Font Awesome 6.5.1 et Space Grotesk servis depuis `switchbot_dashboard/static/vendor/**` ; polices gérées via `space-grotesk.css`.
+  2. **Optimisation history.js** : Parsing Chart.js désactivé, séries normalisées, animations coupées, décimation LTTB (100 samples) et granularité forcée à 5 min sur mobile.
+  3. **Résilience loaders** : `switchbot_dashboard/static/js/loaders.js` inclut un failsafe 15 s qui retire automatiquement les états de chargement locaux/globaux si aucune réponse serveur.
+  4. **Nettoyage code mort** : Suppression des scripts `core-web-vitals-tester.js` et `micro-interactions-test.js`, non référencés par les templates/bundles.
+- Documentation : `docs/audit/AUDIT_FRONTEND_2026_01_23.md` mis à jour (sections 1→4 en ✅) ; Memory Bank (activeContext/progress) synchronisée.
+- Impact : Base de code allégée, UI responsive même hors connexion, loaders impossibles à bloquer, conformité totale aux recommandations d’audit.

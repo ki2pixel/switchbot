@@ -93,12 +93,13 @@ Ce fichier contient les réglages métier persistés :
 
 #### Gestion du quota API (`api_quota_warning_threshold`)
 
-- **Valeur par défaut** : `250` (10% d'une limite quotidienne typique de 2500 appels)
+- **Valeur par défaut** : `250` (≈2,5 % d'une limite quotidienne **10 000** suivie par `ApiQuotaTracker`)
 - **Comportement** :
-  - Déclenche une alerte visuelle (bannière rouge) dans l'interface utilisateur lorsque le nombre de requêtes restantes tombe en dessous de ce seuil
-  - Permet d'anticiper l'épuisement du quota quotidien SwitchBot (limite de 2500 appels/jour)
+  - Déclenche une alerte visuelle (bannière) dans l'interface utilisateur lorsque le nombre de requêtes restantes tombe en dessous de ce seuil
+  - Permet d'anticiper l'épuisement du quota quotidien SwitchBot (10 000 appels/jour par défaut, mais ajusté dynamiquement si SwitchBot transmet d'autres valeurs via les headers `X-RateLimit-*`)
   - Configurable via l'interface utilisateur ou directement dans `settings.json`
   - Se réinitialise à minuit UTC avec le compteur de quota
+  - Le champ `api_requests_limit` persistant dans `state.json` est automatiquement mis à jour par `ApiQuotaTracker` lorsqu'une valeur différente est fournie par SwitchBot ; sinon, il reste sur 10 000. Pour forcer manuellement une autre limite (ex. 5000), définissez `state["api_requests_limit"]` puis utilisez le bouton **« Rafraîchir le quota »** sur `/quota` (route POST `/quota/refresh`) afin de refléter immédiatement la nouvelle estimation.
 
 #### Webhooks IFTTT (priorité) + Scènes SwitchBot (fallback) - [2026-01-11]
 
@@ -666,6 +667,30 @@ Le flag est automatiquement :
 - La vignette "Quota API quotidien" (page `/quota`) consomme ces valeurs sans logique supplémentaire. Que les appels proviennent du scheduler, d'un bouton rapide ou de la page `/devices`, l'information reste synchronisée.
 - Le champ `api_quota_warning_threshold` (défaut : 250) déclenche l'alerte affichée sur `/quota`. Fixez-le selon vos besoins : valeur plus élevée pour anticiper, `0` pour désactiver l'avertissement.
 - Recommandation opérationnelle : surveiller ce compteur avant d'exécuter des rafales d'actions manuelles ou de réduire trop le `poll_interval_seconds`. En dessous de ~200 appels restants, suspendre l'automatisation ou allonger l'intervalle pour éviter de saturer la journée.
+
+### Endpoints utilitaires (Quota & Debug)
+
+#### POST `/quota/refresh`
+- **Objectif** : Normaliser l'instantané du quota même si aucune requête SwitchBot n'a encore eu lieu depuis minuit.
+- **Fonctionnement** :
+  - Appelle `ApiQuotaTracker.record_call()` (pour s'assurer que le compteur reste cohérent) puis `refresh_snapshot()` qui réécrit `api_quota_day`, `api_requests_limit`, `api_requests_total` et `api_requests_remaining`.
+  - Redirige vers `/quota` avec un flash `success` (“Quota mis à jour.”). Le formulaire côté UI utilise `data-loader="card"` pour afficher un loader local.
+- **Cas d'usage** :
+  - Après modification manuelle de `api_requests_limit` (ex. import de sauvegarde).
+  - Avant une journée de forte utilisation pour repartir d'un compteur propre.
+  - Lorsque `api_quota_day` semble ne pas refléter la date actuelle suite à un redeploy.
+- **Tests** : `tests/test_dashboard_routes.py::test_quota_refresh_normalizes_state_and_shows_flash`.
+
+#### GET `/debug/state`
+- **Objectif** : Offrir une lecture JSON formatée de `state.json` pour le support/diagnostic (lecture seule).
+- **Sécurité** :
+  - Protégé par `STATE_DEBUG_TOKEN` (défini dans l'environnement Render/Gunicorn dans `create_app()`).
+  - Accès via `/debug/state?token=<STATE_DEBUG_TOKEN>`. Sans token valide → `404`.
+- **Contenu** : Retourne toutes les clés persistées (`pending_off_repeat`, `api_requests_*`, `assumed_aircon_power`, flags stale, etc.) avec indentation.
+- **Bonnes pratiques** :
+  - N'activer le token que lorsque nécessaire et le régénérer régulièrement.
+  - Garder cet endpoint privé (support interne, outils de supervision) puisqu'il expose l'état opérationnel complet.
+- **Lecture seule** : aucun moyen de modifier le state via ce point d'entrée.
 
 ---
 

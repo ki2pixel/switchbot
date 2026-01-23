@@ -1,0 +1,50 @@
+{
+  "output": {
+    "filePath": "repomix-output.md",
+    "style": "markdown",
+    "parsableStyle": false,
+    "compress": false,
+    "headerText": "Switchbot",
+    "fileSummary": true,
+    "directoryStructure": true,
+    "files": true,
+    "removeComments": false,
+    "removeEmptyLines": false,
+    "topFilesLength": 10,
+    "showLineNumbers": true,
+    "includeEmptyDirectories": false,
+    "truncateBase64": true
+  },
+  "include": [
+    "config/**",
+    "switchbot_dashboard/**",
+    "app.py",
+    "Dockerfile",
+    "gunicorn.conf.py",
+    "requirements.txt",
+    ".env.example"
+  ],
+  "ignore": {
+    "useGitignore": true,
+    "useDotIgnore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      ".git/**",
+      ".github/**",
+      "memory-bank/**",
+      ".windsurf/**",
+      "node_modules/**",
+      "venv*/**",
+      ".venv/**",
+      "__pycache__/**",
+      "*.pyc",
+      "*.pyo",
+      "*.log",
+      "*.sqlite3",
+      ".pytest_cache/**",
+      "coverage/**",
+      "repomix-output.*",
+      "docs/repomix.md"
+    ]
+  }
+}

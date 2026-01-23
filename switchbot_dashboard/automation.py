@@ -915,7 +915,6 @@ class AutomationService:
 
         self._log_tick_completion(trigger, outcome=outcome)
         
-        # Record state in history if history service is available
         if self._history_service:
             try:
                 current_state = self._state_store.read()

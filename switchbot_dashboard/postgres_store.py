@@ -28,16 +28,6 @@ class PostgresStore:
         ssl_mode: str = "require",
         max_connections: int = 10,
     ) -> None:
-        """
-        Initialize PostgreSQL store with connection pooling.
-
-        Args:
-            connection_string: PostgreSQL connection URL (Neon format)
-            kind: Store kind ('settings' or 'state')
-            logger: Logger instance for error reporting
-            ssl_mode: SSL mode for connections (default: 'require')
-            max_connections: Maximum connections in pool
-        """
         self._kind = kind
         self._logger = logger
         self._lock = threading.Lock()
@@ -55,7 +45,7 @@ class PostgresStore:
         self._ensure_table_exists()
 
     def _initialize_pool(self) -> None:
-        """Initialize PostgreSQL connection pool with retry logic."""
+        """Initialize PostgreSQL connection pool (single attempt)."""
         try:
             self._pool = ConnectionPool(**self._connection_params)
             self._logger.info(
@@ -102,15 +92,6 @@ class PostgresStore:
             ) from exc
 
     def read(self) -> dict[str, Any]:
-        """
-        Read JSON data from PostgreSQL.
-
-        Returns:
-            Dictionary containing stored data or empty dict if not found
-
-        Raises:
-            PostgresStoreError: If read operation fails
-        """
         query = sql.SQL("SELECT data FROM json_store WHERE kind = %s")
 
         try:
@@ -147,15 +128,6 @@ class PostgresStore:
             ) from exc
 
     def write(self, data: dict[str, Any]) -> None:
-        """
-        Write JSON data to PostgreSQL.
-
-        Args:
-            data: Dictionary to store
-
-        Raises:
-            PostgresStoreError: If write operation fails
-        """
         query = sql.SQL("""
             INSERT INTO json_store (kind, data, updated_at)
             VALUES (%s, %s, NOW())
@@ -200,12 +172,6 @@ class PostgresStore:
                 self._pool = None
 
     def health_check(self) -> bool:
-        """
-        Perform health check on PostgreSQL connection.
-
-        Returns:
-            True if connection is healthy, False otherwise
-        """
         if not self._pool:
             return False
 

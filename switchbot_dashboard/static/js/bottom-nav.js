@@ -1,7 +1,3 @@
-/**
- * Bottom Navigation Bar functionality
- * Handles mobile navigation interactions and scroll-based hiding/showing
- */
 (function() {
   'use strict';
   
@@ -24,7 +20,6 @@
     }
     
     bindEvents() {
-      // Handle scroll events with throttling
       let scrollTimer;
       window.addEventListener('scroll', () => {
         if (!scrollTimer) {
@@ -35,7 +30,6 @@
         }
       }, { passive: true });
       
-      // Handle navigation clicks
       this.nav.addEventListener('click', (e) => {
         const link = e.target.closest('.sb-bottom-nav-item');
         if (link) {
@@ -43,7 +37,6 @@
         }
       });
       
-      // Handle resize events
       window.addEventListener('resize', this.debounce(() => {
         this.updateActiveState();
       }, 250));
@@ -66,13 +59,11 @@
     }
     
     handleNavClick(link, event) {
-      // Add visual feedback
       link.style.transform = 'scale(0.95)';
       setTimeout(() => {
         link.style.transform = '';
       }, 150);
       
-      // Update active state immediately for better UX
       this.updateActiveState(link);
     }
     
@@ -109,13 +100,10 @@
     }
     
     setupPerformanceOptimizations() {
-      // Add will-change for smooth animations
       this.nav.style.willChange = 'transform';
       
-      // Enable GPU acceleration
       this.nav.style.transform = 'translateZ(0)';
       
-      // Use Intersection Observer for lazy loading if needed
       if ('IntersectionObserver' in window) {
         const observer = new IntersectionObserver((entries) => {
           entries.forEach(entry => {
@@ -142,7 +130,6 @@
     }
   }
   
-  // Initialize when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       new BottomNavigation();

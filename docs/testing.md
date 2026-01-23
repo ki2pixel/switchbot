@@ -723,7 +723,7 @@ def test_off_idempotence_when_already_off():
 - `test_automation_service.py` : Logique métier et répétitions
 - `test_ifttt.py` : Webhooks et fallbacks
 - `test_adaptive_cooldown.py` : Cooldown adaptatif
-- `test_aircon_presets.py` : Scènes et presets
+- `test_aircon_presets.py` : Extraction et validation des scènes (`_extract_aircon_scenes`) + migrations legacy
 
 **Commande complète** :
 ```bash

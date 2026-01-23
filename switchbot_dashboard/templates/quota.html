@@ -4,15 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Quota API SwitchBot</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
-      crossorigin="anonymous"
-    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/space-grotesk.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/sticky-footer.css') }}" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}" />
   </head>
   <body class="sb-dark">
     <div class="container py-4">
@@ -24,6 +20,19 @@
           </p>
         </div>
       </header>
+
+      <section class="mb-4">
+        <form method="post" action="{{ url_for('dashboard.quota_refresh') }}" data-loader class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+          {{ csrf_field() if csrf_field is defined }}
+          <div class="flex-grow-1">
+            <p class="mb-1 text-muted">Forcez un rafraîchissement pour re-normaliser les compteurs locaux si nécessaire.</p>
+          </div>
+          <button type="submit" class="btn btn-outline-light">
+            <i class="fas fa-rotate me-2"></i>
+            Rafraîchir les compteurs
+          </button>
+        </form>
+      </section>
 
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}

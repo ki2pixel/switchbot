@@ -285,8 +285,10 @@ GET /healthz
 | `SWITCHBOT_SECRET` | Clé secrète SwitchBot (requis) | - |
 | `SWITCHBOT_POLL_INTERVAL_SECONDS` | Intervalle de rafraîchissement (secondes) | 60 |
 | `LOG_LEVEL` | Niveau de journalisation (DEBUG, INFO, WARNING, ERROR) | INFO |
-| `STORE_BACKEND` | Backend de stockage (redis, filesystem) | filesystem |
-| `REDIS_URL` | URL de connexion à Redis (si STORE_BACKEND=redis) | - |
+| `STORE_BACKEND` | Backend de stockage (postgres recommandé, redis legacy, filesystem fallback) | postgres |
+| `POSTGRES_URL` | URL de connexion à PostgreSQL (Neon recommandé) | - |
+| `POSTGRES_SSL_MODE` | Mode SSL pour PostgreSQL (`require` conseillé) | require |
+| `REDIS_URL` | URL Redis (option legacy si STORE_BACKEND=redis) | - |
 
 ## 📖 Références
 

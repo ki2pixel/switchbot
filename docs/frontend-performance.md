@@ -150,6 +150,7 @@ The dashboard implements a non-blocking loader system to improve perceived respo
   - Button-level loaders (local overlay with spinner)
   - Full-page loaders for form submissions/navigation
   - Automatic timeout handling (5s forms, 3s actions, 2s navigation)
+  - **Failsafe global** : réinitialisation automatique au bout de 15 s en cas de script bloqué (désactive le loader local et global)
   - ARIA state management (`aria-busy`, `aria-hidden`)
 
 - **CSS**: `static/css/theme.css` provides:

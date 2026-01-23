@@ -7,9 +7,11 @@ class HistoryDashboard {
     constructor() {
         this.charts = {};
         this.updateInterval = null;
+        this.isSmallMobile = window.innerWidth <= 480;
+        this.defaultGranularity = this.isSmallMobile ? '5min' : 'minute';
         this.currentFilters = {
             timeRange: '6h',
-            granularity: 'minute',
+            granularity: this.defaultGranularity,
             metrics: ['temperature', 'humidity', 'assumed_aircon_power']
         };
         
@@ -17,10 +19,22 @@ class HistoryDashboard {
     }
 
     init() {
+        this.applyResponsiveDefaults();
         this.initCharts();
         this.bindEvents();
         this.loadInitialData();
         this.startRealTimeUpdates();
+    }
+
+    applyResponsiveDefaults() {
+        if (!this.isSmallMobile) {
+            return;
+        }
+
+        const granularitySelect = document.getElementById('granularity');
+        if (granularitySelect) {
+            granularitySelect.value = '5min';
+        }
     }
 
     initCharts() {
@@ -31,6 +45,9 @@ class HistoryDashboard {
         const chartOptions = {
             responsive: true,
             maintainAspectRatio: false,
+            parsing: false,
+            normalized: true,
+            animation: false,
             interaction: {
                 mode: 'index',
                 intersect: false,
@@ -60,6 +77,11 @@ class HistoryDashboard {
                         size: isSmallMobile ? 10 : 11
                     },
                     padding: isSmallMobile ? 6 : 10
+                },
+                decimation: {
+                    enabled: true,
+                    algorithm: 'lttb',
+                    samples: 100
                 }
             },
             scales: {

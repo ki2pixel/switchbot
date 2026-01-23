@@ -18,7 +18,6 @@ from .scheduler import SchedulerService
 from .quota import ApiQuotaTracker
 from .switchbot_api import SwitchBotClient
 
-# Load environment variables early
 load_dotenv()
 
 

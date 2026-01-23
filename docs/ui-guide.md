@@ -2,12 +2,14 @@
 
 ## Vue d'ensemble
 
-Le tableau de bord propose une interface mobile-first avec thème sombre immersif, entièrement traduite en français. L'interface est organisée autour de quatre pages principales :
+Le tableau de bord propose une interface mobile-first avec thème sombre immersif, entièrement traduite en français. La navigation basse regroupe désormais six pages principales :
 
-- **Page d'accueil (`/`)** : Statut temps réel, actions rapides et scènes
-- **Page Réglages (`/reglages`)** : Configuration complète (fenêtres horaires, profils saisonniers, scènes, quotas…)
-- **Page Quota (`/quota`)** : Suivi de la consommation de l'API SwitchBot
-- **Page Appareils (`/devices`)** : Inventaire et configuration des équipements
+- **Page d'accueil (`/`)** : Statut temps réel et accès aux CTA principaux.
+- **Page Réglages (`/reglages`)** : Configuration complète (fenêtres horaires, profils saisonniers, scènes, quotas…).
+- **Page Actions (`/actions`)** : Les six actions manuelles (Hiver, Été, Ventilateur, Quick OFF, Exécuter une fois, Arrêt rapide) regroupées avec indicateurs d’état.
+- **Page Quota (`/quota`)** : Suivi détaillé de la consommation de l’API SwitchBot.
+- **Page Historique (`/history`)** : Dashboard Chart.js temps réel (température, humidité, état clim).
+- **Page Appareils (`/devices`)** : Inventaire et configuration des équipements.
 
 ## Messages d'alerte et notifications
 
@@ -70,7 +72,7 @@ Une bannière d'alerte s'affiche automatiquement lorsque le nombre de requêtes 
 ### Configuration
 
 - **Seuil d'alerte** : Modifiable dans les paramètres avancés
-- **Valeur par défaut** : 250 requêtes (10% de la limite quotidienne de 2500 appels)
+- **Valeur par défaut** : 250 requêtes (≈2,5 % de la limite quotidienne de **10 000** appels suivie par `ApiQuotaTracker`)
 - **Réinitialisation** : Automatique à minuit UTC
 
 ### Bonnes pratiques
@@ -120,29 +122,54 @@ Refactorisé en grille CSS (`status-grid`) pour améliorer la scannabilité mobi
 - Meilleure lisibilité sur petits écrans
 - Espacement et alignement cohérents
 
-### Actions rapides
+### Accès aux actions manuelles
 
-Les boutons du dashboard utilisent automatiquement les webhooks IFTTT avec système de fallback :
+- La page d’accueil affiche désormais un bouton CTA « Actions » menant à `/actions`. Les quatre boutons historiques ne sont plus présents directement sur l’accueil afin d’éviter l’overlay mobile.
+- Les messages flash continuent d’informer du résultat d’une action (succès/fallback/erreur) et rappellent d’aller sur `/actions` si une configuration est manquante.
+- Les états visuels (webhook/scène manquante) sont décrits dans la section dédiée ci-dessous.
 
-- **Bouton "Hiver"** → webhook winter → scène SwitchBot "Hiver" → commande `setAll` (fallback)
-- **Bouton "Été"** → webhook summer → scène SwitchBot "Été" → commande `setAll` (fallback)
-- **Bouton "Ventilateur"** → webhook fan → scène SwitchBot "Fan" → commande `setAll` (fallback)
-- **Bouton "Quick OFF"** → webhook off → scène SwitchBot "Arrêt" → commande `turnOff` (fallback)
+## Page Actions (`/actions`) - [2026-01-18]
 
-### Indicateurs visuels de configuration
+### Objectif
 
-Les boutons affichent des états visuels selon la configuration :
+Regrouper les six actions manuelles dans une page dédiée, responsive, afin d’éviter la surcharge de la page d’accueil tout en offrant une vue claire sur l’état de configuration (webhooks/scènes).
 
-- **Bouton vert** : Webhook IFTTT configuré et valide
-- **Bouton orange** : Webhook manquant mais scène SwitchBot configurée (fallback)
-- **Bouton rouge** : Aucun webhook ni scène configuré
-- **Icône ⚠️** : Avertissement de configuration manquante
+- **Template** : `switchbot_dashboard/templates/actions.html`
+- **Styles** : `switchbot_dashboard/static/css/actions.css` (glassmorphism, grille responsive 1→2 colonnes, badges de statut)
+- **Route** : `routes.py::actions_page` (injection du contexte settings/state pour chaque action)
 
-> ℹ️ **Fonctionnement de l'automatisation** :
-> - L'automatisation utilise d'abord les webhooks IFTTT (pas de consommation quota)
-> - Si le webhook échoue ou est absent, elle bascule sur les scènes SwitchBot
-> - En dernier recours, elle utilise les commandes `setAll`/`turnOff` (nécessite `aircon_device_id`)
-> - Vérifiez les messages d'état pour les erreurs de configuration
+### Contenu de la page
+
+| Carte | Action | Description | Bouton |
+|-------|--------|-------------|--------|
+| Chauffage Hiver | `actions.winter_on` | Envoie `winter_on` (webhook → scène → setAll) | `data-loader="card"` |
+| Clim Été | `actions.summer_on` | Envoie `summer_on` | idem |
+| Ventilation | `actions.fan_on` | Active le mode ventilation | idem |
+| Quick OFF | `actions.quick_off` | Déclenche la scène `off` (fallback turnOff) | idem |
+| Exécuter une fois | `actions.run_once` | Forcer un tick d’automatisation | `data-loader="card"` + texte explicatif |
+| Arrêt express | `actions.stop_automation` | Coupe l’automatisation + OFF immédiat | bouton danger |
+
+Chaque carte comporte :
+- Une icône FontAwesome (configurée dans `_footer_nav.html` + `actions.html`)
+- Un badge d’état (voir ci-dessous)
+- Un bouton principal avec loader local (`data-loader="card"`) se connectant à `static/js/loaders.js`
+
+### Badges et états visuels
+
+| Badge | Condition | Signification |
+|-------|-----------|---------------|
+| `badge-success` « Webhook configuré » | URL HTTPS présente dans `ifttt_webhooks[action]` | L’action s’exécutera côté IFTTT sans consommer de quota |
+| `badge-warning` « Scène uniquement » | Webhook manquant mais scène renseignée | L’action utilisera directement `SwitchBotClient.execute_scene` |
+| `badge-danger` « Configuration manquante » | Aucune scène ni webhook | Bouton reste actif mais l’utilisateur est renvoyé vers `/reglages` |
+
+Les badges se synchronisent avec `actions_context` construit dans `routes.py#771-799`, qui vérifie à la fois les webhooks et la présence d’UUID de scènes.
+
+### Expérience utilisateur
+
+- **Navigation** : accessible via l’onglet « Actions » de la bottom navigation.
+- **Feedback** : chaque action déclenche les messages flash standards (succès, fallback scène, fallback commande directe).
+- **Accessibilité** : cartes tactiles ≥56 px de haut, `aria-label` explicites, focus visible.
+- **Performance** : la grille passe automatiquement de 1 colonne (≤480 px) à 2 colonnes (≥768 px) ; les ombres et blur suivent les tokens glassmorphism (`--sb-glass-*`).
 
 ## Améliorations Mobile (Janvier 2026)
 
@@ -361,14 +388,20 @@ Pour toute question, consultez :
 ### Surveillance du quota API
 
 La jauge de quota en haut à droite de l'interface affiche en temps réel :
-- Le nombre de requêtes restantes (sur 2500 par jour par défaut)
+- Le nombre de requêtes restantes (sur **10 000** par jour par défaut — valeur ajustée automatiquement si SwitchBot expose un autre `limit`)
 - Un indicateur visuel (vert/orange/rouge) selon le niveau de consommation
-- Un lien vers la page de configuration du quota
+- Un bouton **« Voir le quota »** qui conduit à la page `/quota`
+
+#### Bouton « Rafraîchir le quota »
+- Disponible sur la page `/quota`, déclenche un POST `/quota/refresh` avec loader local.
+- Force `ApiQuotaTracker` à normaliser l’instantané : remise à jour de la date (`api_quota_day`), de la limite et recalcul `remaining`.
+- Affiche un flash `success` (“Quota mis à jour.”) quand l’opération se termine.
+- Utiliser juste après avoir modifié manuellement `api_requests_limit` ou avant une journée de forte activité pour repartir d’un compteur propre.
 
 **Bonnes pratiques :**
-- Surveillez régulièrement le quota pour éviter les coupures
-- Augmentez le seuil d'alerte si nécessaire dans les paramètres
-- Contactez le support SwitchBot pour augmenter votre quota si nécessaire
+- Surveillez régulièrement le quota pour éviter les coupures.
+- Ajustez `api_quota_warning_threshold` si vous souhaitez être alerté plus tôt (ex. 500).
+- Réduisez les actions manuelles répétitives ou augmentez `poll_interval_seconds` lorsque le compteur passe sous ~200.
 
 ### Dépannage des scènes
 

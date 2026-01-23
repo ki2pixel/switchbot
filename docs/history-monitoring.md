@@ -8,9 +8,10 @@ The History Monitoring feature provides a comprehensive dashboard for visualizin
 
 ### 📊 Interactive Dashboard
 - **Real-time charts** with 30-second auto-refresh
-- **Multiple visualizations**: Temperature/Humidity trends, Aircon state distribution, API usage, Error patterns
-- **Responsive design** optimized for desktop and mobile
-- **Dark theme** consistent with the main dashboard
+- **Visualisations actuelles** : Température & Humidité (line chart), État climatisation (aire/ligne discrète)
+- **Responsive design** optimisé pour desktop et mobile
+- **Dark theme** cohérent avec le dashboard principal
+- **Bannière “mode démo”** : si `HistoryService` n’est pas injecté (ex. fallback JSON en local), un bandeau jaune s’affiche en haut de la page indiquant que des données mockées sont proposées. Cette bannière est pilotée par `static/js/history.js` (section `showDemoBanner()`) et disparaît automatiquement dès que la connexion PostgreSQL est restaurée.
 
 ### 🔍 Advanced Filtering
 - **Time ranges**: 1h, 6h, 24h, or custom date ranges
@@ -20,14 +21,13 @@ The History Monitoring feature provides a comprehensive dashboard for visualizin
 
 ### 📈 Data Visualizations
 1. **Temperature & Humidity**: Dual-axis line chart with smooth animations
-2. **Aircon State**: Doughnut chart showing ON/OFF/Unknown distribution
-3. **API Usage**: Cumulative line chart tracking SwitchBot API consumption
-4. **Error Distribution**: Bar chart showing error patterns by hour
+2. **Aircon State Timeline**: Ligne empilée (ou zone) montrant l’évolution ON/OFF/Auto
+- *(Les anciens graphiques API Usage & Error Distribution ont été retirés du template pour simplifier l’interface. Ils restent mentionnés ici uniquement comme pistes futures — voir section “Future Enhancements”.)*
 
 ### 📋 Statistics & Tables
-- **Status cards**: Average temperature/humidity, total records, error count
-- **Latest records table**: Recent state snapshots with detailed information
-- **Aggregated metrics**: Statistical summaries for selected periods
+- **Status cards**: Température moyenne, humidité moyenne, total d’enregistrements
+- **Latest records table**: Derniers snapshots (température, humidité, état clim, action)
+- **Aggregated metrics**: Statistiques pour la période sélectionnée (sans compteur d’erreurs)
 
 ## Architecture
 

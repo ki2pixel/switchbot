@@ -60,6 +60,24 @@ def test_loader_js_file_exists():
         assert func in js_content, f"La fonction {func} doit être présente dans loaders.js"
 
 
+def test_loader_js_has_failsafe_timeout():
+    """Vérifie la présence du failsafe 15s dans loaders.js."""
+    loaders_js_path = os.path.join(
+        os.path.dirname(__file__),
+        '..',
+        'switchbot_dashboard',
+        'static',
+        'js',
+        'loaders.js'
+    )
+
+    with open(loaders_js_path, 'r', encoding='utf-8') as f:
+        js_content = f.read()
+
+    assert 'FAILSAFE_TIMEOUT_MS' in js_content, "Le failsafe 15s doit être défini dans loaders.js"
+    assert 'scheduleFailsafe' in js_content, "L’API SwitchBotLoaders doit exposer scheduleFailsafe"
+
+
 def test_templates_have_data_loader_attributes():
     """Vérifie que les templates HTML ont les attributs data-loader."""
     templates_dir = os.path.join(

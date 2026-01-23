@@ -1,4 +1,13 @@
 ## Terminé
+[2026-01-23 19:34:00] - MAJ audit frontend (points 1→4 résolus)
+
+- Documentation `docs/audit/AUDIT_FRONTEND_2026_01_23.md` synchronisée avec l’état réel :
+  - Point 1 Offline-first ✅ : Bootstrap/Chart.js/FontAwesome/Space Grotesk servis depuis `static/vendor`.
+  - Point 2 Optimisation history.js ✅ : décimation LTTB + granularité mobile forcée.
+  - Point 3 Résilience JS ✅ : failsafe 15 s dans `loaders.js`.
+  - Point 4 Nettoyage code mort ✅ : suppression des scripts `core-web-vitals-tester.js` et `micro-interactions-test.js`.
+- Aucun template ne référence ces scripts supprimés : base de code prod allégée.
+
 [2026-01-18 15:01:00] - Correction des problèmes UI : bottom bar invisible et flash blanc
 
 ### Problèmes résolus ✅

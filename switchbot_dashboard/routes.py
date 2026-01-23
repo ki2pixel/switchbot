@@ -764,13 +764,11 @@ def quick_off() -> Any:
 
 @dashboard_bp.get("/history")
 def history_page() -> str:
-    """Render the history monitoring dashboard page."""
     return render_template("history.html")
 
 
 @dashboard_bp.get("/actions")
 def actions_page() -> str:
-    """Render the actions page with all manual controls."""
     settings_store = current_app.extensions["settings_store"]
     state_store = current_app.extensions["state_store"]
     
@@ -801,7 +799,6 @@ def actions_page() -> str:
 
 @dashboard_bp.get("/history/api/data")
 def history_api_data() -> Any:
-    """API endpoint for filtered historical data."""
     history_service = current_app.extensions.get("history_service")
     if not history_service:
         # Return mock data when service is not available
@@ -985,7 +982,6 @@ def history_api_aggregates() -> Any:
 
 @dashboard_bp.get("/history/api/latest")
 def history_api_latest() -> Any:
-    """API endpoint for latest records."""
     history_service = current_app.extensions.get("history_service")
     if not history_service:
         # Return mock latest records when service is not available

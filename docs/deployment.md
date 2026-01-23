@@ -20,9 +20,10 @@ Le fichier `Dockerfile` à la racine :
 - Installation des dépendances via `requirements.txt` (incluant Gunicorn).
 - Création utilisateur non root `appuser`.
 - Démarrage via `gunicorn 'switchbot_dashboard:create_app()'` (port 8000, logs stdout/stderr, timeout 120s, niveau de log configurable via LOG_LEVEL).
+- Worker unique obligatoire : `gunicorn.conf.py` force `WEB_CONCURRENCY=1` et s'appuie sur 2 threads pour absorber les requêtes tout en laissant APScheduler tourner dans le même process (évite les ticks dupliqués).
 - Variables :
   - `PORT` (Render fournit automatiquement la valeur).
-  - `WEB_CONCURRENCY` (défaut 2, ajustable via Render env var).
+  - `WEB_CONCURRENCY` (laissez `1` – toute autre valeur est ignorée et peut provoquer des comportements indésirables).
 
 `.dockerignore` exclut les fichiers inutiles (`.git`, `__pycache__`, JSON locaux...).
 
@@ -56,16 +57,16 @@ Le fichier `Dockerfile` à la racine :
 
 1. Créer un **Web Service** (plan Free) utilisant une image externe :
    - Image : `ghcr.io/ki2pixel/switchbot:latest` (Render tirera automatiquement la dernière version). 
-   - Commande de démarrage : `gunicorn 'switchbot_dashboard:create_app()' --bind 0.0.0.0:${PORT} --workers ${WEB_CONCURRENCY:-2} --timeout 120`.
+   - Commande de démarrage : `gunicorn 'switchbot_dashboard:create_app()' --bind 0.0.0.0:${PORT} --workers 1 --threads 2 --timeout 120`.
 2. Variables d'environnement Render :
    - `SWITCHBOT_TOKEN` (secret).
    - `SWITCHBOT_SECRET` (secret).
    - `SWITCHBOT_RETRY_ATTEMPTS`, `SWITCHBOT_RETRY_DELAY_SECONDS` si besoin.
    - `SWITCHBOT_POLL_INTERVAL_SECONDS` pour override.
-   - `WEB_CONCURRENCY` (optionnel, exemple `1` pour plan Free).
+   - `WEB_CONCURRENCY=1` (obligatoire pour aligner Gunicorn sur le worker unique; la configuration du dépôt force déjà cette valeur, mais la redéfinir garantit que l’interface Render reflète le comportement réel).
    - `LOG_LEVEL` (optionnel mais recommandé) : Niveau de log propagé à Gunicorn via `--log-level ${LOG_LEVEL:-info}` dans le `Dockerfile`. Utiliser `warning` ou `error` en production pour réduire le bruit, `debug`/`info` lors des diagnostics.
    - `FLASK_SECRET_KEY` (secret aléatoire).
-   - `STORE_BACKEND=redis` pour activer la persistance externe des réglages/état.
+   - `STORE_BACKEND=postgres` (valeur par défaut côté application). Définir `POSTGRES_URL`/`POSTGRES_SSL_MODE` pour Neon. Les variables Redis (`REDIS_URL_PRIMARY`, etc.) ne sont nécessaires que si vous forcez `STORE_BACKEND=redis` (legacy).
    - `REDIS_URL_PRIMARY` (recommandé) : URL Redis principale pour la haute disponibilité.
    - `REDIS_URL_SECONDARY` (optionnel) : URL Redis secondaire pour le fallback automatique.
    - `REDIS_URL` (legacy) : URL Redis uniqueutilisée si `REDIS_URL_PRIMARY` n'est pas défini.

@@ -5,6 +5,32 @@
     const LOADER_SPINNER_CLASS = 'sb-loader-spinner';
     const GLOBAL_LOADER_ID = 'sb-global-loader';
     const GLOBAL_LOADER_ACTIVE_CLASS = 'sb-global-loader--active';
+    const FAILSAFE_TIMEOUT_MS = 15000;
+    
+    const loaderFailsafes = new WeakMap();
+    
+    const clearLoaderFailsafe = (element) => {
+        if (!element) {
+            return;
+        }
+        const timerId = loaderFailsafes.get(element);
+        if (timerId) {
+            clearTimeout(timerId);
+            loaderFailsafes.delete(element);
+        }
+    };
+    
+    const scheduleLoaderFailsafe = (element, cleanupCallback) => {
+        if (!element || typeof cleanupCallback !== 'function') {
+            return;
+        }
+        clearLoaderFailsafe(element);
+        const timerId = window.setTimeout(() => {
+            loaderFailsafes.delete(element);
+            cleanupCallback();
+        }, FAILSAFE_TIMEOUT_MS);
+        loaderFailsafes.set(element, timerId);
+    };
     
     const createLoaderOverlay = () => {
         const overlay = document.createElement('span');
@@ -58,6 +84,18 @@
         document.body.classList.remove('sb-loading');
     };
     
+    const resetButtonState = (button, originalText) => {
+        if (!button) {
+            return;
+        }
+        if (typeof originalText === 'string') {
+            button.textContent = originalText;
+        }
+        if ('disabled' in button) {
+            button.disabled = false;
+        }
+    };
+    
     const showLoader = (element) => {
         if (!element || element.classList.contains(LOADER_ACTIVE_CLASS)) {
             return;
@@ -80,6 +118,7 @@
             return;
         }
         
+        clearLoaderFailsafe(element);
         element.classList.remove(LOADER_ACTIVE_CLASS);
         element.removeAttribute('aria-busy');
         
@@ -112,12 +151,19 @@
                     setTimeout(() => {
                         form.submit();
                     }, 1000);
-                    setTimeout(() => {
+
+                    const finalizeSubmission = () => {
                         hideGlobalLoader();
                         hideLoader(submitButton);
-                        submitButton.textContent = originalText;
-                        submitButton.disabled = false;
+                        resetButtonState(submitButton, originalText);
+                    };
+
+                    setTimeout(() => {
+                        finalizeSubmission();
+                        clearLoaderFailsafe(submitButton);
                     }, 10000);
+
+                    scheduleLoaderFailsafe(submitButton, finalizeSubmission);
                 }
             });
         });
@@ -136,12 +182,21 @@
                 const originalText = button.textContent;
                 button.textContent = 'Chargement...';
                 button.disabled = true;
+
+                const finalizeAction = () => {
+                    hideLoader(button);
+                    resetButtonState(button, originalText);
+                };
                 
                 setTimeout(() => {
-                    hideLoader(button);
-                    button.textContent = originalText;
-                    button.disabled = false;
+                    finalizeAction();
+                    clearLoaderFailsafe(button);
                 }, 3000);
+
+                scheduleLoaderFailsafe(button, () => {
+                    hideGlobalLoader();
+                    finalizeAction();
+                });
             });
         });
     };
@@ -161,6 +216,12 @@
                 event.preventDefault();
                 showGlobalLoader();
                 showLoader(link);
+
+                scheduleLoaderFailsafe(link, () => {
+                    hideGlobalLoader();
+                    hideLoader(link);
+                });
+
                 setTimeout(() => {
                     window.location.href = href;
                 }, 150);
@@ -180,6 +241,9 @@
             hide: hideLoader,
             showGlobal: showGlobalLoader,
             hideGlobal: hideGlobalLoader,
+            scheduleFailsafe: scheduleLoaderFailsafe,
+            clearFailsafe: clearLoaderFailsafe,
+            failsafeDelayMs: FAILSAFE_TIMEOUT_MS,
         };
     });
 })();
