@@ -1,8 +1,12 @@
 # Audit Backend - Rapport Complet et Suivi des Corrections
 
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
+
 ## État Actuel (18 janvier 2026)
 
 Suite à l'audit backend complet réalisé le 18 janvier 2026 par un Architecte Backend Senior Python, **toutes les recommandations critiques et court terme ont été implémentées avec succès**.
+
+> 📝 **Décisions connexes** : Les patterns d'audit backend sont documentés dans `memory-bank/systemPatterns.md` et `memory-bank/decisionLog.md`. Voir notamment les décisions du 2026-01-18 sur l'implémentation des recommandations court terme.
 
 ### ✅ Recommandations Appliquées
 
@@ -117,6 +121,28 @@ def _get_timezone(self) -> dt.timezone:
 - **Patterns techniques** : `memory-bank/systemPatterns.md`
 - **Décisions d'architecture** : `memory-bank/decisionLog.md`
 - **Progression** : `memory-bank/progress.md`
+
+---
+
+## Références croisées
+
+### Documentation technique
+- [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [DOCUMENTATION.md](DOCUMENTATION.md) – Architecture et métriques
+- [setup.md](setup.md) – Installation et configuration initiale
+
+### Guides spécialisés
+- [Configuration](configuration.md) – Variables d'environnement et paramètres
+- [Deployment](deployment.md) – Configuration production et monitoring
+- [Testing](testing.md) – Tests et validation backend
+
+### Memory Bank (décisions architecturales)
+- `memory-bank/decisionLog.md` – Décisions d'audit backend (performance, résilience)
+- `memory-bank/systemPatterns.md` – Patterns backend et optimisations
+- `memory-bank/progress.md` – Historique des améliorations backend
+
+### Archives
+- **Rapport complet** : `docs/archives/backend-audit-report-2026-01-18.md`
 
 ---
 

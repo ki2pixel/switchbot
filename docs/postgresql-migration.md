@@ -1,29 +1,33 @@
 # PostgreSQL Migration Guide
 
-## Overview
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
 
-This guide describes migrating from Redis-based storage to PostgreSQL (Neon) for the SwitchBot Dashboard persistence layer.
+## Vue d'ensemble
 
-## Why PostgreSQL?
+Ce guide décrit la migration depuis le stockage Redis vers PostgreSQL (Neon) pour la couche de persistance du SwitchBot Dashboard.
 
-- **Simplified Architecture**: Single PostgreSQL instance vs Redis primary/secondary + filesystem fallback
-- **Cost Predictable**: Neon's free tier (100h-CU/month, 0.5GB storage) is sufficient for dashboard data
-- **Advanced Features**: JSONB support, PITR (6h window), branching, extensions
-- **Better Integration**: Native PostgreSQL support on Render platform
+> 📝 **Décisions connexes** : Les patterns de migration PostgreSQL sont documentés dans `memory-bank/systemPatterns.md` et `memory-bank/decisionLog.md`. Voir notamment les décisions du 2026-01-14 sur la migration PostgreSQL Neon.
 
-## Prerequisites
+## Pourquoi PostgreSQL ?
 
-- Neon PostgreSQL account (free tier sufficient)
-- PostgreSQL connection string from Neon dashboard
-- Existing Redis/JSON data to migrate
+- **Architecture simplifiée** : Instance PostgreSQL unique vs Redis primaire/secondaire + fallback filesystem
+- **Coût prévisible** : Free tier Neon (100h-CU/mois, 0.5GB stockage) suffisant pour les données du dashboard
+- **Fonctionnalités avancées** : Support JSONB, PITR (fenêtre 6h), branching, extensions
+- **Meilleure intégration** : Support PostgreSQL natif sur plateforme Render
+
+## Prérequis
+
+- Compte Neon PostgreSQL (free tier suffisant)
+- Chaîne de connexion PostgreSQL depuis dashboard Neon
+- Données Redis/JSON existantes à migrer
 
 ## Migration Steps
 
-### 1. Create Neon Database
+### 1. Créer la base de données Neon
 
-1. Sign up at [Neon Console](https://console.neon.tech/)
-2. Create new project (free tier)
-3. Generate connection string:
+1. Inscrivez-vous sur [Neon Console](https://console.neon.tech/)
+2. Créez un nouveau projet (free tier)
+3. Générez la chaîne de connexion :
    ```
    postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/dbname?sslmode=require
    ```
@@ -218,12 +222,35 @@ For issues:
 3. Test connection string with `psql` client
 4. Review migration script output
 
-## Migration Timeline
+## Chronologie de migration
 
-Typical migration timeline:
-- **Preparation**: 30 minutes (Neon setup, dependencies)
-- **Migration**: 5-15 minutes (depending on data size)
-- **Testing**: 30-60 minutes (functionality verification)
-- **Cleanup**: 15 minutes (optional Redis removal)
+Chronologie de migration typique :
+- **Préparation** : 30 minutes (configuration Neon, dépendances)
+- **Migration** : 5-15 minutes (selon la taille des données)
+- **Tests** : 30-60 minutes (vérification fonctionnalité)
+- **Nettoyage** : 15 minutes (suppression Redis optionnelle)
 
-Total: ~2-3 hours for complete migration
+Total : ~2-3 heures pour migration complète
+
+---
+
+## Références croisées
+
+### Documentation technique
+- [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [DOCUMENTATION.md](DOCUMENTATION.md) – Architecture et métriques
+- [setup.md](setup.md) – Installation et configuration initiale
+
+### Guides spécialisés
+- [Configuration](configuration.md) – Variables d'environnement et paramètres
+- [Deployment](deployment.md) – Configuration production et Render
+- [Testing](testing.md) – Tests et validation PostgreSQL
+
+### Memory Bank (décisions architecturales)
+- `memory-bank/decisionLog.md` – Décisions de migration PostgreSQL (simplification architecture)
+- `memory-bank/systemPatterns.md` – Patterns de stockage PostgreSQL
+- `memory-bank/progress.md` – Historique des améliorations backend
+
+---
+
+*Last updated: January 25, 2026*

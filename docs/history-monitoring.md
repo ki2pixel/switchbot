@@ -1,30 +1,34 @@
 # History Monitoring Guide
 
-## Overview
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
 
-The History Monitoring feature provides a comprehensive dashboard for visualizing and analyzing historical data from your SwitchBot devices. It offers real-time charts, aggregated statistics, and filtered data exploration with a 6-hour retention period aligned with Neon PostgreSQL's PITR (Point-in-Time Recovery) capabilities.
+## Vue d'ensemble
+
+Le History Monitoring fournit un dashboard complet pour visualiser et analyser les données historiques de vos appareils SwitchBot. Il offre des graphiques temps réel, des statistiques agrégées et une exploration filtrée avec une rétention de 6 heures alignée sur les capacités PITR (Point-in-Time Recovery) de Neon PostgreSQL.
+
+> 📝 **Décisions connexes** : Les patterns de monitoring sont documentés dans `memory-bank/systemPatterns.md` et `memory-bank/decisionLog.md`. Voir notamment les décisions du 2026-01-14 sur l'implémentation du service d'historique.
 
 ## Features
 
-### 📊 Interactive Dashboard
+### 📊 Dashboard interactif
 - **Real-time charts** with 30-second auto-refresh
 - **Visualisations actuelles** : Température & Humidité (line chart), État climatisation (aire/ligne discrète)
 - **Responsive design** optimisé pour desktop et mobile
 - **Dark theme** cohérent avec le dashboard principal
 - **Bannière “mode démo”** : si `HistoryService` n’est pas injecté (ex. fallback JSON en local), un bandeau jaune s’affiche en haut de la page indiquant que des données mockées sont proposées. Cette bannière est pilotée par `static/js/history.js` (section `showDemoBanner()`) et disparaît automatiquement dès que la connexion PostgreSQL est restaurée.
 
-### 🔍 Advanced Filtering
+### 🔍 Filtrage avancé
 - **Time ranges**: 1h, 6h, 24h, or custom date ranges
 - **Granularity options**: Minute, 5-minute, 15-minute, or hourly aggregation
 - **Metric selection**: Choose which data points to display
 - **Live updates**: Apply filters without page reload
 
-### 📈 Data Visualizations
+### 📈 Visualisations des données
 1. **Temperature & Humidity**: Dual-axis line chart with smooth animations
 2. **Aircon State Timeline**: Ligne empilée (ou zone) montrant l’évolution ON/OFF/Auto
 - *(Les anciens graphiques API Usage & Error Distribution ont été retirés du template pour simplifier l’interface. Ils restent mentionnés ici uniquement comme pistes futures — voir section “Future Enhancements”.)*
 
-### 📋 Statistics & Tables
+### 📋 Statistiques et tableaux
 - **Status cards**: Température moyenne, humidité moyenne, total d’enregistrements
 - **Latest records table**: Derniers snapshots (température, humidité, état clim, action)
 - **Aggregated metrics**: Statistiques pour la période sélectionnée (sans compteur d’erreurs)
@@ -437,6 +441,26 @@ def mock_connection_pool():
 - Add comprehensive tests for new features
 - Update documentation for API changes
 - Ensure dark theme consistency
+
+---
+
+## Références croisées
+
+### Documentation technique
+- [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [DOCUMENTATION.md](DOCUMENTATION.md) – Architecture et métriques
+- [setup.md](setup.md) – Installation et configuration initiale
+
+### Guides spécialisés
+- [Guide UI](ui-guide.md) – Utilisation de l'interface
+- [Theming](theming.md) – Thème sombre et tokens CSS
+- [Performance Frontend](frontend-performance.md) – Optimisations UX et loaders
+- [Testing](testing.md) – Tests et validation
+
+### Memory Bank (décisions architecturales)
+- `memory-bank/decisionLog.md` – Décisions d'implémentation (HistoryService, PostgreSQL)
+- `memory-bank/systemPatterns.md` – Patterns de monitoring et stockage
+- `memory-bank/progress.md` – Historique des améliorations
 
 ---
 

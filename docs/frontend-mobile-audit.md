@@ -1,8 +1,12 @@
 # 📱 Audit Frontend Mobile-First - SwitchBot Dashboard
 
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
+
 **Date** : 18 janvier 2026  
 **Auditeur** : Expert Senior Frontend Developer & UX/UI Designer  
 **Scope** : Templates Jinja2/HTML, CSS, JavaScript, expérience mobile-first
+
+> 📝 **Décisions connexes** : Les patterns d'audit mobile sont documentés dans `memory-bank/systemPatterns.md` et `memory-bank/decisionLog.md`. Voir notamment les décisions du 2026-01-18 sur l'audit frontend mobile complet.
 
 ---
 
@@ -627,6 +631,26 @@
 L'audit frontend mobile-first est **COMPLET AVEC SUCCÈS EXCELLENT**. Le SwitchBot Dashboard atteint désormais un niveau de performance et d'expérience utilisateur de classe mondiale, avec des métriques Core Web Vitals dans la catégorie "Good" de Google et une expérience mobile optimale.
 
 **Projet prêt pour la production avec optimisations niveau entreprise !** 🚀
+
+---
+
+## Références croisées
+
+### Documentation technique
+- [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [DOCUMENTATION.md](DOCUMENTATION.md) – Architecture et métriques
+- [setup.md](setup.md) – Installation et configuration initiale
+
+### Guides spécialisés
+- [Guide UI](ui-guide.md) – Utilisation de l'interface
+- [Theming](theming.md) – Thème sombre et tokens CSS
+- [Performance Frontend](frontend-performance.md) – Optimisations UX et loaders
+- [History Monitoring](history-monitoring.md) – Dashboard temps réel
+
+### Memory Bank (décisions architecturales)
+- `memory-bank/decisionLog.md` – Décisions d'audit mobile (phases 1-5)
+- `memory-bank/systemPatterns.md` – Patterns frontend et glassmorphism
+- `memory-bank/progress.md` – Historique des améliorations mobile
 
 ---
 

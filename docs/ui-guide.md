@@ -1,5 +1,7 @@
 # Guide d'Utilisation et Interface
 
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
+
 ## Vue d'ensemble
 
 Le tableau de bord propose une interface mobile-first avec thème sombre immersif, entièrement traduite en français. La navigation basse regroupe désormais six pages principales :
@@ -10,6 +12,8 @@ Le tableau de bord propose une interface mobile-first avec thème sombre immersi
 - **Page Quota (`/quota`)** : Suivi détaillé de la consommation de l’API SwitchBot.
 - **Page Historique (`/history`)** : Dashboard Chart.js temps réel (température, humidité, état clim).
 - **Page Appareils (`/devices`)** : Inventaire et configuration des équipements.
+
+> 📝 **Décisions connexes** : Les patterns UI/UX sont documentés dans `memory-bank/systemPatterns.md` et `memory-bank/decisionLog.md`. Voir notamment les décisions du 2026-01-12 sur l'amélioration mobile et du 2026-01-18 sur l'audit frontend.
 
 ## Messages d'alerte et notifications
 
@@ -572,3 +576,27 @@ Le tableau de bord utilise des messages flash pour informer l'utilisateur du ré
 - Externalisation des JS (settings.js, devices.js)
 - Réduction des ressources bloquant le rendu
 - Sélecteurs CSS optimisés
+
+---
+
+## Références croisées
+
+### Documentation technique
+- [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [DOCUMENTATION.md](DOCUMENTATION.md) – Architecture et métriques
+- [setup.md](setup.md) – Installation et configuration initiale
+
+### Guides spécialisés
+- [Theming](theming.md) – Thème sombre et tokens CSS
+- [Performance Frontend](frontend-performance.md) – Optimisations UX et loaders
+- [History Monitoring](history-monitoring.md) – Dashboard temps réel
+- [Frontend Mobile Audit](frontend-mobile-audit.md) – Audit mobile complet
+
+### Memory Bank (décisions architecturales)
+- `memory-bank/decisionLog.md` – Décisions UI/UX (bottom navigation, loaders)
+- `memory-bank/systemPatterns.md` – Patterns frontend et glassmorphism
+- `memory-bank/progress.md` – Historique des améliorations UX
+
+---
+
+*Ce document fait partie de la documentation structurée du SwitchBot Dashboard. Retour au [README principal](README.md).*

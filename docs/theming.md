@@ -1,5 +1,7 @@
 # Thème et Styles
 
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
+
 ## Vue d'ensemble
 
 Le dashboard utilise un thème sombre immersif par défaut, conçu pour la lisibilité sur desktop comme sur mobile. L'architecture CSS respecte les principes DRY et facilite les extensions futures.
@@ -13,6 +15,8 @@ Le dashboard utilise un thème sombre immersif par défaut, conçu pour la lisib
 - **`static/css/devices.css`** : Styles spécifiques à la page `/devices` (grille, cartes, boutons)
 
 > 📝 **Décision du 2026-01-09 17:20** : Externalisation complète des styles pour maintenance et cohérence (voir `memory-bank/decisionLog.md`).
+
+> 📝 **Décisions connexes** : Les patterns de thématisation et glassmorphism sont documentés dans `memory-bank/systemPatterns.md` et `memory-bank/decisionLog.md`. Voir notamment les décisions du 2026-01-18 sur l'audit frontend mobile.
 
 ### Variables CSS
 
@@ -341,6 +345,25 @@ Pour un thème clair futur :
 - Rendu cohérent entre navigateurs
 - Comportement tactile sur mobile
 - États hover/focus clairs
+
+---
+
+## Références croisées
+
+### Documentation technique
+- [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [DOCUMENTATION.md](DOCUMENTATION.md) – Architecture et métriques
+- [setup.md](setup.md) – Installation et configuration initiale
+
+### Guides spécialisés
+- [Guide UI](ui-guide.md) – Utilisation de l'interface
+- [Performance Frontend](frontend-performance.md) – Optimisations UX et loaders
+- [Frontend Mobile Audit](frontend-mobile-audit.md) – Audit mobile complet
+
+### Memory Bank (décisions architecturales)
+- `memory-bank/decisionLog.md` – Décisions de thématisation (externalisation CSS)
+- `memory-bank/systemPatterns.md` – Patterns CSS et glassmorphism
+- `memory-bank/progress.md` – Historique des améliorations visuelles
 
 ---
 

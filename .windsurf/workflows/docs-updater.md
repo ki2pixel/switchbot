@@ -2,55 +2,77 @@
 description: Docs Updater (Context-Aware with Code Verification)
 ---
 
-# Workflow: Docs Updater (Context-Aware with Code Verification)
+---
+description: Docs Updater (Standard Tools: Cloc/Radon + Quality Context)
+---
 
-## Étape 0 · Préambule
-- Se conformer aux règles globales (Memory Bank, coding standards, test strategy) avant toute action.
-- N'utiliser que les outils autorisés : `read_file`, `find_by_name`, `list_dir`, `code_search`, `grep_search`, `apply_patch`, `write_to_file`, etc. Éviter `run_command` lorsqu'un outil spécialisé existe.
+# Workflow: Docs Updater — Standardized & Metric-Driven
 
-## Étape 1 · Acquisition du Contexte (Pourquoi ?)
-1. Utiliser `read_file` pour charger **progress.md**, **decisionLog.md**, **productContext.md**, **systemPatterns.md**.
-2. Synthétiser mentalement les décisions et fonctionnalités récentes.
+> Ce workflow harmonise la documentation en utilisant l'analyse statique standard (`cloc`, `radon`, `tree`) pour la précision technique et les modèles de référence pour la qualité éditoriale.
 
-## Étape 2 · Cartographie de la Documentation (Qu'est déjà documenté ?)
-1. Inventorier la structure de `docs/` via `find_by_name` (ex. `find_by_name docs --pattern "**/*.md"`) ou, pour une vision hiérarchique rapide, `list_dir` sur les sous-dossiers pertinents.
-2. Identifier les fichiers candidats à la mise à jour.
+## 🚨 Protocoles Critiques
+1.  **Outils autorisés** : L'usage de `run_command` est **strictement limité** aux commandes d'audit : `tree`, `cloc`, `radon`, `ls`.
+2.  **Contexte** : Charger la Memory Bank (`productContext.md`, `systemPatterns.md`, `activeContext`, `progress.md`) via `read_file` avant toute action.
+3.  **Source de Vérité** : Le Code (analysé par outils) > La Documentation existante > La Mémoire.
 
-## Étape 3 · Inspection du Code Source (Quoi ?)
-1. À partir des informations de l'Étape 1, cibler les modules/fichiers impactés.
-2. Utiliser `code_search` pour localiser les portions pertinentes, puis `read_file` pour les analyser précisément. Compléter avec `grep_search` si nécessaire.
-3. Vérifier signatures, docstrings, logique métier, et comparer avec l'état de la documentation.
+## Étape 1 — Audit Structurel et Métrique
+Lancer les commandes suivantes configurées pour **ignorer le template HTML massif** (`sticky_mobile_template`) et se concentrer sur l'automatisation Python.
 
-## Étape 4 · Triangulation
-Sans outils, croiser :
-- **Pourquoi** (Memory Bank)
-- **Quoi** (code source inspecté)
-- **Existant** (structure docs)
+1.  **Cartographie (Filtre Template UI)** :
+    - `run_command "tree -L 2 -I '__pycache__|venv|node_modules|.git|sticky_mobile_template|debug|docs|memory-bank'"`
+    - *But* : Visualiser clairement l'app Flask (`switchbot_dashboard`) et les scripts de migration DB sans voir les 400 fichiers HTML du thème.
+2.  **Volumétrie (Code Métier)** :
+    - `run_command "cloc . --exclude-dir=sticky_mobile_template,tests,docs,venv,debug,memory-bank --exclude-ext=json,sql --md"`
+    - *But* : Quantifier le backend Python.
+3.  **Complexité Cyclomatique (IoT Core)** :
+    - `run_command "radon cc switchbot_dashboard app.py scripts -a -nc"`
+    - *But* : Identifier les points de fragilité.
+    - **Cibles probables** : `switchbot_dashboard/automation.py` et `switchbot_api.py` (gestion des retries/quotas API) sont souvent complexes.
 
-Questions clés :
-- La doc reflète-t-elle encore les comportements actuels ?
-- Des signatures ou paramètres ont-ils changé ?
-- Des patterns récents (systemPatterns) manquent-ils dans les guides ?
+## Étape 2 — Diagnostic Triangulé
+Comparer les sources pour détecter les incohérences :
 
-## Étape 5 · Rapport final / Plan de mise à jour
-Rédiger (Markdown) :
+| Source | Rôle | Outil |
+| :--- | :--- | :--- |
+| **Intention** | Le "Pourquoi" | `read_file` (Memory Bank) |
+| **Réalité** | Le "Quoi" & "Comment" | `radon` (complexité), `cloc` (volume), `code_search` |
+| **Existant** | L'état actuel | `find_by_name` (sur `docs/switchbot` ou `docs/IFTTT`), `read_file` |
 
-```
-## 📚 Assistant de Documentation (Analyse Triangulée)
+**Action** : Identifier les divergences. Ex: "Le script `migrate_to_postgres.py` existe, mais la doc `docs/postgresql-migration.md` le marque comme 'à faire'."
 
-### 1. Diagnostic des Changements
-[Résumé]
+## Étape 3 — Sélection du Standard de Rédaction
+Choisir le modèle approprié selon la nature du module (Hardware vs Web) :
 
-### 2. Preuves du Code (Code Evidence)
-- `@chemin#Lx-Ly` : divergence constatée
+- **IoT & Intégration** (`switchbot_dashboard/`, `switchbot_api.py`) :
+  - **Quotas & Limites** : Documenter les limites API (ex: 100 req/jour).
+  - **Gestion d'erreur** : Que se passe-t-il si le device est hors ligne ?
+- **Automation & Scheduling** (`scheduler.py`, `automation.py`) :
+  - **Logique d'État** : Comment `state.json` est-il mis à jour ?
+  - **Triggers** : Conditions de déclenchement (Température > X).
+- **Database & Ops** (`scripts/`, `config/`) :
+  - **Migration** : Étapes SQL (`schema.sql`).
+  - **Secrets** : Liste des clés requises dans `settings.json`.
 
-### 3. Plan de Mise à Jour
-#### 📄 Fichier : docs/xxx.md
-- **Problème identifié** : ...
-- **Suggestion précise** :
+## Étape 4 — Proposition de Mise à Jour
+Générer un plan de modification avant d'appliquer :
+
+```markdown
+## 📝 Plan de Mise à Jour Documentation
+### Audit Métrique
+- **Cible** : `switchbot_dashboard/quota.py`
+- **Analyse** : Gestion critique des limites API, non documentée.
+
+### Modifications Proposées
+#### 📄 docs/switchbot/api-quotas.md
+- **Type** : [IoT Integration]
+- **Ajout** : Tableau des limites API officielles vs implémentées.
+- **Correction** :
   ```markdown
-  [Texte ou diff conceptuel]
+  [Explication du mécanisme de backoff exponentiel]
   ```
 ```
 
-Conclure en demandant confirmation avant toute modification (`apply_patch` ou `write_to_file`).
+## Étape 5 — Application et Finalisation
+1.  **Exécution** : Après validation, utiliser `apply_patch`.
+2.  **Mise à jour Memory Bank** :
+    - Si des règles métier cachées (hardcoded) sont trouvées dans `automation.py`, les extraire ou les documenter dans `systemPatterns.md`.

@@ -1,8 +1,12 @@
 # Tests et Validation
 
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
+
 ## Vue d'ensemble
 
 Ce guide décrit les tests manuels recommandés pour valider le bon fonctionnement du SwitchBot Dashboard. Les tests couvrent l'installation, la configuration, l'interface utilisateur et les scénarios d'erreur.
+
+> 📝 **Décisions connexes** : Les patterns de tests sont documentés dans `memory-bank/systemPatterns.md` et `memory-bank/decisionLog.md`. Voir notamment les décisions du 2026-01-14 sur la validation PostgreSQL et du 2026-01-18 sur les tests frontend.
 
 ## Tests d'installation
 
@@ -25,7 +29,17 @@ Ce guide décrit les tests manuels recommandés pour valider le bon fonctionneme
 ```bash
 # Toujours exécuter la suite avec l'interpréteur du projet pour éviter les divergences d'environnement
 /mnt/venv_ext4/venv_switchbot/bin/python -m pytest
+
+# Alternative avec environnement local
+source venv/bin/activate
+python -m pytest
 ```
+
+**Objectifs de couverture** :
+- Maintenir ≥85% de couverture (voir `.windsurf/rules/codingstandards.md`)
+- Prioriser les tests unitaires pour les conversions/validateurs
+- Couvrir les scénarios d'intégration automation → DB → UI
+- Inclure les tests de régression pour les hotspots identifiés par `radon` (voir `docs/complexity_report.txt`)
 
 ### 3. Configuration initiale
 
@@ -781,3 +795,27 @@ def test_off_idempotence_when_already_off():
   - Cascade webhook → scène → commande
   - Récupération d'erreur à chaque niveau
   - Complétude des logs
+
+---
+
+## Références croisées
+
+### Documentation technique
+- [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [DOCUMENTATION.md](DOCUMENTATION.md) – Architecture et métriques
+- [setup.md](setup.md) – Installation et configuration initiale
+- [configuration.md](configuration.md) – Paramètres applicatifs
+
+### Guides spécialisés
+- [Intégration IFTTT](ifttt-integration.md) – Tests webhooks et cascade
+- [Migration PostgreSQL](postgresql-migration.md) – Tests de stockage
+- [Guide du scheduler](scheduler.md) – Tests APScheduler
+
+### Memory Bank (décisions architecturales)
+- `memory-bank/decisionLog.md` – Décisions de tests (PostgreSQL, frontend, backend)
+- `memory-bank/systemPatterns.md` – Patterns de tests et validation
+- `memory-bank/progress.md` – Historique des validations
+
+---
+
+*Ce document fait partie de la documentation structurée du SwitchBot Dashboard. Retour au [README principal](README.md).*

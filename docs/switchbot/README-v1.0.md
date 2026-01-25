@@ -1,6 +1,10 @@
-# SwitchBot API v1.0
+# SwitchBot API v1.0 (Legacy)
 
-- [SwitchBot API](#switchbot-api)
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
+
+> ⚠️ **Important** : Cette documentation concerne l'API v1.0 qui est maintenant **dépréciée**. Veuillez utiliser [SwitchBot API v1.1](README.md) pour les nouvelles intégrations.
+
+> 📝 **Décisions connexes** : Cette documentation legacy est conservée pour compatibilité et référencée dans `memory-bank/systemPatterns.md` pour les patterns d'intégration historiques.
   - [Introduction](#introduction)
   - [Getting Started](#getting-started)
   - [Authentication](#authentication)
@@ -1393,6 +1397,29 @@ When an event gets triggered, SwitchBot server will send a `POST` request to the
 
 ----
 
-* [SwitchBot (Official website)](https://www.switch-bot.com/)
-* [Facebook @SwitchBotRobot](https://www.facebook.com/SwitchBotRobot/) 
-* [Twitter @SwitchBot](https://twitter.com/switchbot) 
+## Références croisées
+
+### Documentation technique
+- [`.windsurf/rules/codingstandards.md`](../../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [DOCUMENTATION.md](../DOCUMENTATION.md) – Architecture et métriques
+- [setup.md](../setup.md) – Installation et configuration initiale
+
+### Guides spécialisés
+- [Configuration](../configuration.md) – Variables d'environnement et paramètres
+- [Intégration IFTTT](../ifttt-integration.md) – Configuration webhooks et cascade
+- [Testing](../testing.md) – Tests et validation API
+
+### Memory Bank (décisions architecturales)
+- `memory-bank/decisionLog.md` – Décisions d'intégration API SwitchBot (legacy)
+- `memory-bank/systemPatterns.md` – Patterns API et client SwitchBot
+- `memory-bank/progress.md` – Historique des améliorations API
+
+### Ressources externes
+- [SwitchBot (Official website)](https://www.switch-bot.com/)
+- [Facebook @SwitchBotRobot](https://www.facebook.com/SwitchBotRobot/) 
+- [Twitter @SwitchBot](https://twitter.com/switchbot) 
+
+---
+
+*Last updated: January 25, 2026*  
+*Statut : Documentation legacy conservée pour compatibilité* 

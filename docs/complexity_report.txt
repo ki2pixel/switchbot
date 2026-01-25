@@ -1,0 +1,19 @@
+switchbot_dashboard/routes.py
+    F 411:0 update_settings - E
+    F 801:0 history_api_data - C
+    F 600:0 _execute_aircon_action - C
+switchbot_dashboard/automation.py
+    M 658:4 AutomationService.run_once - E
+    F 26:0 _is_now_in_windows - C
+    M 259:4 AutomationService._cooldown_active - C
+    M 432:4 AutomationService._process_off_repeat_task - C
+switchbot_dashboard/history_service.py
+    M 105:4 HistoryService.get_history - C
+switchbot_dashboard/switchbot_api.py
+    M 78:4 SwitchBotClient._request - D
+    M 197:4 SwitchBotClient._capture_quota_metadata - C
+switchbot_dashboard/__init__.py
+    F 106:0 create_app - C
+
+11 blocks (classes, functions, methods) analyzed.
+Average complexity: C (18.90909090909091)

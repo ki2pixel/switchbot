@@ -1,6 +1,10 @@
 # Déploiement Render + GitHub Container Registry
 
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
+
 Ce guide décrit comment construire l'image Docker du SwitchBot Dashboard, la publier sur GitHub Container Registry (GHCR) via GitHub Actions, puis déclencher un déploiement Render (plan Free).
+
+> 📝 **Décisions connexes** : Les patterns de déploiement sont documentés dans `memory-bank/decisionLog.md` (2026-01-09 22:05) et les standards de production dans `.windsurf/rules/codingstandards.md`.
 
 ## 1. Pré-requis
 
@@ -66,12 +70,8 @@ Le fichier `Dockerfile` à la racine :
    - `WEB_CONCURRENCY=1` (obligatoire pour aligner Gunicorn sur le worker unique; la configuration du dépôt force déjà cette valeur, mais la redéfinir garantit que l’interface Render reflète le comportement réel).
    - `LOG_LEVEL` (optionnel mais recommandé) : Niveau de log propagé à Gunicorn via `--log-level ${LOG_LEVEL:-info}` dans le `Dockerfile`. Utiliser `warning` ou `error` en production pour réduire le bruit, `debug`/`info` lors des diagnostics.
    - `FLASK_SECRET_KEY` (secret aléatoire).
-   - `STORE_BACKEND=postgres` (valeur par défaut côté application). Définir `POSTGRES_URL`/`POSTGRES_SSL_MODE` pour Neon. Les variables Redis (`REDIS_URL_PRIMARY`, etc.) ne sont nécessaires que si vous forcez `STORE_BACKEND=redis` (legacy).
-   - `REDIS_URL_PRIMARY` (recommandé) : URL Redis principale pour la haute disponibilité.
-   - `REDIS_URL_SECONDARY` (optionnel) : URL Redis secondaire pour le fallback automatique.
-   - `REDIS_URL` (legacy) : URL Redis uniqueutilisée si `REDIS_URL_PRIMARY` n'est pas défini.
-   - `REDIS_PREFIX` (optionnel, ex. `switchbot_dashboard:prod` pour isoler les clés).
-   - `REDIS_TTL_SECONDS` (optionnel) si vous souhaitez expirer automatiquement les données (laisser vide pour stockage permanent).
+   - `STORE_BACKEND=postgres` (valeur par défaut côté application). Définir `POSTGRES_URL`/`POSTGRES_SSL_MODE` pour Neon.
+   - `REDIS_URL_PRIMARY`, `REDIS_URL_SECONDARY`, `REDIS_URL`, `REDIS_PREFIX`, `REDIS_TTL_SECONDS` : **variables legacy conservées pour les anciennes versions**. Depuis la build du 25 janvier 2026, `create_app()` force un fallback `JsonStore` même si `STORE_BACKEND=redis` est défini ; ces variables n'ont donc plus d'effet sur la branche principale.
    - **IFTTT Webhooks** (optionnel) : Variables pour les timeouts et configuration réseau si nécessaire :
      - `IFTTT_TIMEOUT_SECONDS` : Timeout pour les requêtes IFTTT (défaut : 10s)
      - `IFTTT_RETRY_ATTEMPTS` : Nombre de tentatives pour les webhooks (défaut : 1)
@@ -96,11 +96,12 @@ Le fichier `Dockerfile` à la racine :
 2. **Alertes sur les fallbacks** : Trop de fallbacks peuvent indiquer un problème IFTTT
 3. **Quota API** : Avec IFTTT, le quota devrait rester stable même avec forte automatisation
 
-### Configuration Redis haute disponibilité
+### Configuration Redis haute disponibilité (historique)
 
-Pour une production robuste, configurez deux instances Redis avec bascule automatique :
+> ℹ️ **Référence legacy** : Ces instructions documentent l'ancienne architecture (avant le 25 janvier 2026). Depuis cette date, même avec `STORE_BACKEND=redis`, l'application revient systématiquement sur `JsonStore`. Conservez cette section uniquement pour dépanner des déploiements figés sur d'anciennes releases.
 
-**Recommandations Upstash/Render** :
+Pour mémoire :
+
 1. **Instance primaire** : Upstash Redis (plan Free suffisant)
 2. **Instance secondaire** : Render Redis ou autre fournisseur
 3. **Variables Render** :
@@ -111,16 +112,9 @@ Pour une production robuste, configurez deux instances Redis avec bascule automa
    REDIS_PREFIX=switchbot_dashboard:prod
    ```
 
-**Comportement de bascule** :
-- **Priorité** : primaire → secondaire → filesystem (au démarrage)
-- **Cooldown** : 60 secondes avant de réessayer un backend défaillant
-- **Logs** : `[store] Redis primary backend failed` → bascule automatique
-- **Transparence** : aucune interruption de service pour l'utilisateur
+**Comportement historiquement observé** : priorité primaire → secondaire → filesystem avec cooldown 60 s et logs `[store] ... failed`.
 
-**Monitoring de la bascule** :
-- Surveiller les logs `[store]` dans Render
-- Vérifier la latence des deux instances Redis
-- Configurer des alertes si la bascule est fréquente
+> ✅ **Branches actives** : Ignorez cette section et utilisez PostgreSQL + fallback filesystem. Seules les variables IFTTT listées ci-dessous restent pertinentes.
 
 **Variables d'environnement recommandées pour IFTTT** :
 ```bash
@@ -403,6 +397,25 @@ curl -X POST https://maker.ifttt.com/trigger/test/with/key/YOUR_KEY \
   - Gunicorn écrit via `--access-logfile -` et `--error-logfile -` (donc visibles dans Render).
   - Ajuster `LOG_LEVEL` selon le contexte : `info` par défaut, `warning` en production stable, `debug` temporairement lors d'une investigation (revenir ensuite à `info` pour limiter la verbosité).
 - **Fallback** : surveiller la sortie du job GitHub pour voir si le webhook a réussi ou si le fallback API a été nécessaire.
+
+---
+
+## Références croisées
+
+### Documentation technique
+- [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [DOCUMENTATION.md](DOCUMENTATION.md) – Architecture et métriques
+- [setup.md](setup.md) – Installation locale et configuration initiale
+- [configuration.md](configuration.md) – Variables d'environnement et paramètres
+
+### Guides spécialisés
+- [Migration PostgreSQL](postgresql-migration.md) – Configuration Neon
+- [Guide du scheduler](scheduler.md) – Configuration APScheduler en production
+- [testing.md](testing.md) – Tests et validation post-déploiement
+
+### Memory Bank (décisions architecturales)
+- `memory-bank/decisionLog.md` – Décisions de déploiement (Docker, GHCR, Render)
+- `memory-bank/systemPatterns.md` – Patterns de stockage et cascade
 
 ---
 

@@ -1,5 +1,7 @@
 # Intégration IFTTT pour SwitchBot Dashboard
 
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
+
 ## Vue d'ensemble
 
 Ce dashboard permet désormais de déclencher vos scènes de climatisation via des **webhooks IFTTT** au lieu d'utiliser directement l'API SwitchBot. Cette approche offre plusieurs avantages :
@@ -7,6 +9,8 @@ Ce dashboard permet désormais de déclencher vos scènes de climatisation via d
 - **Fiabilité accrue** : les webhooks IFTTT déclenchent les scènes SwitchBot via le cloud IFTTT
 - **Flexibilité** : vous pouvez créer des applets IFTTT complexes (notifications, logs, chaînes d'actions)
 - **Compatibilité** : contourne les limitations de l'API SwitchBot native pour le déclenchement de scènes
+
+> 📝 **Décisions connexes** : Les patterns d'intégration IFTTT sont documentés dans `memory-bank/systemPatterns.md` et `memory-bank/decisionLog.md`. Voir notamment les décisions du 2026-01-11 sur l'implémentation du système de cascade.
 
 ## Architecture de fallback
 
@@ -309,14 +313,28 @@ grep -i "error\|failed" /var/log/switchbot_dashboard.log
 - Les logs n'affichent jamais les clés webhook complètes
 - Les erreurs sont tronquées pour éviter les fuites d'information
 
-## Ressources
+## Références croisées
 
+### Documentation technique
+- [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [DOCUMENTATION.md](DOCUMENTATION.md) – Architecture et métriques
+- [setup.md](setup.md) – Installation et configuration initiale
+
+### Guides spécialisés
+- [Configuration](configuration.md) – Variables d'environnement et paramètres
+- [Guide UI](ui-guide.md) – Utilisation de l'interface
+- [Testing](testing.md) – Tests et validation IFTTT
+
+### Memory Bank (décisions architecturales)
+- `memory-bank/decisionLog.md` – Décisions d'intégration IFTTT (cascade, webhooks)
+- `memory-bank/systemPatterns.md` – Patterns IFTTT et cascade
+- `memory-bank/progress.md` – Historique des améliorations IFTTT
+
+### Ressources externes
 - [Documentation IFTTT Webhooks](https://ifttt.com/maker_webhooks)
 - [Service SwitchBot sur IFTTT](https://ifttt.com/switchbot)
 - [FAQ IFTTT locale](./IFTTT/faq.md)
-- [Guide de configuration](./configuration.md)
-- [Guide UI](./ui-guide.md)
 
 ---
 
-*[Dernière mise à jour : 12 janvier 2026 - Système de fallback cascade et gestion des erreurs]*
+*[Dernière mise à jour : 25 janvier 2026 - Références croisées et standards]*

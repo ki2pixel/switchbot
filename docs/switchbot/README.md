@@ -1,5 +1,9 @@
 # SwitchBot API v1.1
 
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
+
+> 📝 **Décisions connexes** : Cette documentation API est référencée dans `memory-bank/systemPatterns.md` et `memory-bank/decisionLog.md` pour les patterns d'intégration SwitchBot.
+
 - [Introduction](#introduction)
 - [About the New Version](#about-the-new-version)
 - [Getting Started](#getting-started)
@@ -6101,7 +6105,29 @@ When an event gets triggered, SwitchBot server will send a `POST` request to the
 
 ----
 
-* [SwitchBot (Official website)](https://www.switch-bot.com/)
-* [Facebook @SwitchBotRobot](https://www.facebook.com/SwitchBotRobot/) 
-* [Twitter @SwitchBot](https://twitter.com/switchbot) 
+## Références croisées
+
+### Documentation technique
+- [`.windsurf/rules/codingstandards.md`](../../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [DOCUMENTATION.md](../DOCUMENTATION.md) – Architecture et métriques
+- [setup.md](../setup.md) – Installation et configuration initiale
+
+### Guides spécialisés
+- [Configuration](../configuration.md) – Variables d'environnement et paramètres
+- [Intégration IFTTT](../ifttt-integration.md) – Configuration webhooks et cascade
+- [Testing](../testing.md) – Tests et validation API
+
+### Memory Bank (décisions architecturales)
+- `memory-bank/decisionLog.md` – Décisions d'intégration API SwitchBot
+- `memory-bank/systemPatterns.md` – Patterns API et client SwitchBot
+- `memory-bank/progress.md` – Historique des améliorations API
+
+### Ressources externes
+- [SwitchBot (Official website)](https://www.switch-bot.com/)
+- [Facebook @SwitchBotRobot](https://www.facebook.com/SwitchBotRobot/) 
+- [Twitter @SwitchBot](https://twitter.com/switchbot) 
+
+---
+
+*Last updated: January 25, 2026* 
 

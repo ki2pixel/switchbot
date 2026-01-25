@@ -1,8 +1,12 @@
 # Optimisations Frontend - Performance et UX
 
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
+
 ## Vue d'ensemble
 
 Ce document décrit les optimisations implémentées pour améliorer la réactivité de l'interface utilisateur et réduire les latences ressenties lors de la navigation et des actions sur les boutons.
+
+> 📝 **Décisions connexes** : Les patterns de performance sont documentés dans `memory-bank/systemPatterns.md` et `memory-bank/decisionLog.md`. Voir notamment les décisions du 2026-01-18 sur l'audit frontend mobile et les optimisations Core Web Vitals.
 
 ## Phase 5 - Core Web Vitals Avancées
 
@@ -237,6 +241,26 @@ See `tests/test_frontend_loaders.py` for:
 2. **Lazy loading** : Implémenter pour les pages secondaires
 3. **Cache client** : Mettre en cache les réponses API non critiques
 4. **Web Workers** : Pour les traitements lourds côté client
+
+---
+
+## Références croisées
+
+### Documentation technique
+- [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [DOCUMENTATION.md](DOCUMENTATION.md) – Architecture et métriques
+- [setup.md](setup.md) – Installation et configuration initiale
+
+### Guides spécialisés
+- [Guide UI](ui-guide.md) – Utilisation de l'interface
+- [Theming](theming.md) – Thème sombre et tokens CSS
+- [Frontend Mobile Audit](frontend-mobile-audit.md) – Audit mobile complet
+- [History Monitoring](history-monitoring.md) – Dashboard temps réel
+
+### Memory Bank (décisions architecturales)
+- `memory-bank/decisionLog.md` – Décisions de performance (loaders, Core Web Vitals)
+- `memory-bank/systemPatterns.md` – Patterns frontend et optimisations
+- `memory-bank/progress.md` – Historique des améliorations UX
 
 ---
 

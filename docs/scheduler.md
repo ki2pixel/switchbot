@@ -1,9 +1,13 @@
 # Scheduler - APScheduler intégré
 
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
+
 ## Vue d'ensemble
 
 Le dashboard utilise **APScheduler** (BackgroundScheduler) pour déclencher automatiquement les ticks d'automatisation toutes les 15 secondes (configurable via `poll_interval_seconds`).
 - Les fenêtres horaires sont évaluées dans le fuseau horaire configuré (`timezone` dans `settings.json`, valeur par défaut `Europe/Paris`). En cas de valeur invalide, le backend retombe sur UTC pour continuer à appliquer les plages.
+
+> 📝 **Décisions connexes** : Les patterns de scheduler sont documentés dans `memory-bank/systemPatterns.md` et `memory-bank/decisionLog.md`. Voir notamment les décisions du 2026-01-11 sur la configuration APScheduler et du 2026-01-12 sur la gestion timezone.
 
 ## Configuration Production (Gunicorn)
 
@@ -228,4 +232,23 @@ Si charge élevée :
 
 ---
 
-**Dernière mise à jour** : 23 Janvier 2026
+## Références croisées
+
+### Documentation technique
+- [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [DOCUMENTATION.md](DOCUMENTATION.md) – Architecture et métriques
+- [setup.md](setup.md) – Installation et configuration initiale
+
+### Guides spécialisés
+- [Configuration](configuration.md) – Variables d'environnement et paramètres
+- [Deployment](deployment.md) – Configuration Gunicorn et production
+- [Testing](testing.md) – Tests et validation du scheduler
+
+### Memory Bank (décisions architecturales)
+- `memory-bank/decisionLog.md` – Décisions de configuration APScheduler (workers, timezone)
+- `memory-bank/systemPatterns.md` – Patterns de scheduler et logging
+- `memory-bank/progress.md` – Historique des améliorations scheduler
+
+---
+
+**Dernière mise à jour** : 25 janvier 2026

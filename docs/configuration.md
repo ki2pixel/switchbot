@@ -1,5 +1,13 @@
 # Configuration du Dashboard
 
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
+
+## Vue d'ensemble
+
+Ce guide couvre la configuration complète du SwitchBot Dashboard, y compris les variables d'environnement, les paramètres applicatifs, et les décisions architecturales qui ont façonné l'implémentation.
+
+> 📝 **Décisions connexes** : Les patterns de configuration sont documentés dans `memory-bank/systemPatterns.md` et `memory-bank/decisionLog.md`. Voir notamment les décisions du 2026-01-10 sur les quotas et du 2026-01-11 sur les webhooks IFTTT.
+
 ## Fichiers de configuration
 
 ### 1. Identifiants SwitchBot (`.env`)
@@ -82,6 +90,20 @@ Ce fichier contient les réglages métier persistés :
 ```
 
 > ℹ️ **Production et conteneurs Render** : lorsque `STORE_BACKEND=postgres` ou `redis` est activé, les fichiers `config/settings.json` et `config/state.json` empaquetés dans l'image Docker ne servent qu'à fournir des valeurs initiales. Toutes les modifications effectuées via l'interface sont écrites dans PostgreSQL/Redis et survivent aux redeploy/scale. Ne modifiez les fichiers locaux que pour préparer un premier déploiement ou dépanner hors ligne.
+
+#### Arrêt automatique en dehors des fenêtres (`turn_off_outside_windows`) – [2026-01-25]
+
+- **Objectif** : forcer l'extinction du climatiseur lorsque l'on se trouve en dehors de toutes les fenêtres horaires configurées, même si la température dépasse toujours les seuils.
+- **Pré-requis** : disposer d'au moins une scène OFF (`aircon_scenes.off`) **ou** d'un `aircon_device_id` valide pour le fallback `turnOff`. Comme les autres actions, l'automatisation suit la cascade **IFTTT → scène → commande directe**.
+- **Implémentation** : `AutomationService.run_once()` évalue d'abord les fenêtres via `_is_now_in_windows(...)`. Si `in_window` est `False` et que `turn_off_outside_windows=true` :
+  1. Lecture du `state_store` pour vérifier `assumed_aircon_power`.
+  2. Si l'état supposé est déjà `"off"`, aucun appel n'est effectué (`Skipping off automation outside window: already assumed off`).
+  3. Sinon, la logique de cooldown est respectée (`command_cooldown_seconds`, `action_off_cooldown_seconds`). En cas de cooldown actif, le tick se contente de faire un `poll_meter()`.
+  4. Lorsque l'action OFF est envoyée, `state_reason="automation_off_outside_window"` est propagé et `run_once()` planifie également la file de répétitions (`_schedule_off_repeat_task`) si `off_repeat_count > 1`.
+- **Logs & observabilité** : les ticks concernés se terminent avec `outcome="turned_off_outside_window"` (ou `already_off` / `outside_window`). Les traces `[automation] Time window evaluation ... turn_off_outside_windows=true` puis `Outside configured window — polling meter` permettent de diagnostiquer le flux. L'état `pending_off_repeat` inclut `state_reason="automation_off_outside_window"` pour distinguer cette origine d'un OFF hiver/été classique.
+- **Tests associés** : `tests/test_automation_service.py::test_turn_off_outside_window_prefers_off_scene` couvre la cascade lorsqu'on est hors fenêtre.
+
+> 💡 **Bonnes pratiques** : activez cette option uniquement si vos fenêtres horaires sont correctement calibrées (ex. "08:00-22:00") et que vous souhaitez garantir un OFF strict en dehors des plages. En production, surveillez le quota SwitchBot lorsque cette option est activée avec des fenêtres très courtes : chaque tick hors fenêtre peut déclencher un OFF + répétitions.
 
 #### Fuseau horaire (`timezone`) - [2026-01-12]
 
@@ -261,10 +283,10 @@ Pour diagnostiquer un cycle d'automatisation qui ne déclenche pas l'action atte
 2. **Utiliser `Run once`** : depuis la page d’accueil, cliquer sur « Exécuter une fois » pour forcer un tick et observer en direct les messages `[automation]`.
 3. **Suivre les étapes clés** :
    - `Automation tick started` : confirme que l’automatisation s’exécute et rappelle l’intervalle.
-   - `Time window evaluation` : affiche les fenêtres interprétées (`[0,1,2] 08:00-22:00`), si l’on est en dehors, et si `turn_off_outside_windows` s’appliquera.
+   - `Time window evaluation` : affiche les fenêtres interprétées (`[0,1,2] 08:00-22:00`), si l’on est en dehors, et si `turn_off_outside_windows` s’appliquera (présence des champs `turn_off_outside_windows` et `timezone`).
    - `Temperature evaluation` : loggue `mode`, `current_temp`, `min/max`, `target` et `hysteresis`.
    - Messages `Winter/Summer mode: ... threshold` + `Requesting aircon scene`/`setAll`/`turnOff` : détaillent l’action choisie et le fallback éventuel.
-   - `Automation tick finished` : fournit l’`outcome` (`winter_on`, `summer_off`, `no_action`, `cooldown`, etc.) pour résumer la décision.
+   - `Automation tick finished` : fournit l’`outcome` (`winter_on`, `summer_off`, `turned_off_outside_window`, `no_action`, `cooldown`, etc.) pour résumer la décision.
 4. **Inspecter les quotas** : chaque appel SwitchBot (lecture Meter, scène, commande) se termine par `Quota snapshot updated context=...` avec `used/remaining/limit`, utile pour vérifier que les requêtes partent réellement.
 
 > 💡 **Astuce** : combiner ces logs avec `/quota` permet de repérer rapidement un cooldown actif, une fenêtre mal configurée ou un seuil d’hysteresis trop large (par exemple `27.9°C` vs `max=27 + hysteresis=0.3`).
@@ -432,6 +454,9 @@ POSTGRES_SSL_MODE=require
 > 
 > 📝 **Note historique** : Redis était le backend recommandé avant la migration PostgreSQL du 14 janvier 2026. Il reste disponible pour compatibilité mais PostgreSQL offre une architecture simplifiée et de meilleures performances.
 
+> ❗️ **Depuis la build du 25 janvier 2026, `STORE_BACKEND=redis` n'est plus honoré.**
+> `create_app()` (@switchbot_dashboard/__init__.py#78-85) force désormais un retour immédiat vers `JsonStore` avec un warning `[store] Redis backend is deprecated...`. Gardez ces variables uniquement pour les anciennes versions du projet ; dans la branche principale actuelle, elles n'ont plus d'effet au runtime.
+
 #### Recommandations de déploiement
 
 **Pour les environnements conteneurisés (Docker, Render) :**
@@ -454,17 +479,19 @@ POSTGRES_SSL_MODE=require
    ```
 3. **Documentation** : Voir [PostgreSQL Migration Guide](postgresql-migration.md)
 
-#### Migration vers Redis (déprécié)
+#### Migration vers Redis (historique, non supporté sur `main`)
 
-1. Sauvegardez vos fichiers de configuration actuels :
+Ces étapes sont conservées pour documenter les anciennes versions (< 2026-01-25). Elles **ne fonctionnent plus** sur la branche courante : même avec `STORE_BACKEND=redis`, l'application reviendra sur `JsonStore`.
+
+1. *(Legacy)* Sauvegardez vos fichiers de configuration actuels :
    ```bash
    cp config/settings.json config/settings.json.bak
    cp config/state.json config/state.json.bak
    ```
 
-2. Créez une instance Redis (par exemple via Render ou Upstash)
+2. *(Legacy)* Créez une instance Redis (par exemple via Render ou Upstash)
 
-3. Exportez les variables d'environnement :
+3. *(Legacy)* Exportez les variables d'environnement :
    ```bash
    export STORE_BACKEND=redis
    export REDIS_URL_PRIMARY=rediss://default:password@host:port
@@ -472,7 +499,7 @@ POSTGRES_SSL_MODE=require
    export REDIS_PREFIX=switchbot_dashboard
    ```
 
-4. (Optionnel) Importez les données existantes :
+4. *(Legacy)* (Optionnel) Importez les données existantes :
    ```bash
    redis-cli -u $REDIS_URL_PRIMARY SET ${REDIS_PREFIX}:settings "$(cat config/settings.json)"
    redis-cli -u $REDIS_URL_PRIMARY SET ${REDIS_PREFIX}:state "$(cat config/state.json)"
@@ -480,7 +507,7 @@ POSTGRES_SSL_MODE=require
    redis-cli -u $REDIS_URL SET ${REDIS_PREFIX}:state "$(cat config/state.json)"
    ```
 
-5. Redémarrez le service et vérifiez que les paramètres sont chargés correctement
+5. *(Legacy)* Redémarrez le service et vérifiez que les paramètres sont chargés correctement
 
 #### Gestion des erreurs
 
@@ -728,3 +755,26 @@ The system prevents duplicate OFF actions when:
 - Within cooldown period
 
 Log messages clearly indicate when actions are skipped due to idempotence checks.
+
+---
+
+## Références croisées
+
+### Documentation technique
+- [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [DOCUMENTATION.md](DOCUMENTATION.md) – Architecture et métriques
+- [setup.md](setup.md) – Installation et configuration initiale
+
+### Guides spécialisés
+- [Intégration IFTTT](ifttt-integration.md) – Configuration webhooks et cascade
+- [Migration PostgreSQL](postgresql-migration.md) – Guide de migration vers Neon
+- [Guide du scheduler](scheduler.md) – Configuration et dépannage
+
+### Memory Bank (décisions architecturales)
+- `memory-bank/decisionLog.md` – Décisions de configuration (quotas, webhooks, timezone)
+- `memory-bank/systemPatterns.md` – Patterns de stockage et cascade
+- `memory-bank/productContext.md` – Vue d'ensemble du projet
+
+---
+
+*Ce document fait partie de la documentation structurée du SwitchBot Dashboard. Retour au [README principal](README.md).*

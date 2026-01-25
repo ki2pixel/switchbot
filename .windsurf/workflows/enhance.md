@@ -2,23 +2,34 @@
 description: Améliorer un Prompt avec le Contexte du Projet
 ---
 
-## Workflow `/enhance`
+---
+description: Améliorer un Prompt avec le Contexte du Projet et des techniques avancées (CoT, Persona, Structure)
+---
 
-1. **Initialisation mémoire**  
-   - Utiliser `read_file` pour charger l'intégralité des fichiers obligatoires de la Memory Bank (`productContext.md`, `activeContext.md`, `systemPatterns.md`, `decisionLog.md`, `progress.md`).
-2. **Analyse du prompt brut**  
-   - Examiner la requête utilisateur directement (aucun outil requis) et identifier les besoins implicites.
-3. **Collecte de contexte stratégique**  
-   - Si des compléments sont nécessaires au-delà de la Memory Bank, employer `code_search` pour localiser les modules ou services pertinents.  
-   - Utiliser `read_file` pour consulter les fichiers identifiés et `grep_search` pour confirmer la présence de symboles spécifiques.
-4. **Collecte de contexte tactique (documentation)**  
-   - Prioriser les fichiers de `docs/` liés au sujet en utilisant `find_by_name` si besoin, puis `read_file` pour les parcourir.  
-   - Limiter la lecture aux sections pertinentes (offset/limit) afin de respecter la contrainte de portée.
-5. **Synthèse et rédaction du prompt amélioré**  
-   - Structurer un prompt unique en incorporant les chemins de fichiers et standards applicables.  
-   - Présenter uniquement : `"Voici une version améliorée... Dois-je l'exécuter ? (oui/non)"`.
-6. **Attente de confirmation**  
-   - Suspendre toute action jusqu'à validation explicite.
-7. **Exécution après confirmation**  
-   - Rejouer le prompt amélioré comme une nouvelle demande.  
-   - Pour toute lecture/écriture additionnelle, continuer d'utiliser `read_file`, `edit`/`multi_edit`, `grep_search` et `code_search` conformément aux règles.
+### `/enhance` — Optimisation Avancée de Prompt
+1. **Analyse Contextuelle (Ingénierie)**
+   - Lire la requête brute de l'utilisateur.
+   - Charger le contexte global via `read_file` sur les fichiers de la Memory Bank (`activeContext.md`, `progress.md`, `systemPatterns.md`, etc.).
+   - Déterminer la nature de la tâche (Codage, Architecture, Documentation, Debugging) pour sélectionner la stratégie d'optimisation (voir étape 3).
+
+2. **Recherche Active de Documentation**
+   - Identifier les règles spécifiques au projet via `code_search` dans `docs/` et `.windsurf/rules/codingstandards.md`.
+   - Utiliser `read_file` sur les documents pertinents trouvés.
+   - Si des ambiguïtés techniques subsistent, faire un `grep_search` rapide pour valider l'usage actuel dans le code existant.
+
+3. **Synthèse et Rédaction Structurée (Prompt Engineering)**
+   - Compiler les informations en un "Mega-Prompt" en appliquant les techniques suivantes :
+     - **Persona** : Définir le rôle exact (ex: "Expert Senior React" ou "Architecte Système").
+     - **Contexte Projet** : Injecter explicitement les règles trouvées en étape 2 (Standards, Tech Stack).
+     - **Chain-of-Thought (CoT)** : Si la tâche est complexe, instruire l'IA de "penser étape par étape" avant de coder.
+     - **Format de Sortie** : Imposer un format strict (ex: XML tags, JSON, ou Markdown structuré) comme suggéré dans les modèles "Claude/GPT Optimized".
+     - **Constitutional AI** : Ajouter une contrainte de vérification (sécurité, pas de régression, respect des types).
+   
+   - **Action** : Proposer *uniquement* le prompt amélioré à l'utilisateur sous forme de bloc de code, suivi d'une courte explication des améliorations (ex: "+ Contexte DB", "+ Gestion d'erreur").
+
+4. **Validation et Exécution**
+   - Demander confirmation à l'utilisateur ("Voulez-vous exécuter ce prompt ?").
+   - Une fois le "oui" reçu :
+     - Exécuter le prompt amélioré.
+     - Utiliser systématiquement les outils (`read_file`, `apply_patch`, `run_command`) pour réaliser la tâche.
+     - Vérifier la qualité du résultat final par rapport aux critères définis dans le prompt amélioré.

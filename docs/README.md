@@ -1,4 +1,6 @@
-# Tableau de bord SwitchBot
+# SwitchBot Dashboard
+
+> **Documentation Architecture**: 16 files, 10,578 lines of Markdown (see [DOCUMENTATION.md](DOCUMENTATION.md) for detailed metrics)
 
 Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot, spécialement conçu pour la gestion des climatiseurs et capteurs de température avec une approche orientée scènes.
 
@@ -28,6 +30,8 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - **Loaders Frontend** : Système non bloquant pour améliorer la réactivité perçue **(NOUVEAU)**
 - **Estimation locale des quotas** : Suivi précis avec alertes configurables
 - **Gestion robuste des erreurs** : Repli élégant en cas d'indisponibilité
+
+> ℹ️ **Stockage actif** : Sur la branche principale, seul le couple `PostgresStore` + fallback `JsonStore` reste opérationnel ; toute configuration `STORE_BACKEND=redis` est ignorée par `create_app()` (warning `[store] Redis backend is deprecated...`).
 
 ## ⚙️ Prérequis
 
@@ -83,18 +87,32 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 
 ## 📚 Documentation complète
 
+> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
+
+### Guides fondamentaux
 - [Guide d'installation](setup.md) - Configuration détaillée
-- [Guide de l'utilisateur](ui-guide.md) - Utilisation de l'interface
 - [Référence de configuration](configuration.md) - Options avancées
-- [Migration PostgreSQL](postgresql-migration.md) - Guide de migration vers Neon
-- [Intégration IFTTT](ifttt-integration.md) - Configuration webhooks et cascade
-- **[History Monitoring](history-monitoring.md) - Dashboard temps réel et analyse**
-- **[Performance Frontend](frontend-performance.md) - Optimisations UX et loaders**
-- [Guide du scheduler](scheduler.md) - Configuration et dépannage
 - [Guide de déploiement](deployment.md) - Mise en production avec monitoring `/healthz`
 - [Guide de tests](testing.md) - Tests manuels et unitaires
+
+### Guides utilisateur & UX
+- [Guide de l'utilisateur](ui-guide.md) - Utilisation de l'interface
 - [Guide de thématisation](theming.md) - Styles CSS et composants UI
+- [Performance Frontend](frontend-performance.md) - Optimisations UX et loaders
+- [History Monitoring](history-monitoring.md) - Dashboard temps réel et analyse
+- [Frontend Mobile Audit](frontend-mobile-audit.md) - Audit mobile complet
+
+### Guides backend & intégration
+- [Intégration IFTTT](ifttt-integration.md) - Configuration webhooks et cascade
+- [Guide du scheduler](scheduler.md) - Configuration et dépannage
+- [Migration PostgreSQL](postgresql-migration.md) - Guide de migration vers Neon
+- [Backend Audit Report](backend-audit-report.md) - Analyse backend complète
+
+### Références API
 - [Référence API SwitchBot](switchbot/README.md) - Documentation API v1.1
+
+### Documentation technique
+- [DOCUMENTATION.md](DOCUMENTATION.md) - Architecture, métriques et backlog de refonte
 
 ## 🚀 Améliorations Récentes (Janvier 2026)
 
@@ -173,7 +191,7 @@ Pour toute question ou problème, veuillez ouvrir une [issue](https://github.com
 
 ---
 
-*Dernière mise à jour : 18 janvier 2026*
+*Dernière mise à jour : 25 janvier 2026*
 
 ## 🔍 Aperçu technique
 
