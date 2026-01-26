@@ -32,6 +32,10 @@ Le client est injecté dans `create_app()` et accessible via :
 client = current_app.extensions["switchbot_client"]
 ```
 
+## Ressources
+- Script headers : `scripts/preview_headers.py` (prévisualiser HMAC sans requête).
+- Checklist : `references/api_checklist.md` (workflow ajouts commandes/tests).
+
 ## Ajouter une nouvelle commande
 Pour ajouter une commande (ex: humidifier, aspirateur) :
 1. Ajouter la méthode dans `SwitchBotClient`

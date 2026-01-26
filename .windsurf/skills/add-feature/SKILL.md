@@ -9,6 +9,8 @@ Ce workflow assure la cohérence entre le backend Flask, le stockage PostgreSQL 
 
 ## Checklist d'implémentation
 
+> Ressource détaillée : consulter `references/feature_playbook.md` pour matrices Backend/Frontend, snippets et validations complètes.
+
 ### 1. Backend (Service Layer)
 - Si logique métier complexe : Ajouter dans `automation.py` ou créer un nouveau service
 - Si persistance nécessaire : Utiliser `PostgresStore` (priorité) avec `BaseStore` interface
@@ -32,6 +34,9 @@ Ce workflow assure la cohérence entre le backend Flask, le stockage PostgreSQL 
 - JS : **Loaders.js obligatoire** pour les boutons d'action (`data-loader`)
 - Performance : `loading="lazy"` pour les images sauf LCP
 - **CDNs interdits** : Bootstrap, Chart.js, FontAwesome et polices (Space Grotesk) doivent être servis depuis `static/vendor/`
+
+## Ressources complémentaires
+- `references/feature_playbook.md` : playbook backend/routes/UI, matrices de tests, snippets de service.
 
 ## Exemple de Route conforme
 ```python

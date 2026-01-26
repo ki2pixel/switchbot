@@ -13,153 +13,96 @@ alwaysApply: true
 # SwitchBot Dashboard v2 – Cursor Coding Standards
 
 ## Tech Stack
-- **Backend**: Flask 2.x, APScheduler, custom services (`AutomationService`, `SchedulerService`), HMAC-signed SwitchBot REST client, IFTTT webhook client, ApiQuotaTracker, and HistoryService when PostgreSQL is available @switchbot_dashboard/__init__.py
-- **Storage**: `PostgresStore` (primary) with psycopg_pool, automatic fallback to `JsonStore`; Redis backend is deprecated but still guarded @switchbot_dashboard/__init__.py
-- **Frontend**: Jinja templates + Bootstrap bundle served from `static/vendor`, Chart.js with LTTB decimation, loaders.js pour le feedback UX, Space Grotesk, dark glassmorphism design tokens @switchbot_dashboard/templates/index.html @switchbot_dashboard/static/css/theme.css
-- **Testing**: Pytest via `/mnt/venv_ext4/venv_switchbot/bin/python -m pytest`, 85% coverage target avec focus automation/IFTTT/history/quota @docs/testing.md
+- **Backend** : Flask 2.x + APScheduler, services injectés (`AutomationService`, `SchedulerService`, `ApiQuotaTracker`, `HistoryService`).
+- **Stockage** : `PostgresStore` (prioritaire) via psycopg_pool, fallback `JsonStore`. Redis conservé uniquement en compat.
+- **Frontend** : Templates Jinja, assets offline-first depuis `static/vendor`, Chart.js avec décimation LTTB, loaders obligatoires.
+- **Tests** : `/mnt/venv_ext4/venv_switchbot/bin/python -m pytest`, objectif 85 %+ avec focus automation/IFTTT/history/quota (`docs/testing.md`).
+
+## Windsurf Skill Usage
+- **Skills locaux en premier** (`.windsurf/skills`) :
+  - `add-feature` pour toute feature mêlant services/routes/templates.
+  - `switchbot-api-dev` dès qu’on touche `switchbot_dashboard/switchbot_api.py` ou la signature HMAC/quota.
+  - `automation-diagnostics` pour diagnostiquer `AutomationService` (fenêtres, hystérésis, off-repeat, timezone).
+  - `scheduler-ops` pour gérer `SchedulerService` (start/stop/reschedule, healthchecks).
+  - `postgres-store-maintenance` pour les migrations/bascule PostgresStore ↔ JsonStore.
+  - `history-dashboard-updater` pour toute évolution HistoryService/API/frontend Chart.js.
+  - `quota-alerting` pour modifier `ApiQuotaTracker`, le bandeau quota et les tests associés.
+  - `loader-patterns` afin de garantir l’usage des loaders UI (data-loader, ARIA, failsafe).
+  - `ifttt-cascade` pour orchestrer webhooks IFTTT → scènes → commandes directes.
+  - `performance-audit-runbook` pour rejouer l’audit Core Web Vitals (critical CSS, resource hints, micro-interactions).
+- **Skills globaux** (`/home/kidpixel/.codeium/skills`) seulement si aucun équivalent local et selon la priorité :
+  1. Backend/DB : `python-backend-architect`, `python-coding-standards`, `python-db-migrations`, `postgres-expert`.
+  2. Frontend/UI : `frontend-design`, `css-layout-development`, `ui-component-builder`, `interaction-design-patterns`, `modern-vanilla-web`.
+  3. Plateforme/Ops/Docs : `devops-sre-security`, `architecture-tools`, `code-doc`.
+  4. Spécialisés : `html-tools`, `media-ai-pipeline`, `pdf-toolbox`, `engineering-features-for-machine-learning`, `slack-gif-creator` (uniquement sur demande explicite).
+- **Exclusions** : ignorer `algorithmic-art`, `canvas-design` et tout skill artistique hors périmètre produit.
+- **Escalade** : toujours commencer par les skills locaux puis monter l’échelle ci-dessus pour éviter prescriptions contradictoires.
 
 ## Code Style
-- Always enable `from __future__ import annotations`, strict typing, and explicit return types for public APIs @switchbot_dashboard/__init__.py @switchbot_dashboard/automation.py
-- Follow PEP 8 import order: stdlib → third-party → local modules (voir usage dans `switchbot_dashboard/__init__.py`)
-- Keep functions single-responsibility; extract helpers (_as_bool/_as_int/_as_float) for input validation, never use `request.form` raw @switchbot_dashboard/routes.py
-- Comments must describe WHY, not HOW; remove dead/commented code immédiatement (standard projet)
-- Prefer descriptive names (`meter_device_id`, `assumed_aircon_power`) over abbreviations (convention projet)
+- `from __future__ import annotations` + typage strict + retours explicites sur les APIs publiques.
+- Ordre d’imports PEP 8 (stdlib → libs tierces → modules locaux).
+- Fonctions à responsabilité unique ; utiliser `_as_bool/_as_int/_as_float` plutôt que `request.form` brut.
+- Les commentaires expliquent le *pourquoi* ; supprimer immédiatement le code mort/commenté.
+- Nommage descriptif (`meter_device_id`, `assumed_aircon_power`).
 
-## Project Structure
-| Area | Responsibility |
+## Project Structure (rappel)
+| Zone | Rôle |
 | --- | --- |
-| `app.py` | Bootstraps Flask app via `switchbot_dashboard.create_app()` |
-| `switchbot_dashboard/__init__.py` | Wiring of stores, services, scheduler, and initial meter poll @switchbot_dashboard/__init__.py |
-| `switchbot_dashboard/automation.py` | Core automation loop, hysteresis, IFTTT/scenes cascade, history recording @switchbot_dashboard/automation.py |
-| `switchbot_dashboard/routes.py` | UI routes, settings validation, manual actions, history APIs @switchbot_dashboard/routes.py |
-| `switchbot_dashboard/static/` | Offline-first assets (Bootstrap, FontAwesome, loaders, history charts) |
-| `templates/*.html` | Dark themed pages with bottom navigation, loaders, quota banners @switchbot_dashboard/templates/index.html |
+| `app.py` | Bootstrap Flask via `switchbot_dashboard.create_app()` |
+| `switchbot_dashboard/__init__.py` | Wiring stores/services/scheduler & premier poll meter |
+| `switchbot_dashboard/automation.py` | Boucle métier, cascade IFTTT → scènes → commandes, enregistrement history |
+| `switchbot_dashboard/routes.py` | Routes UI, validation formulaire, actions manuelles |
+| `switchbot_dashboard/static/` | Assets offline-first (Bootstrap, FontAwesome, loaders, history) |
+| `templates/*.html` | Pages dark glassmorphism + bottom navigation |
 
 ## Backend Patterns
 ### Store Selection & Failover
-- Default to `PostgresStore`; log `[store]` errors and fall back to filesystem when `POSTGRES_URL`/health checks fail. Never call `open()` directly—access stores via `current_app.extensions["settings_store"|"state_store"]` @switchbot_dashboard/__init__.py.
-- Redis is legacy-only; emit warnings and plan migration to PostgreSQL @switchbot_dashboard/__init__.py.
+- `PostgresStore` par défaut, logs `[store]` et fallback `JsonStore` uniquement en cas d’échec (`current_app.extensions["settings_store"|"state_store"]`).
+- Sur incident Postgres (pool KO, SSL, timeout), consigner l’erreur, retenter côté scheduler, puis alerter si >3 échecs consécutifs.
+- Redis legacy : conserver le warning, lecture seule tolérée mais aucune nouvelle feature ; planifier migration Postgres.
 
 ### Automation Cascade & Hysteresis
-- Each scheduler tick (`AutomationService.run_once`) evaluates time windows, mode profiles, hysteresis, cooldowns, pending OFF repeats, and prioritizes IFTTT webhooks → SwitchBot scenes → direct device commands before taking action @switchbot_dashboard/automation.py.
-- OFF automation outside windows must honor idempotence: skip when `assumed_aircon_power == "off"` and guard repeated OFF queues @switchbot_dashboard/automation.py.
+- Chaque tick (`AutomationService.run_once`) évalue fenêtres, hystérésis, cooldowns, files OFF et applique la cascade IFTTT → scènes → commandes directes.
+- Hors créneaux : respecter l’idempotence (`assumed_aircon_power == "off"`) avant d’orchestrer `_schedule_off_repeat_task`.
 
-#### Example – Time Window & OFF Automation
-```python
-in_window = _is_now_in_windows(time_windows, now)
-if not in_window:
-    self.poll_meter()
-    if settings.get("turn_off_outside_windows", False):
-        state = self._state_store.read()
-        if state.get("assumed_aircon_power") == "off":
-            self._debug("Skipping off automation outside window: already assumed off", trigger=trigger)
-        elif self._cooldown_active(now):
-            self._debug("Cooldown active, skipping off automation outside window", trigger=trigger)
-        else:
-            handled = self._perform_off_action(...)
-            if handled:
-                self._schedule_off_repeat_task(now, state_reason="automation_off_outside_window")
-```
-@switchbot_dashboard/automation.py
-
-### IFTTT + Scene Execution
-- `extract_ifttt_webhooks` and `extract_aircon_scenes` drive cascaded execution; `_execute_aircon_action` also follows webhook → scene → direct `turnOff` fallback while updating state store with reasons for observability @switchbot_dashboard/routes.py.
-- Validate webhook URLs (HTTPS-only) and log failures; all manual and automated flows share the same cascade ensuring consistent quota usage @switchbot_dashboard/automation.py @switchbot_dashboard/routes.py.
+### IFTTT + Scènes
+- `extract_ifttt_webhooks` / `extract_aircon_scenes` fournissent la cascade. `_execute_aircon_action` met à jour l’état pour la traçabilité. Toutes les URLs webhooks doivent être HTTPS.
 
 ### Scheduler & Services
-- Inject services once in `create_app()` and stash them under `current_app.extensions` so blueprints never instantiate their own clients @switchbot_dashboard/__init__.py.
-- Scheduler obeys `SCHEDULER_ENABLED` and avoids running inside Flask reloader parent; always call `scheduler_service.reschedule()` after settings mutations @switchbot_dashboard/__init__.py @switchbot_dashboard/routes.py.
+- Services injectés uniques dans `create_app()` (stores, clients, scheduler, automation). Aucun accès direct aux fichiers/clients depuis les blueprints.
+- `SchedulerService` respecte `SCHEDULER_ENABLED`, évite le reloader Flask (`SERVER_SOFTWARE`), et `scheduler_service.reschedule()` doit suivre toute mutation (fenêtres horaires, `poll_interval_seconds`, bascule store).
+- Tout nouveau service doit être ajouté à `app.extensions` avec clé stable + docstring courte pour guider les blueprints.
 
 ### History & Quota Tracking
-- HistoryService only initializes when the settings store is PostgreSQL; failures are logged but must not crash the app @switchbot_dashboard/__init__.py.
-- Automation ticks record snapshots and cleanup 6h-old rows; quota snapshots are logged around every API request @switchbot_dashboard/automation.py.
+- `HistoryService` uniquement lorsque `settings_store` est PostgreSQL ; logguer les erreurs sans faire tomber l’app.
+- Chaque tick enregistre l’état et nettoie les entrées >6h; quotas API suivis autour de chaque requête.
 
 ## Frontend & UX
-- Strict offline-first: ship Bootstrap, Chart.js, FontAwesome, and Space Grotesk from `static/vendor`; CDNs are forbidden @switchbot_dashboard/templates/index.html @switchbot_dashboard/static/css/theme.css.
-- Keep HTML/Jinja and CSS separate (`theme.css`, page-specific sheets); only inline critical CSS for LCP improvements @switchbot_dashboard/templates/index.html.
-- Always wrap interactions with loaders (POST forms, buttons, nav links) using `data-loader` + `static/js/loaders.js` to ensure 15s failsafe and spinner feedback @switchbot_dashboard/static/js/loaders.js.
-- Chart.js visualizations must enable LTTB decimation and mobile-friendly height (≈180px) @switchbot_dashboard/templates/index.html @switchbot_dashboard/static/js/history.js.
-- Bottom navigation stays sticky with icon-only mobile layout; page `actions.html` consolidates manual triggers @switchbot_dashboard/templates/index.html @switchbot_dashboard/templates/actions.html.
-
-#### Example – Critical Jinja Structure (Quota Banner + Status Grid)
-```html
-<div class="quota-banner" role="status" aria-live="polite">
-  <div class="quota-banner__main">
-    <strong>Quota API restant</strong>
-    <span class="text-muted">{{ quota.remaining }} requêtes</span>
-  </div>
-  <div>
-    <span class="badge bg-warning">Reset {{ quota.reset_at }}</span>
-  </div>
-</div>
-<section class="status-grid">
-  {% for card in status_cards %}
-    <article class="status-item" aria-live="polite">
-      <h6>{{ card.label }}</h6>
-      <p class="h4">{{ card.value }}</p>
-    </article>
-  {% endfor %}
-</section>
-```
-@switchbot_dashboard/templates/index.html
-
-#### Example – Loader Failsafe JS Pattern
-```javascript
-const FAILSAFE_TIMEOUT_MS = 15000;
-const scheduleLoaderFailsafe = (element, cleanupCallback) => {
-    clearLoaderFailsafe(element);
-    const timerId = window.setTimeout(() => {
-        loaderFailsafes.delete(element);
-        cleanupCallback();
-    }, FAILSAFE_TIMEOUT_MS);
-    loaderFailsafes.set(element, timerId);
-};
-form.addEventListener('submit', (event) => {
-    const submitButton = form.querySelector('button[type="submit"]');
-    event.preventDefault();
-    showGlobalLoader();
-    showLoader(submitButton);
-    submitButton.textContent = 'Chargement...';
-    submitButton.disabled = true;
-    setTimeout(() => { form.submit(); }, 1000);
-    scheduleLoaderFailsafe(submitButton, finalizeSubmission);
-});
-```
-@switchbot_dashboard/static/js/loaders.js
-
-#### Example – Glassmorphism Token Definition
-```css
-:root {
-  color-scheme: dark;
-  --sb-card: rgba(9, 14, 30, 0.92);
-  --sb-card-border: rgba(138, 180, 255, 0.2);
-  --sb-glass-bg: rgba(255, 255, 255, 0.05);
-  --sb-glass-border: rgba(255, 255, 255, 0.1);
-  --sb-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --sb-bottom-nav-height: 60px;
-  --sb-bottom-nav-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
-}
-```
-@switchbot_dashboard/static/css/theme.css
+- Offline-first strict : Bootstrap/Chart.js/FontAwesome/Space Grotesk servis depuis `static/vendor` (aucun CDN).
+- Templates et CSS séparés (`theme.css` + feuilles spécifiques). Inliner uniquement le CSS critique (LCP).
+- Tous les formulaires/boutons/liens déclencheurs utilisent `data-loader` + `static/js/loaders.js` avec failsafe 15 s.
+- Graphiques : Chart.js + décimation LTTB, hauteur mobile ≈180 px, resize géré via `static/js/history.js` (observer + decimation).
+- Bottom navigation sticky, icônes seules sur mobile, page `actions.html` pour regrouper les triggers.
+- Toute nouvelle page importe `_footer_nav.html` + `static/js/loaders.js`, fournit labels ARIA, et respecte les tokens glassmorphism (`theme.css`).
+- Pour les snippets complets (quota banner, loaders, tokens CSS), voir `templates/index.html`, `static/js/loaders.js`, `static/css/theme.css`.
 
 ## Testing & Quality
-- Run the canonical Pytest command and keep coverage ≥85%; prioritize unit coverage pour conversions/validators, integration coverage pour le flux automation → DB → UI @docs/testing.md.
-- Critical scenarios: Postgres ↔ JsonStore failover, API quota 429 simulation, IFTTT webhook fallback tree, history batch flush & Chart.js rendering @docs/testing.md.
-- Lint/log hygiene: use `[scheduler]`, `[api]`, `[history]`, `[store]` prefixes and never log secrets (voir `switchbot_dashboard/__init__.py` logging section).
+- Commande canonique : `source /mnt/venv_ext4/venv_switchbot/bin/activate && python -m pytest` (≥85 %).
+- Cas critiques : bascule Postgres↔JsonStore, quotas API (429), cascade IFTTT, batch HistoryService + rendu Chart.js, résilience scheduler (`reschedule()` lorsque store indisponible).
+- Hygiène logs : préfixes `[scheduler]`, `[api]`, `[history]`, `[store]`; jamais de secrets en clair.
+- Ajouter un test ciblé pour chaque nouvelle validation `_as_*` ou service injecté (fixtures prêtes dans `tests/`).
 
 ## Anti-Patterns
-1. **Direct filesystem IO**: Never `open()` config/state—always go through BaseStore @switchbot_dashboard/__init__.py.
-2. **Bypassing loaders**: All POST/actions without loaders.js regress UX requirements; enforce `data-loader` attributes @switchbot_dashboard/static/js/loaders.js.
-3. **CDN dependencies**: Importing Bootstrap/Chart.js/FontAwesome from CDN violates offline-first contract; serve from `static/vendor` only @switchbot_dashboard/templates/index.html.
-4. **Scene commands without cascade**: Always honor webhook → scene → direct command to preserve quotas and observability @switchbot_dashboard/routes.py.
+1. IO direct (jamais de `open()` sur config/state) : utiliser les stores.
+2. POST/actions sans loaders → régression UX.
+3. Dépendances CDN → viole l’offline-first.
+4. Commandes de scène sans cascade complète (webhook → scène → direct) → perte de quota/observabilité.
 
 ## Common Tasks
-| Tâche | Étapes |
-| --- | --- |
-| Lancer la suite Pytest | 1. `source /mnt/venv_ext4/venv_switchbot/bin/activate` <br> 2. `python -m pytest` <br> 3. Vérifier ≥85% de couverture et corriger les régressions @docs/testing.md |
-| Ajouter une action IFTTT/Scène | 1. Ouvrir `/settings` et fournir les URLs HTTPS + IDs de scène (`winter/summer/fan/off`). <br> 2. Valider via `_as_*` helpers (automatic). <br> 3. Déployer; vérifier `_execute_aircon_action` cascade et flashs côté UI @switchbot_dashboard/routes.py |
-| Instrumenter un nouveau bouton avec loader | 1. Ajouter `data-loader` sur `<form>`/`<button>`/`<a>`. <br> 2. Importer `loaders.js` si page nouvelle. <br> 3. Vérifier overlay + failsafe 15s et `aria-busy` @switchbot_dashboard/static/js/loaders.js |
-| Diagnostiquer un tick d'automatisation | 1. Inspecter `state.json` via store (`state_store.read()`). <br> 2. Consulter logs `[automation]` pour outcome (`_log_tick_completion`). <br> 3. Confirmer history snapshot/cleanup si Postgres actif @switchbot_dashboard/automation.py |
+- **Pytest** : `source /mnt/venv_ext4/venv_switchbot/bin/activate && python -m pytest`, viser ≥85 % (voir `docs/testing.md`).
+- **Action IFTTT/Scène** : configurer `/settings`, valider via `_as_*`, déployer, vérifier `_execute_aircon_action` + flashs UI.
+- **Bouton avec loader** : ajouter `data-loader`, importer `static/js/loaders.js`, tester overlay + failsafe 15 s + `aria-busy`.
+- **Diagnostic automation** : lire `state_store`, analyser logs `[automation]`, vérifier snapshot et cleanup HistoryService si Postgres actif.
 
 ---
-Utilise ce fichier comme source principale pour les assistants Cursor : il capture les décisions d'architecture critiques, fournit des extraits prêts à l'emploi et rappelle les pièges à éviter. Copie ce contenu dans `.windsurf/rules/codingstandards.md` lorsque tu dois synchroniser les règles Always-On.
+Utiliser ce fichier comme source Always-On : il capture les décisions d’architecture critiques, rappelle les pièges et référence les fichiers canoniques.
