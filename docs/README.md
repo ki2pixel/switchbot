@@ -14,7 +14,7 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - **Détection de présence** : Basée sur les plages horaires configurées
 - **Répétition OFF paramétrable** : Commandes OFF multiples avec intervalle configurable
 - **Idempotence des actions** : Protection contre les déclenchements excessifs
-- **Scheduler robuste** : Démarrage conditionnel et logging amélioré
+- **Scheduler robuste** : Démarrage conditionnel, logging amélioré et polling adaptatif avec modes idle/warmup
 - **Fuseau horaire configurable** : Fenêtres horaires interprétées dans le fuseau IANA choisi (défaut Europe/Paris, fallback UTC en cas de valeur invalide)
 
 ### Surveillance et contrôle
@@ -177,7 +177,7 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - [x] Scheduler robuste avec logging amélioré
 - [x] Interface utilisateur réactive
 - [x] Documentation complète
-- [x] Suite de tests complète (122/123 tests passants, 99% de couverture)
+- [x] Suite de tests complète (33 tests passants, couverture complète des fonctionnalités)
 
 ### Prochaines étapes
 

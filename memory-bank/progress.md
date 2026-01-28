@@ -1,4 +1,27 @@
 ## Terminé
+[2026-01-28 10:28:00] - Intégration UI/Postgres des réglages de polling adaptatif
+
+- **UI réglages** : Ajout du toggle `adaptive_polling_enabled` et des champs `idle_poll_interval_seconds` / `poll_warmup_minutes` dans `templates/settings.html` avec helpers `data-loader` et valeurs par défaut lisibles (600s idle, 15 min warmup).
+- **Backend validation** : Extension de `routes.update_settings` pour valider/persister les trois champs via `_as_bool/_as_int` avec bornes appropriées (15-86400s idle, 0-1440 min warmup).
+- **Documentation** : Mise à jour de `docs/configuration.md` (section Polling adaptatif) et `docs/scheduler.md` (encart modes idle/warmup) avec explications des comportements et interaction avec `SWITCHBOT_POLL_INTERVAL_SECONDS`.
+- **Tests** : Extension des tests UI (POST `/settings` BeautifulSoup) et ajout d'un test scheduler garantissant que `adaptive_polling_enabled=false` force le mode fixe.
+- **Résultat** : 33 tests passants, UI fonctionnelle, documentation complète, stockage Postgres/JsonStore transparent.
+
+[2026-01-28 10:13:00] - Implémentation du polling adaptatif (SchedulerService)
+
+- **Logique adaptative** : Ajout de `_get_effective_interval_seconds()` dans SchedulerService pour calculer l’intervalle effectif selon:
+  - `adaptive_polling_enabled` (défaut `true`)
+  - `automation_enabled` + `time_windows` + `timezone`
+  - `idle_poll_interval_seconds` (défaut `600s`)
+  - `poll_warmup_minutes` (défaut `15`)
+  - État `pending_off_repeat` force le polling actif
+- **Auto-reschedule** : Après chaque tick, si l’intervalle effectif change, le scheduler se reprogramme automatiquement (log `[scheduler] Adaptive polling reschedule: ...`).
+- **Garantie réveil warmup** : Même avec `idle_poll_interval_seconds` très grand, l’intervalle idle est clampé pour se réveiller au plus tard au début du warmup.
+- **Injection state_store** : SchedulerService reçoit `state_store` pour lire `pending_off_repeat` sans accès global.
+- **Tests unitaires** : Ajout de 5 tests couvrant idle, warmup, in-window, pending off-repeat, et clamp idle → réveil warmup.
+- **Deadlock évité** : Le premier tick immédiat est exécuté hors lock pour éviter un deadlock lors du reschedule.
+- **Documentation plan** : Création de `docs/adaptive-polling-settings-plan.md` pour future session UI/Postgres.
+
 [2026-01-23 19:34:00] - MAJ audit frontend (points 1→4 résolus)
 
 - Documentation `docs/audit/AUDIT_FRONTEND_2026_01_23.md` synchronisée avec l’état réel :

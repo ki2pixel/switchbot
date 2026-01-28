@@ -116,6 +116,51 @@
                 </div>
 
                 <div class="row g-3">
+                  <div class="col-12">
+                    <div class="form-check form-switch">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        role="switch"
+                        id="adaptive_polling_enabled"
+                        name="adaptive_polling_enabled"
+                        {% if settings.get('adaptive_polling_enabled', true) %}checked{% endif %}
+                      />
+                      <label class="form-check-label" for="adaptive_polling_enabled">Polling adaptatif activé</label>
+                    </div>
+                    <div class="form-text">Réduit la fréquence hors fenêtres horaires et relance avant les créneaux actifs.</div>
+                  </div>
+
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="idle_poll_interval_seconds">Intervalle hors fenêtre (s)</label>
+                    <input
+                      class="form-control"
+                      id="idle_poll_interval_seconds"
+                      name="idle_poll_interval_seconds"
+                      value="{{ settings.get('idle_poll_interval_seconds', 600) }}"
+                      inputmode="numeric"
+                      min="15"
+                      max="86400"
+                    />
+                    <div class="form-text">Recommandé : 600 s (10 min) lorsque l'automatisation est inactive.</div>
+                  </div>
+
+                  <div class="col-12 col-md-6">
+                    <label class="form-label" for="poll_warmup_minutes">Warmup avant fenêtre (min)</label>
+                    <input
+                      class="form-control"
+                      id="poll_warmup_minutes"
+                      name="poll_warmup_minutes"
+                      value="{{ settings.get('poll_warmup_minutes', 15) }}"
+                      inputmode="numeric"
+                      min="0"
+                      max="1440"
+                    />
+                    <div class="form-text">Repasse à l'intervalle normal N minutes avant la prochaine fenêtre.</div>
+                  </div>
+                </div>
+
+                <div class="row g-3">
                   <div class="col-12 col-md-4">
                     <label class="form-label" for="off_repeat_count">Répétitions arrêt OFF</label>
                     <input

@@ -6,7 +6,7 @@
 
 Ce document présente l'analyse de complexité cyclomatique du codebase SwitchBot Dashboard, identifie les points critiques et propose des recommandations pour améliorer la maintenabilité.
 
-> 📊 **Métriques actuelles** : Complexité moyenne C (18.58), 12 blocs analysés avec radon cc
+> 📊 **Métriques actuelles** : Complexité moyenne C (17.79), 14 blocs analysés avec radon cc
 
 ## Analyse Radon
 
@@ -17,8 +17,8 @@ $ radon cc switchbot_dashboard app.py scripts -a -nc
 
 switchbot_dashboard/routes.py
     F 411:0 update_settings - E
-    F 801:0 history_api_data - C
-    F 600:0 _execute_aircon_action - C
+    F 817:0 history_api_data - C
+    F 616:0 _execute_aircon_action - C
 
 switchbot_dashboard/automation.py
     M 658:4 AutomationService.run_once - E
@@ -29,18 +29,21 @@ switchbot_dashboard/automation.py
 switchbot_dashboard/history_service.py
     M 105:4 HistoryService.get_history - C
 
+switchbot_dashboard/scheduler.py
+    M 77:4 SchedulerService._next_window_start - C
+    M 113:4 SchedulerService._get_effective_interval_seconds - C
+
 switchbot_dashboard/switchbot_api.py
     M 78:4 SwitchBotClient._request - D
     M 197:4 SwitchBotClient._capture_quota_metadata - C
 
 switchbot_dashboard/__init__.py
     F 106:0 create_app - C
-
 scripts/migrate_to_postgres.py
     F 101:0 migrate_to_postgres - C
 
-12 blocks (classes, functions, methods) analyzed.
-Average complexity: C (18.583333333333332)
+14 blocks (classes, functions, methods) analyzed.
+Average complexity: C (17.785714285714285)
 ```
 
 ## Points de Complexité Critique

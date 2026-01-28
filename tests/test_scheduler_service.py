@@ -1,6 +1,7 @@
 """Tests pour SchedulerService avec focus sur l'exécution du premier tick."""
 from __future__ import annotations
 
+import datetime as dt
 import logging
 import threading
 import time
@@ -182,6 +183,127 @@ def test_run_tick_safe_logs_exceptions(caplog: Any) -> None:
     assert any(
         "Automation tick raised exception" in record.message for record in caplog.records
     )
+
+
+def test_effective_interval_outside_window_uses_idle_interval() -> None:
+    settings_store = MemoryStore(
+        {
+            "automation_enabled": True,
+            "poll_interval_seconds": 15,
+            "idle_poll_interval_seconds": 600,
+            "poll_warmup_minutes": 15,
+            "timezone": "UTC",
+            "time_windows": [{"days": [0], "start": "10:00", "end": "00:00"}],
+        }
+    )
+
+    scheduler = SchedulerService(settings_store=settings_store, tick_callable=lambda: None)
+
+    now_utc = dt.datetime(2026, 1, 26, 5, 0, tzinfo=dt.timezone.utc)  # Monday
+    interval, mode = scheduler._get_effective_interval_seconds(now_utc=now_utc)
+    assert interval == 600
+    assert mode == "idle"
+
+
+def test_effective_interval_disables_adaptive_mode_when_flag_off() -> None:
+    settings_store = MemoryStore(
+        {
+            "automation_enabled": True,
+            "adaptive_polling_enabled": False,
+            "poll_interval_seconds": 120,
+            "idle_poll_interval_seconds": 900,
+            "poll_warmup_minutes": 30,
+            "timezone": "UTC",
+            "time_windows": [{"days": [0], "start": "10:00", "end": "00:00"}],
+        }
+    )
+
+    scheduler = SchedulerService(settings_store=settings_store, tick_callable=lambda: None)
+
+    now_utc = dt.datetime(2026, 1, 26, 5, 0, tzinfo=dt.timezone.utc)
+    interval, mode = scheduler._get_effective_interval_seconds(now_utc=now_utc)
+    assert interval == 120
+    assert mode == "fixed"
+
+
+def test_effective_interval_idle_is_clamped_to_warmup_boundary() -> None:
+    settings_store = MemoryStore(
+        {
+            "automation_enabled": True,
+            "poll_interval_seconds": 15,
+            "idle_poll_interval_seconds": 7200,
+            "poll_warmup_minutes": 30,
+            "timezone": "UTC",
+            "time_windows": [{"days": [0], "start": "10:00", "end": "00:00"}],
+        }
+    )
+
+    scheduler = SchedulerService(settings_store=settings_store, tick_callable=lambda: None)
+
+    now_utc = dt.datetime(2026, 1, 26, 8, 0, tzinfo=dt.timezone.utc)
+    interval, mode = scheduler._get_effective_interval_seconds(now_utc=now_utc)
+    assert interval == 5400
+    assert mode == "idle"
+
+
+def test_effective_interval_warmup_before_window_uses_base_interval() -> None:
+    settings_store = MemoryStore(
+        {
+            "automation_enabled": True,
+            "poll_interval_seconds": 15,
+            "idle_poll_interval_seconds": 600,
+            "poll_warmup_minutes": 30,
+            "timezone": "UTC",
+            "time_windows": [{"days": [0], "start": "10:00", "end": "00:00"}],
+        }
+    )
+
+    scheduler = SchedulerService(settings_store=settings_store, tick_callable=lambda: None)
+
+    now_utc = dt.datetime(2026, 1, 26, 9, 45, tzinfo=dt.timezone.utc)  # 15 minutes before start
+    interval, mode = scheduler._get_effective_interval_seconds(now_utc=now_utc)
+    assert interval == 15
+    assert mode == "warmup"
+
+
+def test_effective_interval_in_window_uses_base_interval() -> None:
+    settings_store = MemoryStore(
+        {
+            "automation_enabled": True,
+            "poll_interval_seconds": 15,
+            "idle_poll_interval_seconds": 600,
+            "poll_warmup_minutes": 15,
+            "timezone": "UTC",
+            "time_windows": [{"days": [0], "start": "10:00", "end": "00:00"}],
+        }
+    )
+
+    scheduler = SchedulerService(settings_store=settings_store, tick_callable=lambda: None)
+
+    now_utc = dt.datetime(2026, 1, 26, 12, 0, tzinfo=dt.timezone.utc)
+    interval, mode = scheduler._get_effective_interval_seconds(now_utc=now_utc)
+    assert interval == 15
+    assert mode == "in_window"
+
+
+def test_effective_interval_pending_off_repeat_forces_base_interval() -> None:
+    settings_store = MemoryStore(
+        {
+            "automation_enabled": True,
+            "poll_interval_seconds": 15,
+            "idle_poll_interval_seconds": 600,
+            "poll_warmup_minutes": 15,
+            "timezone": "UTC",
+            "time_windows": [{"days": [0], "start": "10:00", "end": "00:00"}],
+        }
+    )
+    state_store = MemoryStore({"pending_off_repeat": {"remaining": 2, "interval_seconds": 10, "next_run_at": "2026-01-26T05:00:00+00:00"}})
+    scheduler = SchedulerService(settings_store=settings_store, state_store=state_store, tick_callable=lambda: None)
+
+    now_utc = dt.datetime(2026, 1, 26, 5, 0, tzinfo=dt.timezone.utc)
+    interval, mode = scheduler._get_effective_interval_seconds(now_utc=now_utc)
+    assert interval == 15
+    assert mode == "pending_off_repeat"
 
 
 def test_scheduler_start_handles_tick_exception(caplog: Any) -> None:

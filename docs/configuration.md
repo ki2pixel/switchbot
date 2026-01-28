@@ -48,6 +48,9 @@ Ce fichier contient les réglages métier persistés :
   "automation_enabled": true,
   "mode": "summer",
   "poll_interval_seconds": 60,
+  "adaptive_polling_enabled": true,
+  "idle_poll_interval_seconds": 600,
+  "poll_warmup_minutes": 15,
   "command_cooldown_seconds": 60,
   "action_on_cooldown_seconds": 300,
   "action_off_cooldown_seconds": 60,
@@ -90,6 +93,31 @@ Ce fichier contient les réglages métier persistés :
 ```
 
 > ℹ️ **Production et conteneurs Render** : lorsque `STORE_BACKEND=postgres` ou `redis` est activé, les fichiers `config/settings.json` et `config/state.json` empaquetés dans l'image Docker ne servent qu'à fournir des valeurs initiales. Toutes les modifications effectuées via l'interface sont écrites dans PostgreSQL/Redis et survivent aux redeploy/scale. Ne modifiez les fichiers locaux que pour préparer un premier déploiement ou dépanner hors ligne.
+
+#### Polling adaptatif - [2026-01-28]
+
+- **Objectif** : réduire le polling hors fenêtres horaires tout en réchauffant l'intervalle normal avant les créneaux actifs.
+- **Stockage** : ces paramètres sont persistés dans le store principal (PostgreSQL si `STORE_BACKEND=postgres`, sinon fallback filesystem) au même titre que `poll_interval_seconds`.
+- **Interaction avec `SWITCHBOT_POLL_INTERVAL_SECONDS`** : l'override d'environnement force `poll_interval_seconds` mais ne désactive pas le polling adaptatif. Pour un comportement fixe, passez `adaptive_polling_enabled=false`.
+
+**Paramètres dans `settings.json` :**
+```json
+{
+  "adaptive_polling_enabled": true,
+  "idle_poll_interval_seconds": 600,
+  "poll_warmup_minutes": 15
+}
+```
+
+**Recommandations** :
+- `adaptive_polling_enabled` : `true` par défaut pour éviter de sur-poller hors créneau.
+- `idle_poll_interval_seconds` : `600` (10 min) pour limiter les appels quand l'automatisation est inactive.
+- `poll_warmup_minutes` : `15` pour revenir à l'intervalle normal avant la fenêtre.
+
+**Comportement** :
+- **In-window** : intervalle normal (`poll_interval_seconds`).
+- **Warmup** : intervalle normal pendant les N minutes avant la prochaine fenêtre.
+- **Idle** : intervalle rallongé hors fenêtre, clampé pour assurer un réveil au début du warmup.
 
 #### Arrêt automatique en dehors des fenêtres (`turn_off_outside_windows`) – [2026-01-25]
 
@@ -673,7 +701,10 @@ FAN_SPEED_CHOICES = [...]
 
 ### Règles de validation
 
-- `poll_interval_seconds` : 15‑3600 s
+- `poll_interval_seconds` : 15-3600 s
+- `adaptive_polling_enabled` : booléen (true/false)
+- `idle_poll_interval_seconds` : 15-86400 s
+- `poll_warmup_minutes` : 0-1440 min
 - `command_cooldown_seconds` : 0‑3600 s  
 - `hysteresis_celsius` : 0‑5 °C
 - Températures : 14‑32 °C par pas de 0,5 °C

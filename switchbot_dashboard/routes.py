@@ -436,6 +436,22 @@ def update_settings() -> Any:
         maximum=3600,
     )
 
+    settings["adaptive_polling_enabled"] = _as_bool(
+        request.form.get("adaptive_polling_enabled", settings.get("adaptive_polling_enabled", True))
+    )
+    settings["idle_poll_interval_seconds"] = _as_int(
+        request.form.get("idle_poll_interval_seconds"),
+        default=int(settings.get("idle_poll_interval_seconds", 600) or 600),
+        minimum=15,
+        maximum=86_400,
+    )
+    settings["poll_warmup_minutes"] = _as_int(
+        request.form.get("poll_warmup_minutes"),
+        default=int(settings.get("poll_warmup_minutes", 15) or 15),
+        minimum=0,
+        maximum=24 * 60,
+    )
+
     settings["hysteresis_celsius"] = _as_float(
         request.form.get("hysteresis_celsius"),
         default=float(settings.get("hysteresis_celsius", 0.3) or 0.3),

@@ -7,6 +7,17 @@
 Le dashboard utilise **APScheduler** (BackgroundScheduler) pour déclencher automatiquement les ticks d'automatisation toutes les 15 secondes (configurable via `poll_interval_seconds`).
 - Les fenêtres horaires sont évaluées dans le fuseau horaire configuré (`timezone` dans `settings.json`, valeur par défaut `Europe/Paris`). En cas de valeur invalide, le backend retombe sur UTC pour continuer à appliquer les plages.
 
+### Polling adaptatif (modes idle/warmup)
+
+Lorsque `adaptive_polling_enabled=true`, le SchedulerService ajuste dynamiquement l'intervalle effectif en fonction des fenêtres horaires :
+
+- **In-window** : intervalle normal (`poll_interval_seconds`).
+- **Warmup** : intervalle normal pendant les N minutes précédant la prochaine fenêtre (`poll_warmup_minutes`).
+- **Idle** : intervalle rallongé (`idle_poll_interval_seconds`) hors fenêtre, clampé pour garantir un réveil au début du warmup.
+- **Pending off-repeat** : si une file OFF est active, l'intervalle reste sur `poll_interval_seconds` pour exécuter les répétitions.
+
+Pour forcer un mode fixe, définir `adaptive_polling_enabled=false`.
+
 > 📝 **Décisions connexes** : Les patterns de scheduler sont documentés dans `memory-bank/systemPatterns.md` et `memory-bank/decisionLog.md`. Voir notamment les décisions du 2026-01-11 sur la configuration APScheduler et du 2026-01-12 sur la gestion timezone.
 
 ## Configuration Production (Gunicorn)

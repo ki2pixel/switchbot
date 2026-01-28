@@ -200,6 +200,7 @@ def create_app() -> Flask:
     scheduler_service = SchedulerService(
         settings_store=settings_store,
         tick_callable=automation_service.run_once,
+        state_store=state_store,
         logger=app.logger,
     )
 

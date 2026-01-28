@@ -1,3 +1,39 @@
+[2026-01-28 10:28:00] - Intégration UI/Postgres des réglages de polling adaptatif
+- Décision : rendre les paramètres de polling adaptatif (déjà supportés par le backend SchedulerService) éditables depuis le dashboard UI avec validation et persistance Postgres/JsonStore.
+- Motivation : permettre aux utilisateurs de configurer le comportement adaptatif (idle/warmup/in-window) sans modifier manuellement les fichiers de configuration, et compléter la feature implémentée côté backend.
+- Implémentation : ajout du toggle `adaptive_polling_enabled` et champs `idle_poll_interval_seconds`/`poll_warmup_minutes` dans `settings.html`, validation via `_as_bool/_as_int` dans `routes.py`, documentation complète dans `configuration.md` et `scheduler.md`, tests couvrant la persistance UI et le mode fixe.
+- Implication : les réglages de polling adaptatif sont désormais entièrement configurables via l'interface, avec stockage transparent dans Postgres (ou JsonStore fallback) et reschedule automatique du scheduler.
+
+[2026-01-23 19:34:00] - Clôture audit frontend 23 janv (points 1→4)
+- Décision : Finaliser les quatre recommandations restantes de l’audit frontend 2026-01-23 pour garantir une expérience 100 % locale, performante et résiliente.
+- Motivation : Supprimer la dépendance aux CDNs, stabiliser le graphique historique sur mobile, éviter les loaders bloqués et éliminer les scripts test en production.
+- Implémentation :
+  1. **Offline-first** : Bootstrap, Chart.js, adapter date-fns, Font Awesome 6.5.1 et Space Grotesk servis depuis `switchbot_dashboard/static/vendor/**` ; polices gérées via `space-grotesk.css`.
+  2. **Optimisation history.js** : Parsing Chart.js désactivé, séries normalisées, animations coupées, décimation LTTB (100 samples) et granularité forcée à 5 min sur mobile.
+  3. **Résilience loaders** : `switchbot_dashboard/static/js/loaders.js` inclut un failsafe 15 s qui retire automatiquement les états de chargement locaux/globaux si aucune réponse serveur.
+  4. **Nettoyage code mort** : Suppression des scripts `core-web-vitals-tester.js` et `micro-interactions-test.js`, non référencés par les templates/bundles.
+- Documentation : `docs/audit/AUDIT_FRONTEND_2026_01_23.md` mis à jour (sections 1→4 en ✅) ; Memory Bank (activeContext/progress) synchronisée.
+- Impact : Base de code allégée, UI responsive même hors connexion, loaders impossibles à bloquer, conformité totale aux recommandations d’audit.
+
+[2026-01-28 10:13:00] - Implémentation du polling adaptatif dans SchedulerService
+- Décision : Implémenter une désactivation/réduction intelligente du polling selon les fenêtres horaires, avec warmup avant prochaine fenêtre et garantie de réveil.
+- Motivation : Réduire la charge PostgreSQL et l’usage quota API hors fenêtres tout en garantissant la réactivité en début de fenêtre et la sécurité des OFF-répétés.
+- Implémentation :
+  - **Logique adaptative** : `_get_effective_interval_seconds()` calcule l’intervalle effectif (in-window → `poll_interval_seconds`, idle → `idle_poll_interval_seconds`, warmup → `poll_interval_seconds`).
+  - **Auto-reschedule** : `_maybe_reschedule_after_tick()` reprogramme le scheduler si l’intervalle effectif change entre deux ticks.
+  - **Garantie réveil warmup** : L’intervalle idle est clampé pour se réveiller au plus tard au début du warmup, même si `idle_poll_interval_seconds` est très grand.
+  - **Sécurité OFF-repeat** : Si `pending_off_repeat` est actif, le polling reste en mode actif.
+  - **Injection state_store** : SchedulerService reçoit `state_store` pour lire `pending_off_repeat` sans accès global.
+  - **Deadlock évité** : Le premier tick immédiat est exécuté hors lock pour éviter un deadlock lors du reschedule.
+- Fichiers créés/modifiés :
+  - Modifiés : `switchbot_dashboard/scheduler.py` (+150 lignes), `switchbot_dashboard/__init__.py` (+1 ligne), `tests/test_scheduler_service.py` (+5 tests)
+  - Nouveau : `docs/adaptive-polling-settings-plan.md` (plan d’action UI/Postgres)
+- Tests et validation :
+  - 12 tests unitaires SchedulerService passent (idle, warmup, in-window, pending off-repeat, clamp idle).
+  - Logs `[scheduler] Adaptive polling reschedule: ...` confirment les changements d’intervalle.
+- Impact : Polling réduit hors fenêtres (ex: 600s au lieu de 15s) avec réveil garanti 15 min avant la fenêtre, tout en préservant la sécurité des OFF-répétés.
+- Documentation : Plan d’action créé pour future session UI/Postgres (`docs/adaptive-polling-settings-plan.md`).
+
 [2026-01-09 16:21:00] - Standardisation des contrôles UI/Backend
 - Décision : introduire des constantes partagées (`DAY_CHOICES`, `TIME_CHOICES`, `TEMP_CHOICES`, etc.) dans `routes.py` et refondre les formulaires (fenêtres horaires, profils hiver/été) autour de dropdowns/checkboxes mobiles.
 - Motivation : réduire les erreurs de saisie sur mobile et garantir que seules des valeurs supportées sont persistées dans `config/settings.json`.
@@ -364,14 +400,3 @@
 - Verdict final : L'audit frontend mobile-first est **COMPLET AVEC SUCCÈS EXCELLENT**. Le SwitchBot Dashboard atteint désormais un niveau de performance et d'expérience utilisateur de classe mondiale.
 
 [2026-01-18 15:30:00] - Implémentation des recommandations court terme de l'audit backend
-
-[2026-01-23 19:34:00] - Clôture audit frontend 23 janv (points 1→4)
-- Décision : Finaliser les quatre recommandations restantes de l’audit frontend 2026-01-23 pour garantir une expérience 100 % locale, performante et résiliente.
-- Motivation : Supprimer la dépendance aux CDNs, stabiliser le graphique historique sur mobile, éviter les loaders bloqués et éliminer les scripts test en production.
-- Implémentation :
-  1. **Offline-first** : Bootstrap, Chart.js, adapter date-fns, Font Awesome 6.5.1 et Space Grotesk servis depuis `switchbot_dashboard/static/vendor/**` ; polices gérées via `space-grotesk.css`.
-  2. **Optimisation history.js** : Parsing Chart.js désactivé, séries normalisées, animations coupées, décimation LTTB (100 samples) et granularité forcée à 5 min sur mobile.
-  3. **Résilience loaders** : `switchbot_dashboard/static/js/loaders.js` inclut un failsafe 15 s qui retire automatiquement les états de chargement locaux/globaux si aucune réponse serveur.
-  4. **Nettoyage code mort** : Suppression des scripts `core-web-vitals-tester.js` et `micro-interactions-test.js`, non référencés par les templates/bundles.
-- Documentation : `docs/audit/AUDIT_FRONTEND_2026_01_23.md` mis à jour (sections 1→4 en ✅) ; Memory Bank (activeContext/progress) synchronisée.
-- Impact : Base de code allégée, UI responsive même hors connexion, loaders impossibles à bloquer, conformité totale aux recommandations d’audit.

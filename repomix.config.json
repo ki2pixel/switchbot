@@ -44,7 +44,8 @@
       ".pytest_cache/**",
       "coverage/**",
       "repomix-output.*",
-      "docs/repomix.md"
+      "docs/repomix.md",
+      "switchbot_dashboard/static/vendor/**"
     ]
   }
 }

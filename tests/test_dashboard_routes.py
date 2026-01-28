@@ -154,6 +154,9 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "automation_enabled": False,
         "mode": "winter",
         "poll_interval_seconds": 120,
+        "adaptive_polling_enabled": True,
+        "idle_poll_interval_seconds": 600,
+        "poll_warmup_minutes": 15,
         "hysteresis_celsius": 0.3,
         "command_cooldown_seconds": 180,
         "action_on_cooldown_seconds": 0,
@@ -171,6 +174,9 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "automation_enabled": "on",
         "mode": "summer",
         "poll_interval_seconds": "300",
+        "adaptive_polling_enabled": "on",
+        "idle_poll_interval_seconds": "900",
+        "poll_warmup_minutes": "20",
         "hysteresis_celsius": "0.4",
         "command_cooldown_seconds": "200",
         "action_on_cooldown_seconds": "300",
@@ -207,6 +213,9 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "fan": "scene-f",
         "off": "scene-off",
     }
+    assert persisted["adaptive_polling_enabled"] is True
+    assert persisted["idle_poll_interval_seconds"] == 900
+    assert persisted["poll_warmup_minutes"] == 20
     assert persisted["timezone"] == "Europe/Paris"
     assert persisted["api_quota_warning_threshold"] == 250
     assert persisted["command_cooldown_seconds"] == 200
@@ -631,6 +640,9 @@ def test_settings_page_renders_form_fields() -> None:
         "automation_enabled": True,
         "mode": "winter",
         "poll_interval_seconds": 180,
+        "adaptive_polling_enabled": True,
+        "idle_poll_interval_seconds": 900,
+        "poll_warmup_minutes": 20,
         "command_cooldown_seconds": 120,
         "hysteresis_celsius": 0.4,
         "api_quota_warning_threshold": 200,
@@ -657,6 +669,15 @@ def test_settings_page_renders_form_fields() -> None:
     threshold_input = form.select_one("#api_quota_warning_threshold")
     assert threshold_input is not None
     assert threshold_input.get("value") == "200"
+    adaptive_toggle = form.select_one("#adaptive_polling_enabled")
+    assert adaptive_toggle is not None
+    assert adaptive_toggle.has_attr("checked")
+    idle_input = form.select_one("#idle_poll_interval_seconds")
+    assert idle_input is not None
+    assert idle_input.get("value") == "900"
+    warmup_input = form.select_one("#poll_warmup_minutes")
+    assert warmup_input is not None
+    assert warmup_input.get("value") == "20"
 
 
 def test_quota_refresh_normalizes_state_and_shows_flash() -> None:
