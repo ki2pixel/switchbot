@@ -21,6 +21,7 @@ alwaysApply: true
 ## Windsurf Skill Usage
 - **Skills locaux en premier** (`.windsurf/skills`) :
   - `add-feature` pour toute feature mêlant services/routes/templates.
+  - `debugging-strategies` à consulter dès qu'un ticket implique bug, crash, performance ou investigation de logs.
   - `switchbot-api-dev` dès qu’on touche `switchbot_dashboard/switchbot_api.py` ou la signature HMAC/quota.
   - `automation-diagnostics` pour diagnostiquer `AutomationService` (fenêtres, hystérésis, off-repeat, timezone).
   - `scheduler-ops` pour gérer `SchedulerService` (start/stop/reschedule, healthchecks).

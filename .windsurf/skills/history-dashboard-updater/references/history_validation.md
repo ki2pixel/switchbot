@@ -15,7 +15,7 @@
 - Réponses vides → `{ "data": [] }` sans erreur 500.
 
 ## Frontend Chart.js
-- Charger `static/js/history.js` + `history.css`.
+- Charger `switchbot_dashboard/static/js/history.js` + `switchbot_dashboard/static/css/history.css`.
 - Activer décimation LTTB (`decimation.enabled = true`).
 - `prefers-reduced-motion` : désactiver animations si vrai.
 - Loaders : attribut `data-loader` sur filtres, overlay 15s.
@@ -25,7 +25,7 @@
 | --- | --- | --- |
 | Service | `tests/test_history_service.py` | flush batch, cleanup, erreurs Postgres |
 | Routes | `tests/test_history_routes.py` ou `tests/test_dashboard_routes.py` | paramètres invalides / data vide |
-| JS (optionnel) | `static/js/history.js` via Jest ou snapshot | interactions filtres |
+| JS (optionnel) | `switchbot_dashboard/static/js/history.js` via Jest ou snapshot | interactions filtres |
 
 ## Documentation
 - Mettre à jour `docs/history-monitoring.md` (schémas, API, captures).

@@ -342,6 +342,85 @@ curl -s https://votre-instance-render.com/healthz | jq '.status == "ok" and .sch
 
 > 💡 **Astuce** : En production, configurez votre outil de monitoring (Prometheus, Datadog, etc.) pour interroger cet endpoint et alerter en cas de problème.
 
+## Monitoring et Observabilité
+
+### Logs structurés
+- **Préfixes standards** : `[api]`, `[automation]`, `[scheduler]`, `[store]`, `[history]`, `[ifttt]`
+- **Niveaux configurables** : DEBUG, INFO, WARNING, ERROR, CRITICAL via `LOG_LEVEL`
+- **Format structuré** : Message + champs contextuels + trigger + stack trace si erreur
+- **Exemple** : `[automation] Winter mode triggered | current_temp=17.5, min_temp=18.0, trigger=scheduler`
+
+### Health Check `/healthz`
+L'application expose un endpoint de monitoring pour les systèmes externes :
+
+```json
+{
+  "status": "ok",
+  "scheduler_running": true,
+  "automation_enabled": true,
+  "last_tick": "2024-01-10T14:30:00Z",
+  "last_read_at": "2024-01-10T14:29:00Z",
+  "temperature_stale": false,
+  "api_requests_total": 42,
+  "api_requests_remaining": 958,
+  "api_quota_day": "2024-01-10",
+  "version": "1.0.0"
+}
+```
+
+**Champs de monitoring :**
+- `status` : "ok", "warning", ou "error"
+- `scheduler_running` : État du planificateur d'automatisation
+- `temperature_stale` : Indique si les données sont obsolètes
+- `api_requests_*` : Métriques de quota pour surveillance
+
+### Gestion des Exceptions
+Le dashboard implémente une gestion d'erreurs multicouche :
+
+#### Hiérarchie des Exceptions
+- **`SwitchBotApiError`** : Erreurs API SwitchBot avec retry automatique
+- **`IFTTTWebhookError`** : Erreurs webhooks IFTTT avec fallback
+- **`PostgresStoreError`** : Erreurs PostgreSQL avec bascule automatique
+- **`StoreError`** : Erreurs génériques de stockage
+
+#### Patterns de Résilience
+- **Retry avec backoff exponentiel** : 2 tentatives max, délai 10s * 2^attempt
+- **Fallback cascade** : IFTTT → scène SwitchBot → commande directe
+- **Wrapper global scheduler** : Capture toutes les exceptions sans crasher
+- **Bascule automatique store** : PostgreSQL → filesystem en cas d'erreur
+
+#### Monitoring des Erreurs
+```bash
+# Logs structurés par préfixe
+tail -f logs/app.log | grep "\[automation\]"  # Logs d'automatisation
+tail -f logs/app.log | grep "\[api\]"          # Logs API
+tail -f logs/app.log | grep "\[scheduler\]"    # Logs scheduler
+
+# Health check pour monitoring externe
+curl -s http://localhost:5000/healthz | jq '.status, .api_requests_remaining'
+```
+
+### Intégration Monitoring Externe
+Pour la production, configurez votre outil de monitoring :
+
+**Prometheus (exemple) :**
+```yaml
+scrape_configs:
+  - job_name: 'switchbot-dashboard'
+    static_configs:
+      - targets: ['localhost:5000']
+    metrics_path: '/healthz'
+    scrape_interval: 30s
+```
+
+**Alertes recommandées :**
+- Quota API < 100 requêtes restantes
+- Scheduler not running
+- Temperature stale > 10 minutes
+- Taux d'erreurs > 1%
+
+> 📚 **Documentation complète** : Consultez [Gestion des Erreurs](switchbot/error-handling.md) pour les patterns détaillés, [Optimisations Performance](switchbot/performance-optimizations.md) pour le monitoring avancé, et [Patterns d'Automatisation](automation-patterns.md) pour la cascade IFTTT.
+
 ## Performance Frontend & Core Web Vitals
 
 ### Optimisations Phase 5 (Core Web Vitals Avancées)

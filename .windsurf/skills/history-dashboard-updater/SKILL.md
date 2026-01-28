@@ -9,7 +9,7 @@ Déclencher ce skill pour toute évolution du monitoring (backend/postgres → A
 
 ## 1. Cartographier l’existant
 - Backend : `switchbot_dashboard/history_service.py`, `automation.py` (integration), `routes.py` (/history et `/history/api/*`).
-- Frontend : `templates/history.html`, `static/js/history.js`, `static/css/history.css`.
+- Frontend : `templates/history.html`, `switchbot_dashboard/static/js/history.js`, `switchbot_dashboard/static/css/history.css`.
 - Tests : `tests/test_history_service.py`, `tests/test_history_routes.py` (si présent).
 - Référence : `references/history_validation.md` pour checklist complète backend/API/frontend/tests.
 

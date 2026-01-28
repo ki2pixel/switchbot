@@ -8,8 +8,8 @@ description: Workflow pour garantir l'usage des loaders UI (data-loader, overlay
 Utiliser ce skill avant d’ajouter ou modifier un bouton/action afin de conserver l’expérience loaders 15 s.
 
 ## 1. Rappels techniques
-- JS : `static/js/loaders.js` (init automatique, failsafe 15 s, aria-busy).
-- CSS : classes `sb-global-loader`, `sb-btn-loader` dans `static/css/theme.css`.
+- JS : `switchbot_dashboard/static/js/loaders.js` (init automatique, failsafe 15 s, aria-busy).
+- CSS : classes `sb-global-loader`, `sb-btn-loader` dans `switchbot_dashboard/static/css/theme.css`.
 - Templates : attribut `data-loader` requis sur tous les `<form>` POST et liens d’action.
 - Référence : `references/loader_audit.md` pour checklist complète (tests manuels + DevTools).
 

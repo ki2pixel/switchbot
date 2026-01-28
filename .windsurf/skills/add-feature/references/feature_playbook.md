@@ -25,7 +25,7 @@ service.run(payload)
 1. Ajouter route dans `routes.py` (blueprint `dashboard_bp`).
 2. Helpers `_as_bool/_as_int/_as_float` obligatoires.
 3. Templates : inclure `_footer_nav.html`, `loaders.js`, classes `sb-card` / `sb-section-title`.
-4. CSS : mettre à jour `static/css/<page>.css` ou `theme.css` (pas de inline).
+4. CSS : mettre à jour `switchbot_dashboard/static/css/<page>.css` ou `switchbot_dashboard/static/css/theme.css` (pas de inline).
 
 ## Tests & Documentation
 - Ajouter tests ciblés (`tests/test_<feature>.py` + routes via client Flask + BeautifulSoup si UI).

@@ -9,7 +9,7 @@ Utiliser ce skill pour vérifier/étendre les optimisations LCP/FID/CLS.
 
 ## 1. Préparer les outils
 - Scripts : Lighthouse (CLI), WebPageTest, ou Chrome DevTools.
-- Fichiers clés : `static/css/critical.css`, `static/js/advanced-optimizer.js`, `static/js/performance-optimizer.js`, `templates/index.html` (resource hints).
+- Fichiers clés : `switchbot_dashboard/static/css/critical.css`, `switchbot_dashboard/static/js/advanced-optimizer.js`, `switchbot_dashboard/static/js/performance-optimizer.js`, `templates/index.html` (resource hints).
 - Docs : `docs/frontend-mobile-audit.md`, `docs/frontend-performance.md`.
 
 ## 2. Workflow d’audit

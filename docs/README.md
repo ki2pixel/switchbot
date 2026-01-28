@@ -108,6 +108,13 @@ Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot
 - [Migration PostgreSQL](postgresql-migration.md) - Guide de migration vers Neon
 - [Backend Audit Report](backend-audit-report.md) - Analyse backend complète
 
+### Guides Backend & Performance
+- [Gestion des Quotas API](switchbot/api-quotas.md) - Suivi et alertes des quotas
+- [Gestion des Erreurs](switchbot/error-handling.md) - Exceptions et monitoring système
+- [Optimisations Performance](switchbot/performance-optimizations.md) - Batch insert et cache avancé
+- [Patterns d'Automatisation](automation-patterns.md) - Cascade IFTTT et idempotence OFF
+- [Analyse de Complexité](complexity-analysis.md) - Métriques cyclomatiques et recommandations
+
 ### Références API
 - [Référence API SwitchBot](switchbot/README.md) - Documentation API v1.1
 

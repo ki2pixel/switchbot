@@ -9,7 +9,7 @@ Utiliser ce skill pour toute évolution du suivi de quota (backend + UI + tests)
 
 ## 1. Contexte à charger
 - Backend : `switchbot_dashboard/quota.py`, usages dans `automation.py` et `routes.py` (`_build_quota_context`).
-- UI : `templates/index.html` (bandeau), `static/css/theme.css` (styles), `static/js/loaders.js` pour loaders POST.
+- UI : `templates/index.html` (bandeau), `switchbot_dashboard/static/css/theme.css` (styles), `switchbot_dashboard/static/js/loaders.js` pour loaders POST.
 - Tests : `tests/test_dashboard_routes.py` (scénarios quota), `tests/test_quota.py` si existant.
 - Script snapshot : `scripts/quota_snapshot.py` pour rafraîchir l'état (`python .windsurf/skills/quota-alerting/scripts/quota_snapshot.py`).
 - Checklist : `references/quota_checklist.md` (backend/UI/tests).
