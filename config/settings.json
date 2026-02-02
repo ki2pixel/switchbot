@@ -14,8 +14,8 @@
   "meter_device_id": "FCE61F1FD04C",
   "aircon_device_id": "01-202401301615-24010246",
   "winter": {
-    "min_temp": 24.0,
-    "max_temp": 27.0,
+    "min_temp": 23.0,
+    "max_temp": 25.0,
     "target_temp": 26.0,
     "fan_speed": 3,
     "ac_mode": 5

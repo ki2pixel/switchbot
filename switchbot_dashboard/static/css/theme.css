@@ -376,6 +376,20 @@ dl dd {
   box-shadow: 0 0 0 0.15rem rgba(138, 180, 255, 0.25);
 }
 
+/* Correction dropdown options - fond et texte lisibles */
+.form-select option {
+  background: var(--sb-gradient-mid);
+  color: var(--sb-text);
+  border: none;
+  padding: 0.5rem 1rem;
+}
+
+.form-select option:hover,
+.form-select option:focus {
+  background: var(--sb-accent);
+  color: var(--sb-accent-contrast);
+}
+
 .form-text,
 .small,
 .text-muted {
