@@ -1,8 +1,3 @@
----
-description: Améliorer un Prompt avec le Contexte du Projet, Techniques Avancées et Skills Spécialisés
----
-
-# ~/.gemini/commands/windsurf/enhance.toml
 description = "Enhances a prompt with project context, advanced techniques, and specialized skills following Windsurf workflow."
 prompt = """
 You are executing the Windsurf /enhance workflow for advanced prompt optimization.

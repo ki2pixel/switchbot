@@ -1,8 +1,3 @@
----
-description: Commit changes to the current branch and push to remote
----
-
-# ~/.gemini/commands/windsurf/commit_push.toml
 description = "Commits changes and pushes to remote following Windsurf workflow standards."
 prompt = """
 You are executing the Windsurf /commit-push workflow.
