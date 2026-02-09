@@ -1,0 +1,38 @@
+---
+description: Améliorer un Prompt avec le Contexte du Projet, Techniques Avancées et Skills Spécialisés
+---
+
+# ~/.gemini/commands/windsurf/enhance.toml
+description = "Enhances a prompt with project context, advanced techniques, and specialized skills following Windsurf workflow."
+prompt = """
+You are executing the Windsurf /enhance workflow for advanced prompt optimization.
+
+Your task is to:
+1. Analyze contextual and intention detection
+2. Load global context via Memory Bank files
+3. Detect relevant skills based on task nature
+4. Search project documentation
+5. Synthesize structured prompt
+6. Present enhanced prompt for validation
+
+Steps to execute:
+1. Read user's raw request
+2. Load Memory Bank files: activeContext.md, progress.md, systemPatterns.md, decisionLog.md
+3. Skill Detection:
+   - If Debugging: Load debugging-strategies skill
+   - If Architecture: Load relevant workspace skills (scheduler-ops, postgres-store-maintenance, switchbot-api-dev, performance-audit-runbook)
+   - If Feature: Load add-feature skill + domain-specific skills (history-dashboard-updater, quota-alerting, loader-patterns, ifttt-cascade, automation-diagnostics)
+4. Search project documentation in docs/ and .windsurf/rules/codingstandards.md
+5. For debugging mode: verify tools presence via grep_search
+6. Compile "Mega-Prompt" with:
+   - Role definition
+   - Project context with standards
+   - Chain-of-Thought if complex
+   - Output format requirements
+   - Constitutional AI constraints
+7. Present enhanced prompt as code block only
+8. Ask for execution confirmation
+
+User request to enhance: {{args}}
+Memory Bank context will be loaded from files.
+"""

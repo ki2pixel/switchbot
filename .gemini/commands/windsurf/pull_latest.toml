@@ -1,0 +1,35 @@
+---
+description: Synchroniser la branche locale avec origin/main
+---
+
+# ~/.gemini/commands/windsurf/pull_latest.toml
+description = "Synchronizes local branch with origin/main following Windsurf workflow."
+prompt = """
+You are executing the Windsurf /pull-latest workflow.
+
+Your task is to:
+1. Check local status
+2. Ensure clean working directory or stash changes
+3. Fetch remote metadata
+4. Pull changes safely (fast-forward only)
+5. Handle conflicts if any
+6. Restore stashed changes if needed
+
+Steps to execute:
+1. Check current status with git status -sb
+2. If modifications exist, suggest commit or stash
+3. Verify current branch (should be main or appropriate branch)
+4. Fetch origin metadata
+5. Preview changes if needed
+6. Pull with --ff-only for safety
+7. Handle any conflicts
+8. Restore stashed changes if used
+
+User intent: {{args}}
+Current git status:
+{{git status -sb}}
+Current branch:
+{{git branch --show-current}}
+Remote status:
+{{git remote -v}}
+"""
