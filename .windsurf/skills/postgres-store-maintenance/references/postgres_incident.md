@@ -26,5 +26,5 @@
 3. Vérifier `json_store` table (`SELECT kind, updated_at FROM json_store;`).
 
 ## Documentation
-- MAJ `docs/configuration.md`, `docs/deployment.md` + Memory Bank (decisionLog).
+- MAJ `docs/core/configuration.md`, `docs/core/deployment.md` + Memory Bank (decisionLog).
 - Si fallback prolongé : noter dans `activeContext.md`.

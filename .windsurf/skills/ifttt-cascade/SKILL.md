@@ -32,5 +32,5 @@ Déclencher ce skill pour configurer ou étendre les actions climatisation.
 
 ## 4. Bonnes pratiques
 - Les webhooks doivent répondre < 4 s ; configurer timeouts dans `IFTTTWebhookClient`.
-- Documenter tout ajout dans `docs/ifttt-integration.md` + Memory Bank.
+- Documenter tout ajout dans `docs/guides/ifttt-setup.md` + Memory Bank.
 - Ne jamais exposer les URLs IFTTT dans les logs ou commits.

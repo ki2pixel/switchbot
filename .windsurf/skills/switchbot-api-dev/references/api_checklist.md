@@ -31,5 +31,5 @@ python .windsurf/skills/switchbot-api-dev/scripts/preview_headers.py
 
 ## Documentation/Sécurité
 - Jamais logguer `SWITCHBOT_SECRET` ou Authorization.
-- MAJ `docs/configuration.md` pour toute nouvelle variable.
+- MAJ `docs/core/configuration.md` pour toute nouvelle variable.
 - Memory Bank : consigner les nouveaux endpoints/commandes (decisionLog).

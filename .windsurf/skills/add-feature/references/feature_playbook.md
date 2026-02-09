@@ -29,7 +29,7 @@ service.run(payload)
 
 ## Tests & Documentation
 - Ajouter tests ciblés (`tests/test_<feature>.py` + routes via client Flask + BeautifulSoup si UI).
-- Mettre à jour `docs/*.md` concerné + Memory Bank (decisionLog + progress).
+- Mettre à jour `docs/core/configuration.md` ou `docs/guides/ui-navigation.md` selon feature + Memory Bank (decisionLog + progress).
 - Vérifier couverture ≥85% après modifications.
 
 ## Checkpoints de revue

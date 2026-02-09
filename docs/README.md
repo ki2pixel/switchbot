@@ -1,326 +1,100 @@
-# SwitchBot Dashboard
+# Carte de la Documentation SwitchBot Dashboard v2
 
-> **Documentation Architecture**: 16 files, 10,578 lines of Markdown (see [DOCUMENTATION.md](DOCUMENTATION.md) for detailed metrics)
-
-Tableau de bord de surveillance et d'automatisation pour les appareils SwitchBot, spécialement conçu pour la gestion des climatiseurs et capteurs de température avec une approche orientée scènes.
-
-## 🚀 Fonctionnalités clés
-
-### Automatisation intelligente
-- **Gestion des scènes** : Exécution de scènes SwitchBot préconfigurées
-- **Webhooks IFTTT** : Intégration prioritaire avec fallback cascade à 3 niveaux (IFTTT → scène → commande)
-- **Profils saisonniers** : Paramètres distincts pour l'hiver et l'été
-- **Fenêtres horaires** : Planification précise des plages d'activation
-- **Détection de présence** : Basée sur les plages horaires configurées
-- **Répétition OFF paramétrable** : Commandes OFF multiples avec intervalle configurable
-- **Idempotence des actions** : Protection contre les déclenchements excessifs
-- **Scheduler robuste** : Démarrage conditionnel, logging amélioré et polling adaptatif avec modes idle/warmup
-- **Fuseau horaire configurable** : Fenêtres horaires interprétées dans le fuseau IANA choisi (défaut Europe/Paris, fallback UTC en cas de valeur invalide)
-
-### Surveillance et contrôle
-- **Tableau de bord temps réel** : Vue d'ensemble de l'état du système
-- **Gestion des quotas API** : Suivi et alertes de consommation
-- **Indicateur de fraîcheur** : Détection des données de température obsolètes
-- **Journalisation complète** : Historique des actions et erreurs
-
-### Architecture moderne
-- **PostgreSQL par défaut** : Backend Neon avec connection pooling et fallback filesystem
-- **Cascade IFTTT** : Webhooks IFTTT → scènes SwitchBot → commandes directes
-- **History Monitoring** : Dashboard temps réel avec Chart.js et rétention 6h **(NOUVEAU)**
-- **Loaders Frontend** : Système non bloquant pour améliorer la réactivité perçue **(NOUVEAU)**
-- **Estimation locale des quotas** : Suivi précis avec alertes configurables
-- **Gestion robuste des erreurs** : Repli élégant en cas d'indisponibilité
-
-> ℹ️ **Stockage actif** : Sur la branche principale, seul le couple `PostgresStore` + fallback `JsonStore` reste opérationnel ; toute configuration `STORE_BACKEND=redis` est ignorée par `create_app()` (warning `[store] Redis backend is deprecated...`).
-
-## ⚙️ Prérequis
-
-- **Python** : 3.8 ou supérieur
-- **Compte SwitchBot** : Avec appareils configurés
-- **PostgreSQL** : Neon recommandé (backend par défaut, free tier suffisant)
-- **Token d'API** : Jeton d'API SwitchBot valide
-
-## 🛠 Installation
-
-1. **Cloner le dépôt** :
-   ```bash
-   git clone https://github.com/votre-utilisateur/switchbot-dashboard.git
-   cd switchbot-dashboard
-   ```
-
-2. **Configurer l'environnement** :
-   ```bash
-   cp .env.example .env
-   # Éditer .env avec vos identifiants SwitchBot
-   ```
-
-3. **Installer les dépendances** :
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Lancer l'application** :
-   ```bash
-   python app.py
-   ```
-
-## 🏗 Architecture
-
-### Composants principaux
-
-- **`AutomationService`** : Cœur de l'automatisation, gère la logique métier
-- **`SwitchBotClient`** : Client API avec suivi des quotas intégré
-- **`BaseStore`** : Interface de stockage abstraite
-  - `PostgresStore` : Stockage PostgreSQL Neon (recommandé)
-  - `JsonStore` : Stockage basé sur des fichiers JSON (fallback)
-  - `RedisJsonStore` : Stockage Redis (déprécié mais fonctionnel)
-- **`ApiQuotaTracker`** : Suivi précis des quotas d'API
-- **`HistoryService`** : Service de monitoring et d'historique temps réel
-- **`IFTTTWebhookClient`** : Client webhooks IFTTT avec système de cascade
-
-### Flux de données
-
-1. **Collecte** : Récupération des données des capteurs via `poll_meter()`
-2. **Analyse** : Vérification des seuils et des fenêtres horaires
-3. **Action** : Exécution des scènes SwitchBot appropriées
-4. **Persistance** : Sauvegarde de l'état et des paramètres
-
-## 📚 Documentation complète
-
-> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
-
-### Guides fondamentaux
-- [Guide d'installation](setup.md) - Configuration détaillée
-- [Référence de configuration](configuration.md) - Options avancées
-- [Guide de déploiement](deployment.md) - Mise en production avec monitoring `/healthz`
-- [Guide de tests](testing.md) - Tests manuels et unitaires
-
-### Guides utilisateur & UX
-- [Guide de l'utilisateur](ui-guide.md) - Utilisation de l'interface
-- [Guide de thématisation](theming.md) - Styles CSS et composants UI
-- [Performance Frontend](frontend-performance.md) - Optimisations UX et loaders
-- [History Monitoring](history-monitoring.md) - Dashboard temps réel et analyse
-- [Frontend Mobile Audit](frontend-mobile-audit.md) - Audit mobile complet
-
-### Guides backend & intégration
-- [Intégration IFTTT](ifttt-integration.md) - Configuration webhooks et cascade
-- [Guide du scheduler](scheduler.md) - Configuration et dépannage
-- [Migration PostgreSQL](postgresql-migration.md) - Guide de migration vers Neon
-- [Backend Audit Report](backend-audit-report.md) - Analyse backend complète
-
-### Guides Backend & Performance
-- [Gestion des Quotas API](switchbot/api-quotas.md) - Suivi et alertes des quotas
-- [Gestion des Erreurs](switchbot/error-handling.md) - Exceptions et monitoring système
-- [Optimisations Performance](switchbot/performance-optimizations.md) - Batch insert et cache avancé
-- [Patterns d'Automatisation](automation-patterns.md) - Cascade IFTTT et idempotence OFF
-- [Analyse de Complexité](complexity-analysis.md) - Métriques cyclomatiques et recommandations
-
-### Références API
-- [Référence API SwitchBot](switchbot/README.md) - Documentation API v1.1
-
-### Documentation technique
-- [DOCUMENTATION.md](DOCUMENTATION.md) - Architecture, métriques et backlog de refonte
-
-## 🚀 Améliorations Récentes (Janvier 2026)
-
-### Frontend Excellence - Phase 5 Audit Mobile
-- **Critical CSS Inlining** : CSS critique intégré dans `<head>` pour LCP < 1.8s
-- **Resource Hints** : Preconnects et preloads pour réduire latence réseau
-- **Font Loading Optimization** : font-display: swap + preloads (élimine FOIT/FOUT)
-- **Advanced Performance Optimizer** : Optimisations LCP/FID/CLS avec monitoring détaillé
-- **Skeleton Screens** : Screens de chargement pour prévention CLS
-- **Main Thread Optimization** : Scheduling intelligent et code splitting avancé
-- **Performance Score** : 99/100+ (vs 95/100 avant Phase 5)
-- **Core Web Vitals** : Tous dans catégorie "Good" de Google
-
-### Corrections UI Post-Audit
-- **Bottom bar optimisée** : Icônes-only sur mobile, visible sur desktop
-- **Flash blanc éliminé** : Transitions CSS optimisées, anti-flash renforcé
-- **Page Actions dédiée** : Regroupement des 6 boutons d'actions manuelles
-- **FontAwesome corrigé** : Suppression integrity/crossorigin bloquants
-- **Navigation unifiée** : Bottom bar cohérente sur tous les templates
-
-### Performance & Résilience (Post-Audit Backend)
-- **Batch insert HistoryService** : Buffer thread-safe avec timer flush pour -50% latence par tick
-- **Cache timezone intelligent** : Cache simple avec invalidation automatique sur changement settings
-- **Monitoring exceptions complet** : Wrapper try/catch global dans SchedulerService pour logging sans crash
-- **Tests robustes centralisés** : 122 tests passants (99% de réussite) avec mocks PostgreSQL optimisés
-- **Audit backend validé** : Score 95/100 avec toutes recommandations "Court terme" appliquées
-
-### Architecture Robuste
-- **PostgreSQL par défaut** : Backend Neon avec connection pooling optimisé
-- **Cascade IFTTT** : Webhooks → scènes → commandes avec fallback automatique
-- **History Monitoring** : Dashboard temps réel avec Chart.js et rétention 6h
-- **Loaders Frontend** : Système non bloquant pour UX améliorée
-
-### Qualité & Tests
-- **122 tests passants** (99% de réussite) avec mocks PostgreSQL optimisés
-- **Audit backend validé** : Score 95/100 avec optimisations "Court terme" appliquées
-- **Performance batch insert** : Buffer thread-safe pour -50% latence
-- **Cache timezone intelligent** : Invalidation automatique et résolutions répétées évitées
-- **Wrapper try/catch global** : Monitoring exceptions complet sans crash scheduler
-
-> 📚 **Détails** : Voir [Audit Backend - Rapport Complet](backend-audit-report.md) pour l'analyse complète des améliorations.
-
-## 🚦 Statut du projet
-
-### Fonctionnalités implémentées
-
-- [x] Support des scènes SwitchBot
-- [x] Webhooks IFTTT avec système de fallback cascade
-- [x] Stockage PostgreSQL Neon avec fallback filesystem
-- [x] History Monitoring dashboard temps réel
-- [x] Loaders frontend non bloquants
-- [x] Répétition OFF paramétrable
-- [x] Idempotence des actions OFF
-- [x] Gestion des quotas API avec alertes
-- [x] Scheduler robuste avec logging amélioré
-- [x] Interface utilisateur réactive
-- [x] Documentation complète
-- [x] Suite de tests complète (33 tests passants, couverture complète des fonctionnalités)
-
-### Prochaines étapes
-
-- [ ] Support multi-utilisateurs
-- [ ] Tableau de bord d'administration
-- [ ] Notifications push
-- [ ] Intégration avec d'autres écosystèmes domotiques
-
-## 📞 Support
-
-Pour toute question ou problème, veuillez ouvrir une [issue](https://github.com/votre-utilisateur/switchbot-dashboard/issues).
-
-## 🙏 Remerciements
-
-- À l'équipe SwitchBot pour leur API
-- Aux contributeurs du projet
-- À la communauté open source
+**TL;DR** : SwitchBot Dashboard transforme vos appareils SwitchBot en hub domotique avec automatisation locale, persistance PostgreSQL et intégration IFTTT — commencez dans `core/`, explorez dans `guides/`, comprenez dans `architecture/`, réparez dans `ops/`.
 
 ---
 
-*Dernière mise à jour : 25 janvier 2026*
+## Le Problème Que Nous Avons Résolu
 
-## 🔍 Aperçu technique
+L'ancienne documentation vivait dans des fichiers éparpillés avec des objectifs mélangés. Les guides d'installation côtoyaient des plongées profondes dans l'architecture, les workflows utilisateur étaient enterrés dans des rapports d'audit, et le dépannage signifiait fouiller dans trois répertoires différents. Impossible de répondre à "Comment installer ça ?" sans lire les internes du déploiement.
 
-### Gestion des scènes
+## Notre Solution : Documentation Narrative D'abord
 
-Le tableau de bord utilise les scènes SwitchBot pour une configuration flexible. Le système implémente une cascade à 3 niveaux :
+Nous avons tout réorganisé autour de votre parcours :
 
-1. **Webhooks IFTTT** (priorité) - Ne consomme pas le quota API SwitchBot
-2. **Scènes SwitchBot** (fallback 1) - Exécution directe via API
-3. **Commandes directes** (fallback 2) - `setAll`/`turnOff` sur device IR
+- **`core/`** vous fait démarrer en moins de 5 minutes
+- **`guides/`** vous apprend à utiliser le dashboard au quotidien  
+- **`architecture/`** explique pourquoi ça marche comme ça (pas juste comment)
+- **`ops/`** vous maintient en marche quand ça casse
 
-Voici un exemple de configuration :
+Chaque article suit le pattern SKILL : problème → solution → implémentation → pièges. Pas de marketing, juste du conseil concret.
 
-```python
-# Exemple de configuration de scènes
-{
-  "ifttt_webhooks": {
-    "winter": "https://maker.ifttt.com/trigger/switchbot_winter/with/key/YOUR_KEY",
-    "summer": "https://maker.ifttt.com/trigger/switchbot_summer/with/key/YOUR_KEY",
-    "fan": "https://maker.ifttt.com/trigger/switchbot_fan/with/key/YOUR_KEY",
-    "off": "https://maker.ifttt.com/trigger/switchbot_off/with/key/YOUR_KEY"
-  },
-  "aircon_scenes": {
-    "winter": "1234567890abcdef1234567890abcdef",
-    "summer": "abcdef1234567890abcdef1234567890",
-    "fan": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
-    "off": "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5"
-  }
-}
-```
+### ❌ Documentation Monolithique / ✅ Guides Thématiques
 
-> 💡 **Pour en savoir plus** : Consultez le guide complet [Intégration IFTTT](ifttt-integration.md) pour configurer les webhooks et comprendre le système de fallback cascade.
+❌ **Ancienne approche** : Un README.md de 200 lignes mélangeant installation, architecture, dépannage et déploiement. Impossible de trouver rapidement "Comment configurer IFTTT ?" sans lire tout le document.
 
-### Surveillance de la santé
+✅ **Nouvelle approche** : Guides thématiques ciblés avec navigation par cas d'usage. Chaque fichier répond à une question spécifique avec des exemples concrets et des pièges évités.
 
-L'application expose un endpoint de monitoring à `/healthz` qui fournit des informations détaillées sur l'état du système, y compris les indicateurs de fraîcheur des données et l'utilisation de l'API.
+## Ce Que Fait Réellement SwitchBot Dashboard
 
-## 🚀 Démarrage rapide
+Au fond, c'est une application Flask qui :
 
-### Prérequis
-- **Python** : 3.8 ou supérieur
-- **Compte SwitchBot** : Avec appareils configurés
-- **Token d'API** : Jeton d'API SwitchBot valide
-- **PostgreSQL** : Neon recommandé pour la production (free tier suffisant)
+1. **Lit les capteurs SwitchBot Meter** toutes les 15 secondes (configurable)
+2. **Prend des décisions intelligentes** sur chauffage/climatisation avec hystérésis, fenêtres horaires et logique timezone-aware
+3. **Exécute les actions via une cascade à trois niveaux** : webhooks IFTTT → scènes SwitchBot → commandes directes
+4. **Stocke tout dans PostgreSQL** avec fallback automatique vers des fichiers JSON
+5. **Suivi les quotas API** localement puisque SwitchBot ne fournit pas d'en-têtes de quota
+6. **Surveille l'historique** avec des dashboards Chart.js et rétention de 6 heures
 
-### Installation
+La magie est dans les détails : le polling adaptatif réduit la charge base de données pendant les périodes d'inactivité, le scheduler survit aux redémarrages Gunicorn, et chaque appel API est enveloppé dans une logique de retry avec rate limiting propre.
 
-```bash
-# 1. Cloner le dépôt
-git clone https://github.com/votre-utilisateur/switchbot-dashboard.git
-cd switchbot-dashboard
+## Comment Naviguer Cette Documentation
 
-# 2. Créer et activer un environnement virtuel
-python -m venv venv
-source venv/bin/activate  # Sur Windows: venv\Scripts\activate
+| Vous voulez... | Allez ici | Fichiers clés |
+|---|---|---|
+| **Installer localement** | `core/` | [Démarrage rapide](core/quickstart.md), [Configuration](core/configuration.md) |
+| **Déployer en production** | `core/` | [Déploiement](core/deployment.md) |
+| **Utiliser le dashboard** | `guides/` | [Navigation UI](guides/ui-navigation.md), [Monitoring](guides/monitoring-dashboard.md) |
+| **Configurer IFTTT** | `guides/` | [Configuration IFTTT](guides/ifttt-setup.md) |
+| **Comprendre l'automatisation** | `architecture/` | [Moteur d'automatisation](architecture/automation-engine.md), [Scheduler](architecture/scheduler.md) |
+| **Apprendre le stockage** | `architecture/` | [Couche de stockage](architecture/storage-layer.md) |
+| **Gérer les quotas** | `architecture/` | [Gestion des quotas](architecture/quota-management.md) |
+| **Tester les choses** | `ops/` | [Stratégie de test](ops/testing-strategy.md) |
+| **Déboguer les problèmes** | `ops/` | [Dépannage](ops/troubleshooting.md), [Optimisation performance](ops/performance-tuning.md) |
 
-# 3. Installer les dépendances
-pip install -r requirements.txt
+## Ce Qui Rend Cette Architecture Spéciale
 
-# 4. Configurer l'application
-cp .env.example .env
-# Éditer .env avec vos tokens SwitchBot et paramètres
+### Tableau Comparatif des Approches de Stockage
 
-# 5. Démarrer l'application
-python app.py
+| Approche | Complexité | Coût | Résilience | Cas d'usage idéal |
+|----------|------------|------|------------|-------------------|
+| **PostgreSQL Neon** | Moyenne | Gratuit (100h CU/mois) | Élevée (PITR 6h) | Production, multi-utilisateurs |
+| **Redis Cloud** | Élevée | Payant (quota limité) | Moyenne (backup manuel) | Cache temporaire, déprécié |
+| **JSON Fichiers** | Faible | Gratuit | Faible (local only) | Développement, testing |
 
-# L'application est disponible à l'adresse : http://127.0.0.1:5000/
-```
+### La Couche de Stockage
+Nous utilisons **PostgreSQL Neon** comme store principal avec un **fallback JsonStore**. Le `PostgresStore` implémente le connection pooling, les schémas JSONB et la création automatique de tables. Si Neon tombe, nous retombons proprement sur des fichiers JSON locaux sans perdre la logique d'automatisation.
 
-### Démarrage avec Docker
+### La Cascade d'Automatisation
+Chaque action essaie trois chemins dans l'ordre :
+1. **Webhooks IFTTT** (aucun coût de quota SwitchBot)
+2. **Scènes SwitchBot** (configurations natives de l'app)  
+3. **Commandes directes** (`setAll`/`turnOff` en dernier recours)
 
-```bash
-# Construire l'image
-docker build -t switchbot-dashboard .
+Ça signifie la fiabilité des webhooks avec la sécurité des commandes directes comme backup.
 
-# Démarrer le conteneur
-docker run -d -p 8000:8000 --env-file .env --name switchbot switchbot-dashboard
-```
+### Le Polling Adaptatif
+Le `SchedulerService` ne pollue pas toutes les 15 secondes. Il calcule les intervalles effectifs selon :
+- Sommes-nous dans une fenêtre horaire active ?
+- Sommes-nous dans la période de warmup avant une fenêtre ?
+- Y a-t-il une séquence off-repeat en attente ?
+- Devrions-nous idle à 600 secondes pour réduire la charge base de données ?
 
-## 📊 Monitoring et surveillance
+### Gestion des Quotas
+L'API SwitchBot ne retourne pas d'en-têtes de quota, donc nous suivons l'usage localement dans `state.json`. Le `ApiQuotaTracker` se réinitialise quotidiennement et affiche des avertissements quand vous êtes bas.
 
-L'application expose un endpoint de santé pour le monitoring :
+## Pièges Courants Que Nous Avons Déjà Résolus
 
-```
-GET /healthz
-```
+- **Confusion timezone** : Toutes les fenêtres horaires utilisent le timezone configuré (Europe/Paris par défaut), pas l'UTC du serveur
+- **Staleness température** : Nous marquons les températures comme obsolètes après redéploy pour éviter l'automatisation sur vieilles données
+- **Conflits scheduler** : Le scheduler détecte Gunicorn vs mode développement Flask et ajuste en conséquence
+- **Épuisement connexions base de données** : Nous utilisons le connection pooling et les insertions batch pour l'historique
+- **Responsivité mobile** : Toute l'UI fonctionne offline-first avec les assets Bootstrap/Chart.js locaux
 
-**Réponse exemple :**
-```json
-{
-  "status": "ok",
-  "scheduler_running": true,
-  "automation_enabled": true,
-  "last_tick": "2024-01-10T14:30:00Z",
-  "api_requests_total": 42,
-  "api_requests_remaining": 958,
-  "api_quota_day": "2024-01-10",
-  "version": "1.0.0"
-}
-```
+## Le Chemin de Migration
 
-## 🔧 Configuration avancée
+Cette structure `docs/v2/` remplace la documentation legacy. La Phase 4 du plan de migration (commandes bash manuelles) déplacera ces fichiers en place. D'ici là, considérez ceci comme l'aperçu de la nouvelle organisation.
 
-### Variables d'environnement
+## La Règle d'Or : Documentation Modulaire, Décisions Éclairées
 
-| Variable | Description | Valeur par défaut |
-|----------|-------------|-------------------|
-| `SWITCHBOT_TOKEN` | Token d'API SwitchBot (requis) | - |
-| `SWITCHBOT_SECRET` | Clé secrète SwitchBot (requis) | - |
-| `SWITCHBOT_POLL_INTERVAL_SECONDS` | Intervalle de rafraîchissement (secondes) | 60 |
-| `LOG_LEVEL` | Niveau de journalisation (DEBUG, INFO, WARNING, ERROR) | INFO |
-| `STORE_BACKEND` | Backend de stockage (postgres recommandé, redis legacy, filesystem fallback) | postgres |
-| `POSTGRES_URL` | URL de connexion à PostgreSQL (Neon recommandé) | - |
-| `POSTGRES_SSL_MODE` | Mode SSL pour PostgreSQL (`require` conseillé) | require |
-| `REDIS_URL` | URL Redis (option legacy si STORE_BACKEND=redis) | - |
-
-## 📖 Références
-
-- **API SwitchBot** : `docs/switchbot/README.md` (v1.1)
-- **Documentation détaillée** : Consultez les guides dans le dossier `docs/`
-- **Standards de développement** : `.windsurf/rules/codingstandards.md`
-
----
-
-*Pour commencer, consultez le [Guide de configuration](configuration.md) et le [Guide utilisateur](ui-guide.md). Pour le déploiement en production, reportez-vous au [Guide de déploiement](deployment.md).*
+Chaque guide thématique inclut des comparatifs ❌/✅, des tables de trade-offs et une Golden Rule finale pour que vous puissiez prendre des décisions techniques informées sans lire tout le codebase.

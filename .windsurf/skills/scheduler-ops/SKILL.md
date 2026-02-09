@@ -31,4 +31,4 @@ Déclencher ce skill pour manipuler APScheduler en toute sécurité.
 ## 4. Bonnes pratiques
 - Jamais de `BackgroundScheduler` multiple : `WEB_CONCURRENCY=1`, `gunicorn.conf.py` (1 worker, 2 threads).
 - Après une erreur Postgres, attendre 3 échecs consécutifs avant fallback JsonStore; consigner dans Memory Bank.
-- Toute modification durable doit être notée dans `docs/scheduler.md` + Memory Bank decisionLog. 
+- Toute modification durable doit être notée dans `docs/architecture/scheduler.md` + Memory Bank decisionLog. 

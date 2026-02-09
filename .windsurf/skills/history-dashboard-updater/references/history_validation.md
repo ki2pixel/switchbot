@@ -28,5 +28,5 @@
 | JS (optionnel) | `switchbot_dashboard/static/js/history.js` via Jest ou snapshot | interactions filtres |
 
 ## Documentation
-- Mettre à jour `docs/history-monitoring.md` (schémas, API, captures).
+- Mettre à jour `docs/guides/monitoring-dashboard.md` (schémas, API, captures).
 - Logger les décisions dans Memory Bank (decisionLog + progress).

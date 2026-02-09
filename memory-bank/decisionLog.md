@@ -1,3 +1,9 @@
+[2026-02-09 12:24:00] - Mise à jour documentation adaptive polling
+- Décision : mettre à jour la documentation existante pour refléter l'implémentation complète du polling adaptatif dans SchedulerService, avec détails techniques et patterns d'utilisation.
+- Motivation : la documentation existante ne couvrait pas les nouveaux paramètres `adaptive_polling_enabled`, `idle_poll_interval_seconds`, et `poll_warmup_minutes` ni l'auto-reschedule intelligent, créant un décalage entre le code et les guides.
+- Implémentation : audit structurel (tree/cloc/radon), triangulation docs vs code, mise à jour de `scheduler.md` avec sections adaptive polling, auto-reschedule et nouveaux pièges, enrichissement de `configuration.md` avec comportements détaillés et logs spécifiques, application des standards documentation skill.
+- Implication : la documentation est désormais synchronisée avec l'implémentation réelle, les utilisateurs disposent de guides complets pour configurer et dépanner le polling adaptatif, et les patterns de logging sont documentés pour faciliter le diagnostic.
+
 [2026-01-28 10:28:00] - Intégration UI/Postgres des réglages de polling adaptatif
 - Décision : rendre les paramètres de polling adaptatif (déjà supportés par le backend SchedulerService) éditables depuis le dashboard UI avec validation et persistance Postgres/JsonStore.
 - Motivation : permettre aux utilisateurs de configurer le comportement adaptatif (idle/warmup/in-window) sans modifier manuellement les fichiers de configuration, et compléter la feature implémentée côté backend.

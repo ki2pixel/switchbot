@@ -25,6 +25,6 @@ Déclencher ce skill pour toute évolution du monitoring (backend/postgres → A
 - Tests Pytest ciblés (service + routes + JS si snapshot) doivent passer.
 
 ## 4. Documentation & communication
-- Mettre à jour `docs/history-monitoring.md` + Memory Bank (productContext + decisionLog).
+- Mettre à jour `docs/guides/monitoring-dashboard.md` + Memory Bank (productContext + decisionLog).
 - Ajouter captures/metrics si nouvelles visualisations.
 - Mentionner dans progress l’état des tests et déploiements.

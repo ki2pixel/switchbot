@@ -28,4 +28,4 @@
 
 ## 5. Archivage
 - Sauvegarder JSON Lighthouse + captures dans `debug/perf/<date>/`.
-- Reporter résultats dans `docs/frontend-mobile-audit.md` + Memory Bank (decisionLog/progress).
+- Reporter résultats dans `docs/guides/ui-navigation.md` + Memory Bank (decisionLog/progress).

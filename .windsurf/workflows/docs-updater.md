@@ -36,9 +36,9 @@ Comparer les sources pour détecter les incohérences :
 | :--- | :--- | :--- |
 | **Intention** | Le "Pourquoi" | `read_file` (Memory Bank) |
 | **Réalité** | Le "Quoi" & "Comment" | `radon` (complexité), `cloc` (volume), `code_search` |
-| **Existant** | L'état actuel | `find_by_name` (sur `docs/switchbot` ou `docs/IFTTT`), `read_file` |
+| **Existant** | L'état actuel | `find_by_name` (sur `docs/core` ou `docs/guides`), `read_file` |
 
-**Action** : Identifier les divergences. Ex: "Le script `migrate_to_postgres.py` existe, mais la doc `docs/postgresql-migration.md` le marque comme 'à faire'."
+**Action** : Identifier les divergences. Ex: "Le script `migrate_to_postgres.py` existe, mais la doc `docs/core/deployment.md` le marque comme 'à faire'."
 
 ## Étape 3 — Sélection du Standard de Rédaction
 Choisir le modèle approprié selon la nature du module (Hardware vs Web) :
@@ -63,7 +63,7 @@ Générer un plan de modification avant d'appliquer :
 - **Analyse** : Gestion critique des limites API, non documentée.
 
 ### Modifications Proposées
-#### 📄 docs/switchbot/api-quotas.md
+#### 📄 docs/architecture/quota-management.md
 - **Type** : [IoT Integration]
 - **Ajout** : Tableau des limites API officielles vs implémentées.
 - **Correction** :
@@ -74,5 +74,9 @@ Générer un plan de modification avant d'appliquer :
 
 ## Étape 5 — Application et Finalisation
 1.  **Exécution** : Après validation, utiliser `apply_patch`.
-2.  **Mise à jour Memory Bank** :
+2.  **Mode Rédaction — documentation/SKILL.md** :
+    - Charger immédiatement `.windsurf/skills/documentation/SKILL.md`.
+    - Appliquer les checkpoints obligatoires du skill (TL;DR, ouverture orientée problème, comparaison ❌/✅, tableau de trade-offs si pertinent, Golden Rule, vérification ponctuation) avant toute rédaction.
+    - Tracer la conformité dans vos commits/PR : `Guidé par documentation/SKILL.md — sections: TLDR, Problem-first, Comparaison, Trade-offs, Golden Rule`.
+3.  **Mise à jour Memory Bank** :
     - Si des règles métier cachées (hardcoded) sont trouvées dans `automation.py`, les extraire ou les documenter dans `systemPatterns.md`.

@@ -36,5 +36,5 @@ Utiliser ce skill pour toute opération sur le stockage Postgres (Neon) et son f
 - Vérifier `HistoryService` si Postgres indisponible (service doit se désactiver proprement).
 
 ## 5. Documentation
-- Mettre à jour `docs/configuration.md` + `docs/deployment.md` + Memory Bank (decisionLog + progress) après toute modification structurelle.
+- Mettre à jour `docs/core/configuration.md` + `docs/core/deployment.md` + Memory Bank (decisionLog + progress) après toute modification structurelle.
 - Référencer les incidents dans `memory-bank/activeContext.md` si investigation en cours.

@@ -26,4 +26,4 @@
 - Si scheduler non démarré sous Gunicorn → vérifier `SERVER_SOFTWARE` et `FLASK_DEBUG`.
 
 ## Documentation
-- Reporter toute intervention dans `docs/scheduler.md` + Memory Bank (decisionLog/progress).
+- Reporter toute intervention dans `docs/architecture/scheduler.md` + Memory Bank (decisionLog/progress).

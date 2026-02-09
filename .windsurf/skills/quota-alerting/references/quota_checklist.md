@@ -35,5 +35,5 @@ python .windsurf/skills/quota-alerting/scripts/quota_snapshot.py
 ```
 
 ## Documentation
-- MAJ `docs/configuration.md` pour tout nouveau champ/ seuil.
+- MAJ `docs/core/configuration.md` pour tout nouveau champ/ seuil.
 - Journaliser dans Memory Bank (decisionLog + progress).

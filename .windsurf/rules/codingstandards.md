@@ -87,6 +87,9 @@ alwaysApply: true
 - Toute nouvelle page importe `_footer_nav.html` + `static/js/loaders.js`, fournit labels ARIA, et respecte les tokens glassmorphism (`theme.css`).
 - Pour les snippets complets (quota banner, loaders, tokens CSS), voir `templates/index.html`, `static/js/loaders.js`, `static/css/theme.css`.
 
+## Documentation Updates
+- Chaque fois que vous créez ou modifiez de la documentation (README, docs/, guides Markdown), vous **devez** appliquer la méthodologie définie dans `.windsurf/skills/documentation/SKILL.md` (TL;DR d'abord, ouverture orientée problème, blocs ❌/✅, tableaux de compromis, Golden Rule). Considérez ce fichier skill comme la checklist de référence avant toute rédaction.
+
 ## Testing & Quality
 - Commande canonique : `source /mnt/venv_ext4/venv_switchbot/bin/activate && python -m pytest` (≥85 %).
 - Cas critiques : bascule Postgres↔JsonStore, quotas API (429), cascade IFTTT, batch HistoryService + rendu Chart.js, résilience scheduler (`reschedule()` lorsque store indisponible).

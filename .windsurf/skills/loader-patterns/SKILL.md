@@ -32,5 +32,5 @@ Utiliser ce skill avant d’ajouter ou modifier un bouton/action afin de conserv
   - Accessibilité : `aria-busy="true"` appliqué sur root pendant chargement.
 
 ## 4. Documentation
-- Mettre à jour `docs/frontend-performance.md` quand un pattern change.
+- Mettre à jour `docs/ops/performance-tuning.md` quand un pattern change.
 - Noter dans Memory Bank si de nouveaux types de loader introduits.

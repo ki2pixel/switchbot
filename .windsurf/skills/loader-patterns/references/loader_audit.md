@@ -22,4 +22,4 @@ document.querySelectorAll('[data-loader]').forEach((el) => console.log(el));
 ```
 
 ## Documentation
-- Toute variation → mettre à jour `docs/frontend-performance.md` + Memory Bank (decisionLog).
+- Toute variation → mettre à jour `docs/ops/performance-tuning.md` + Memory Bank (decisionLog).

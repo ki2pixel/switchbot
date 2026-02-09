@@ -387,6 +387,14 @@ L'audit frontend mobile-first est **COMPLET AVEC SUCCÈS EXCELLENT**. Le SwitchB
 ## En cours
 - Aucune tâche active.
 
+[2026-02-09 12:24:00] - Mise à jour documentation adaptative polling
+
+- **Audit structurel** : Exécution des commandes `tree`, `cloc`, `radon cc` pour analyser l'état actuel du codebase (19 fichiers Python, 3358 lignes, complexité moyenne C).
+- **Triangulation documentation** : Analyse des docs existants vs code réel pour identifier les manques concernant le polling adaptatif.
+- **Mise à jour scheduler.md** : Ajout des détails d'implémentation adaptive polling avec modes (in-window, warmup, idle, fixed), auto-reschedule intelligent, et nouveaux patterns d'erreur.
+- **Mise à jour configuration.md** : Enrichissement de la section polling adaptatif avec comportements détaillés, validation UI, logs spécifiques et exemples concrets.
+- **Conformité documentation skill** : Application des checkpoints TL;DR, problème-first, ❌/✅, et Golden Rule pour garantir la qualité rédactionnelle.
+
 [2026-01-18 16:30:00] - Implémentation Phase 4 Optionnelle : Animations CSS Pures et Micro-Interactions
 - **Animations CSS pures** : Implémentation complète de micro-interactions GPU-optimisées avec transform/opacity uniquement
 - **Tokens micro-interactions** : Ajout de variables CSS (--sb-scale-*, --sb-translate-*) pour cohérence et maintenance

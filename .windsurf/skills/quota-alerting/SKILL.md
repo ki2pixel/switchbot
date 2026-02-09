@@ -20,7 +20,7 @@ Utiliser ce skill pour toute évolution du suivi de quota (backend + UI + tests)
    - S'assurer que `ApiQuotaTracker` met à jour local + headers `X-RateLimit-*`.
 2. **Seuils & configuration** :
    - Paramètre `api_quota_warning_threshold` dans `settings`; valider via `_as_int`.
-   - Ajouter doc dans `docs/configuration.md` si nouveau champ.
+   - Ajouter doc dans `docs/core/configuration.md` si nouveau champ.
 3. **Frontend** :
    - Bandeau conditionnel (classes `sb-alert`), accessible (`role="alert"`).
    - Afficher métadonnées : jour suivis, reset.
@@ -31,4 +31,4 @@ Utiliser ce skill pour toute évolution du suivi de quota (backend + UI + tests)
 ## 3. Bonnes pratiques
 - Jamais de "N/A" sur l’UI : fournir fallback textuel.
 - Logs `[quota]` pour chaque reset/alerte.
-- Documenter modifications dans Memory Bank et `docs/history-monitoring.md` si impact sur graphiques.
+- Documenter modifications dans Memory Bank et `docs/guides/monitoring-dashboard.md` si impact sur graphiques.

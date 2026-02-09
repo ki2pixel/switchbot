@@ -10,7 +10,7 @@ Utiliser ce skill pour vérifier/étendre les optimisations LCP/FID/CLS.
 ## 1. Préparer les outils
 - Scripts : Lighthouse (CLI), WebPageTest, ou Chrome DevTools.
 - Fichiers clés : `switchbot_dashboard/static/css/critical.css`, `switchbot_dashboard/static/js/advanced-optimizer.js`, `switchbot_dashboard/static/js/performance-optimizer.js`, `templates/index.html` (resource hints).
-- Docs : `docs/frontend-mobile-audit.md`, `docs/frontend-performance.md`.
+- Docs : `docs/guides/ui-navigation.md` (UX mobile), `docs/ops/performance-tuning.md` (optimisations back/front).
 
 ## 2. Workflow d’audit
 1. **Critical CSS** :
@@ -32,6 +32,6 @@ Utiliser ce skill pour vérifier/étendre les optimisations LCP/FID/CLS.
 - Comparer mobile (Moto G4) et desktop (Simulated).
 
 ## 4. Documentation & communication
-- Mettre à jour `docs/frontend-mobile-audit.md` (sections Phase 3–5).
+- Mettre à jour `docs/guides/ui-navigation.md` (UX) et `docs/ops/performance-tuning.md` (optimisations).
 - Ajouter les constats dans Memory Bank (decisionLog + progress) avec date + métriques.
 - Si régression détectée, ouvrir un ticket interne (TODO section progress) et planifier correctifs.
