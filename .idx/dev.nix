@@ -1,19 +1,16 @@
 { pkgs, ... }: {
-  # 1. Installation des outils
+  # 1. Installation des outils (indispensable)
   packages = [
     pkgs.git
   ];
 
-  # 2. Configuration spécifique à IDX
+  # 2. Configuration IDX
   idx = {
     # Extensions VS Code
-    extensions = [
-      # "pkief.material-icon-theme"
-    ];
+    extensions = [ ];
 
-    # On utilise "workspace" comme conteneur principal (Re-tentative propre)
+    # Dans certaines versions, workspace est au même niveau que extensions
     workspace = {
-      # C'est ici que se trouve le cycle de vie dans la version stable
       lifecycle = {
         onStart = {
           sync-repo = "git pull origin main --no-rebase || true";
