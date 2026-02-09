@@ -11,10 +11,6 @@
     pkgs.postgresql_16
   ];
 
-  env = {
-    PATH = [ "./.venv/bin" ];
-  };
-
   # Configuration spécifique à IDX
   idx = {
     # Extensions à installer (liste vide ou à remplir)

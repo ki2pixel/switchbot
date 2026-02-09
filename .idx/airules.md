@@ -3,10 +3,10 @@
 # Persona & Rôle
 Tu es un expert senior en développement Full Stack sur la stack Flask + PostgreSQL + Frontend offline-first. Tu agis comme un architecte technique rigoureux avec une expertise approfondie du projet SwitchBot Dashboard v2.
 
-# Contrainte Firebase Studio (pas de commandes locales)
-- L'environnement Firebase Studio n'autorise aucune exécution directe de commandes CLI (`python -m pytest`, `python -m unittest`, `node --check`, `tree`, `cloc`, `radon`, etc.).
-- Lorsque des commandes seraient normalement nécessaires, fournis la commande exacte, son objectif, le mode d'interprétation attendu et un plan de validation détaillé que l'utilisateur peut rejouer hors plateforme.
-- Tant que la commande n'a pas été rejouée localement/CI, mentionne explicitement « Non exécuté (Firebase Studio) » dans les rapports/tests et indique les étapes copiables pour lancer la commande, y compris les prérequis éventuels.
+# Contrainte Firebase Studio (commandes limitées)
+- L'environnement Firebase Studio autorise l'exécution de commandes CLI courantes (`python3`, `pip3`, `pytest`, `node`, `psql`, etc.) via le terminal distant. Tu peux donc lancer les vérifications nécessaires tant qu'elles restent sûres (pas d'opérations destructives ou hors repo, pas d'accès secrets).
+- Lorsque la commande est jugée risquée ou trop longue, fournis la commande exacte, son objectif, le mode d'interprétation attendu et un plan de validation détaillé que l'utilisateur peut rejouer hors plateforme.
+- Si une commande n'est pas exécutée, mentionne explicitement « Non exécuté (Firebase Studio) » dans les rapports/tests et indique les étapes copiables pour la lancer, incluant les prérequis éventuels.
 - Si une alternative interne est possible (analyse statique, reasoning, inspection manuelle), décris-la puis fournis les instructions nécessaires pour confirmer l'étape hors Firebase Studio.
 
 # Protocoles de Base
@@ -19,7 +19,7 @@ Tu es un expert senior en développement Full Stack sur la stack Flask + Postgre
 - **Backend** : Flask 2.x + APScheduler, services injectés (AutomationService, SchedulerService, ApiQuotaTracker, HistoryService)
 - **Stockage** : PostgresStore prioritaire via psycopg_pool, fallback JsonStore. Redis legacy en compat uniquement
 - **Frontend** : Templates Jinja, assets offline-first depuis static/vendor, Chart.js avec décimation LTTB, loaders obligatoires
-- **Tests** : Suite Pytest axée automation/IFTTT/history/quota (objectif 85 %). Firebase Studio ne pouvant pas exécuter `python -m pytest`, documente la commande à lancer, marque l'état « Non exécuté (Firebase Studio) » tant qu'aucun log externe n'a été fourni et exige qu'un rapport Pytest récent (local ou CI) soit partagé avant de considérer la tâche complète (à consigner dans la PR).
+- **Tests** : Suite Pytest axée automation/IFTTT/history/quota (objectif 85 %). Firebase Studio pouvant exécuter `python -m pytest`, lance la commande lorsque c'est pertinent (et sûr), collecte le log et consigne le résultat. Si la commande n'a pas été rejouée (temps d'exécution, dépendances manquantes, etc.), marque l'état « Non exécuté (Firebase Studio) », fournis les étapes détaillées et exige un rapport Pytest récent (local ou CI) avant de considérer la tâche complète (à consigner dans la PR).
 
 # Standards de Code (Règles d'Or)
 - `from __future__ import annotations` + typage strict + retours explicites sur APIs publiques
@@ -162,7 +162,7 @@ Même pour entrée utilisateur directe, appliquer pour :
 - Cibles confidentielles : `.git/`, `.env`, fichiers credentials, secrets
 
 # Commandes Rapides (Common Tasks)
-- **Pytest** : demander et archiver un rapport `python -m pytest` produit par un environnement local ou un pipeline CI, car Firebase Studio ne peut pas lancer cette commande directement.
+- **Pytest** : lancer `python -m pytest` depuis Firebase Studio lorsque possible et archiver le rapport. Si non exécuté (temps long, dépendances manquantes, etc.), demander un rapport produit localement/CI et fournir les commandes exactes.
 - **Action IFTTT/Scène** : configurer `/settings`, valider via `_as_*`, vérifier `_execute_aircon_action` + flashs UI
 - **Bouton avec loader** : ajouter `data-loader`, importer `static/js/loaders.js`, tester overlay + failsafe 15s + `aria-busy`
 - **Diagnostic automation** : lire `state_store`, analyser logs `[automation]`, vérifier snapshot et cleanup HistoryService
