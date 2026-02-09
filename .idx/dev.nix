@@ -1,21 +1,27 @@
 { pkgs, ... }: {
-  # 1. Installation des outils (indispensable)
+  # Packages à installer dans l'environnement
   packages = [
     pkgs.git
   ];
 
-  # 2. Configuration IDX
+  # Configuration spécifique à IDX
   idx = {
-    # Extensions VS Code
+    # Extensions à installer (liste vide ou à remplir)
     extensions = [ ];
 
-    # Dans certaines versions, workspace est au même niveau que extensions
+    # Configuration de l'espace de travail
     workspace = {
-      lifecycle = {
-        onStart = {
-          sync-repo = "git pull origin main --no-rebase || true";
-        };
+      # Commandes exécutées à chaque ouverture de l'espace
+      onStart = {
+        # Synchronisation Git
+        # On utilise une chaîne pour la commande
+        sync-repo = "git pull origin main --no-rebase || true";
       };
+    };
+
+    # Activation des aperçus
+    previews = {
+      enable = true;
     };
   };
 }
