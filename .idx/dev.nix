@@ -1,25 +1,26 @@
 { pkgs, ... }: {
-  # Les packages système
+  # Les packages système à installer
   packages = [
     pkgs.git
   ];
 
   # Configuration IDX
   idx = {
-    # Extensions VS Code
+    # Extensions VS Code à installer
     extensions = [
       # "pkief.material-icon-theme"
     ];
 
-    # Structure directe (sans 'workspace')
+    # On passe directement de 'idx' à 'lifecycle'
     lifecycle = {
-      # S'exécute à chaque démarrage
+      # S'exécute à chaque démarrage de l'espace de travail
       onStart = {
+        # Synchronisation sécurisée
         sync-repo = "git pull origin main --no-rebase || true";
       };
     };
 
-    # Configuration des aperçus
+    # Configuration des aperçus (Previews)
     previews = {
       enable = true;
       previews = {};
