@@ -1,6 +1,8 @@
 ---
-name: postgres-store-maintenance
 description: Guide pour maintenir PostgresStore (migrations, bascule JsonStore, validation pool psycopg) et scripts Neon.
+globs: 
+  - "**/*.{py,js,md}"
+alwaysApply: true
 ---
 
 # Maintenance PostgresStore
@@ -11,12 +13,12 @@ Utiliser ce skill pour toute opération sur le stockage Postgres (Neon) et son f
 - Lire `switchbot_dashboard/config_store.py` (classes PostgresStore, JsonStore).
 - Vérifier `.env` : `STORE_BACKEND=postgres`, `POSTGRES_URL`, `POSTGRES_SSL_MODE`.
 - Consulter `memory-bank/decisionLog.md` pour les derniers choix architecturaux.
-- Script santé : `scripts/store_health.py` pour inspecter settings/state stores (`python scripts/store_health.py`).
-- Référence incidents : `references/postgres_incident.md` (fallback, migration, corruption).
+- Script santé : `.windsurf/skills/postgres-store-maintenance/scripts/store_health.py` pour inspecter settings/state stores (`python .windsurf/skills/postgres-store-maintenance/scripts/store_health.py`).
+- Référence incidents : `.windsurf/skills/postgres-store-maintenance/references/postgres_incident.md` (fallback, migration, corruption).
 
 ## 2. Migrations / Scripts
-1. Lancer `scripts/migrate_to_postgres.py --dry-run` avant toute modification.
-2. Appliquer les scripts SQL (`scripts/create_history_table.sql`, etc.) via `psql` ou Neon console.
+1. Lancer `.windsurf/skills/postgres-store-maintenance/scripts/migrate_to_postgres.py --dry-run` avant toute modification.
+2. Appliquer les scripts SQL (`.windsurf/skills/postgres-store-maintenance/scripts/create_history_table.sql`, etc.) via `psql` ou Neon console.
 3. Après migration, tester lecture/écriture :
    ```python
    store = current_app.extensions["settings_store"]

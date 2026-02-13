@@ -1,5 +1,7 @@
 ---
+name: end
 description: Terminer la Session et Synchroniser la Memory Bank
+invokable: true
 ---
 
 ## Workflow `/end`
@@ -11,7 +13,7 @@ description: Terminer la Session et Synchroniser la Memory Bank
 3. **Analyse de la session**  
    - Passer en revue l'historique de la conversation (mémoire interne) et dresser la liste des décisions/progrès à synchroniser.
 4. **Mise à jour des fichiers**  
-   - Employer `edit`/`multi_edit` ou `write_to_file` selon le besoin pour consigner :  
+   - Employer `edit`/`multi_edit` (via `apply_patch`) ou `write_to_file` selon le besoin pour consigner :  
      - Nouvelles entrées dans `progress.md` (section "Terminé" + remise à "Aucune tâche active").  
      - Ajustements dans `activeContext.md` (retour à l'état neutre).  
      - Toute décision ou information pertinente dans les autres fichiers de la Memory Bank.  

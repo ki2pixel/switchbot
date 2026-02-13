@@ -1,9 +1,7 @@
 ---
+name: docs-updater
 description: Docs Updater (Context-Aware with Code Verification)
----
-
----
-description: Docs Updater (Standard Tools: Cloc/Radon + Quality Context)
+invokable: true
 ---
 
 # Workflow: Docs Updater — Standardized & Metric-Driven
@@ -74,8 +72,13 @@ Générer un plan de modification avant d'appliquer :
 ## Étape 5 — Application et Finalisation
 1.  **Exécution** : Après validation, utiliser `edit` ou `multi_edit`.
 2.  **Mode Rédaction — documentation/SKILL.md** :
-    - Charger immédiatement `.windsurf/skills/documentation/SKILL.md`.
+    - Charger immédiatement `.continue/rules/documentation.md`.
     - Appliquer les checkpoints obligatoires du skill (TL;DR, ouverture orientée problème, comparaison ❌/✅, tableau de trade-offs si pertinent, Golden Rule, vérification ponctuation) avant toute rédaction.
-    - Tracer la conformité dans vos commits/PR : `Guidé par documentation/SKILL.md — sections: TLDR, Problem-first, Comparaison, Trade-offs, Golden Rule`.
+    - Tracer la conformité dans vos commits/PR : `Guidé par documentation.md — sections: TLDR, Problem-first, Comparaison, Trade-offs, Golden Rule`.
 3.  **Mise à jour Memory Bank** :
-    - Si des règles métier cachées (hardcoded) sont trouvées dans `automation.py`, les extraire ou les documenter dans `systemPatterns.md`.
+    - Si des règles métier cachées (hardcoded) sont trouvées dans `automation.py`, les extraire ou les documenter dans `systemPatterns.md`.  
+    - Employer `edit`/`multi_edit` ou `write_to_file` selon le besoin pour consigner :  
+      - Nouvelles entrées dans `progress.md` (section "Terminé" + remise à "Aucune tâche active").  
+      - Ajustements dans `activeContext.md` (retour à l'état neutre).  
+      - Toute décision ou information pertinente dans les autres fichiers de la Memory Bank.  
+    - Utiliser `mcp1_advanced-search` si nécessaire pour vérifier la présence d'anciennes entrées et éviter les doublons.

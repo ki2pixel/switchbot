@@ -1,6 +1,8 @@
 ---
-name: automation-diagnostics
 description: Runbook de diagnostic pour AutomationService (fenêtres horaires, hysteresis, off-repeat, timezone) et état state_store.
+globs: 
+  - "**/*.{py,js,md}"
+alwaysApply: true
 ---
 
 # Diagnostic AutomationService
@@ -19,9 +21,9 @@ Utiliser ce skill pour comprendre pourquoi l'automatisation n'agit pas comme pr�
 5. **Cascade actions** : logs `[automation]` indiquant webhook/scene/fallback.
 
 ## 3. Outils recommandés
-- `scripts/state_snapshot.py` : capture `settings` + `state` en JSON offline.
+- `.windsurf/skills/automation-diagnostics/scripts/state_snapshot.py` : capture `settings` + `state` en JSON offline.
   ```bash
-  python scripts/state_snapshot.py > debug/state_snapshot.json
+  python .windsurf/skills/automation-diagnostics/scripts/state_snapshot.py > debug/state_snapshot.json
   ```
 - `flask shell` :
   ```python

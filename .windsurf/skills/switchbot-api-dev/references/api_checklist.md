@@ -26,7 +26,7 @@
 ## Outils
 ```bash
 # Prévisualiser les headers sans appeler l'API
-python .windsurf/skills/switchbot-api-dev/scripts/preview_headers.py
+python scripts/preview_headers.py
 ```
 
 ## Documentation/Sécurité

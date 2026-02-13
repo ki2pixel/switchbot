@@ -4,7 +4,7 @@
 1. `POSTGRES_URL` défini, SSL `POSTGRES_SSL_MODE` (require par défaut).
 2. Lancer l'inspecteur :
    ```bash
-   python .windsurf/skills/postgres-store-maintenance/scripts/store_health.py > debug/store_health.json
+   python scripts/store_health.py > debug/store_health.json
    ```
 3. Vérifier logs `[store]` pour bascule éventuelle.
 

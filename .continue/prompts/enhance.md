@@ -1,9 +1,7 @@
 ---
+name: enhance
 description: Améliorer un Prompt avec le Contexte du Projet, Techniques Avancées et Skills Spécialisés
----
-
----
-description: Améliorer un Prompt avec le Contexte du Projet, Techniques Avancées et Skills Spécialisés
+invokable: true
 ---
 
 ### `/enhance` — Optimisation Avancée de Prompt
@@ -11,12 +9,12 @@ description: Améliorer un Prompt avec le Contexte du Projet, Techniques Avancé
    - Lire la requête brute de l'utilisateur.
    - Charger le contexte global via `mcp0_read_text_file` sur les fichiers de la Memory Bank (`activeContext.md`, `progress.md`, `systemPatterns.md`, etc.).
    - **Détection de Skill** : Analyser la nature de la tâche :
-     - Si **Debugging** (bug, crash, erreur, performance) : Charger immédiatement `.windsurf/skills/debugging-strategies/SKILL.md`.
-     - Si **Architecture** : Identifier le sous-domaine concerné et charger les SKILL workspace pertinents (`.windsurf/skills/scheduler-ops/SKILL.md` pour SchedulerService, `.windsurf/skills/postgres-store-maintenance/SKILL.md` pour les stores/DB, `.windsurf/skills/switchbot-api-dev/SKILL.md` pour l'API/HMAC, `.windsurf/skills/performance-audit-runbook/SKILL.md` pour les architectures performance). Mentionner explicitement les SKILL consultés dans le prompt.
-     - Si **Feature** : Charger `.windsurf/skills/add-feature/SKILL.md` puis compléter avec les SKILL métier associés (ex. `history-dashboard-updater`, `quota-alerting`, `loader-patterns`, `ifttt-cascade`, `automation-diagnostics`) selon la fonctionnalité visée. Lister ces SKILL dans le prompt final.
+     - Si **Debugging** (bug, crash, erreur, performance) : Charger immédiatement `.continue/rules/debugging-strategies.md`.
+     - Si **Architecture** : Identifier le sous-domaine concerné et charger les SKILL workspace pertinents (`.continue/rules/scheduler-ops.md` pour SchedulerService, `.continue/rules/postgres-store-maintenance.md` pour les stores/DB, `.continue/rules/switchbot-api-dev.md` pour l'API/HMAC, `.continue/rules/performance-audit-runbook.md` pour les architectures performance). Mentionner explicitement les SKILL consultés dans le prompt.
+     - Si **Feature** : Charger `.continue/rules/add-feature.md` puis compléter avec les SKILL métier associés (ex. `history-dashboard-updater`, `quota-alerting`, `loader-patterns`, `ifttt-cascade`, `automation-diagnostics`) selon la fonctionnalité visée. Lister ces SKILL dans le prompt final.
 
 2. **Recherche Active de Documentation**
-   - Identifier les règles spécifiques au projet via `mcp1_search` dans `docs/` et `.windsurf/rules/codingstandards.md`.
+   - Identifier les règles spécifiques au projet via `code_search` dans `docs/` et `.continue/rules/codingstandards.md`.
    - Utiliser `mcp0_read_text_file` sur les documents pertinents trouvés.
    - Si mode **Debugging** activé : Vérifier via `mcp1_advanced-search` si les outils mentionnés dans le Skill (ex: configurations de log, profileurs) sont déjà présents dans le code source pour les inclure dans le contexte.
 

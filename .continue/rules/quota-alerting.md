@@ -1,6 +1,8 @@
 ---
-name: quota-alerting
 description: Runbook pour ajuster le suivi et les alertes de quota SwitchBot (ApiQuotaTracker, bandeau UI, tests BeautifulSoup).
+globs: 
+  - "**/*.{py,js,md}"
+alwaysApply: true
 ---
 
 # Gestion des quotas API
@@ -11,8 +13,8 @@ Utiliser ce skill pour toute évolution du suivi de quota (backend + UI + tests)
 - Backend : `switchbot_dashboard/quota.py`, usages dans `automation.py` et `routes.py` (`_build_quota_context`).
 - UI : `templates/index.html` (bandeau), `switchbot_dashboard/static/css/theme.css` (styles), `switchbot_dashboard/static/js/loaders.js` pour loaders POST.
 - Tests : `tests/test_dashboard_routes.py` (scénarios quota), `tests/test_quota.py` si existant.
-- Script snapshot : `scripts/quota_snapshot.py` pour rafraîchir l'état (`python scripts/quota_snapshot.py`).
-- Checklist : `references/quota_checklist.md` (backend/UI/tests).
+- Script snapshot : `.windsurf/skills/quota-alerting/scripts/quota_snapshot.py` pour rafraîchir l'état (`python .windsurf/skills/quota-alerting/scripts/quota_snapshot.py`).
+- Checklist : `.windsurf/skills/quota-alerting/references/quota_checklist.md` (backend/UI/tests).
 
 ## 2. Workflow
 1. **Backends** :

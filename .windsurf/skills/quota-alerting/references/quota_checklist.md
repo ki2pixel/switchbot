@@ -31,7 +31,7 @@
 
 ## Commandes utiles
 ```bash
-python .windsurf/skills/quota-alerting/scripts/quota_snapshot.py
+python scripts/quota_snapshot.py
 ```
 
 ## Documentation

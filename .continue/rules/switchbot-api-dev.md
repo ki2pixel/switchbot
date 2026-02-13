@@ -1,6 +1,8 @@
 ---
-name: switchbot-api-dev
 description: Guide pour ajouter de nouvelles commandes ou endpoints à l'API SwitchBot (v1.1) en respectant l'authentification HMAC et les quotas.
+globs: 
+  - "**/*.{py,js,md}"
+alwaysApply: true
 ---
 
 # Développement API SwitchBot
@@ -33,8 +35,8 @@ client = current_app.extensions["switchbot_client"]
 ```
 
 ## Ressources
-- Script headers : `scripts/preview_headers.py` (prévisualiser HMAC sans requête).
-- Checklist : `references/api_checklist.md` (workflow ajouts commandes/tests).
+- Script headers : `.windsurf/skills/switchbot-api-dev/scripts/preview_headers.py` (prévisualiser HMAC sans requête).
+- Checklist : `.windsurf/skills/switchbot-api-dev/references/api_checklist.md` (workflow ajouts commandes/tests).
 
 ## Ajouter une nouvelle commande
 Pour ajouter une commande (ex: humidifier, aspirateur) :

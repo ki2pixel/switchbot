@@ -1,6 +1,8 @@
 ---
-name: add-feature
 description: Workflow complet pour ajouter une nouvelle fonctionnalité (Backend + Frontend) au Dashboard SwitchBot.
+globs: 
+  - "**/*.{py,js,md}"
+alwaysApply: true
 ---
 
 # Ajouter une fonctionnalité au Dashboard SwitchBot
@@ -9,7 +11,7 @@ Ce workflow assure la cohérence entre le backend Flask, le stockage PostgreSQL 
 
 ## Checklist d'implémentation
 
-> Ressource détaillée : consulter `references/feature_playbook.md` pour matrices Backend/Frontend, snippets et validations complètes.
+> Ressource détaillée : consulter `.windsurf/skills/add-feature/references/feature_playbook.md` pour matrices Backend/Frontend, snippets et validations complètes.
 
 ### 1. Backend (Service Layer)
 - Si logique métier complexe : Ajouter dans `automation.py` ou créer un nouveau service
@@ -36,7 +38,7 @@ Ce workflow assure la cohérence entre le backend Flask, le stockage PostgreSQL 
 - **CDNs interdits** : Bootstrap, Chart.js, FontAwesome et polices (Space Grotesk) doivent être servis depuis `switchbot_dashboard/static/vendor/`
 
 ## Ressources complémentaires
-- `references/feature_playbook.md` : playbook backend/routes/UI, matrices de tests, snippets de service.
+- `.windsurf/skills/add-feature/references/feature_playbook.md` : playbook backend/routes/UI, matrices de tests, snippets de service.
 
 ## Exemple de Route conforme
 ```python

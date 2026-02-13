@@ -1,6 +1,8 @@
 ---
-name: ifttt-cascade
 description: Runbook pour orchestrer la cascade IFTTT → Scènes → Commandes directes (validation HTTPS, fallback, tests).
+globs: 
+  - "**/*.{py,js,md}"
+alwaysApply: true
 ---
 
 # Cascade IFTTT / Scènes / Commandes
@@ -28,7 +30,7 @@ Déclencher ce skill pour configurer ou étendre les actions climatisation.
 - Unitaires : `tests/test_ifttt.py`, sections cascade dans `tests/test_automation_service.py`.
 - Manuels : déclencher chaque action (winter/summer/fan/off) via UI ou `flask shell`.
 - Edge cases : webhook 500, scène inexistante, absence `aircon_device_id`.
-- Référence : `references/webhook_test_matrix.md` pour scénarios webhook/scènes/commandes.
+- Référence : `.windsurf/skills/ifttt-cascade/references/webhook_test_matrix.md` pour scénarios webhook/scènes/commandes.
 
 ## 4. Bonnes pratiques
 - Les webhooks doivent répondre < 4 s ; configurer timeouts dans `IFTTTWebhookClient`.

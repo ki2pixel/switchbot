@@ -4,7 +4,7 @@
 - Variable `SCHEDULER_ENABLED` définie ? (true/false)
 - Commande d’inspection :
   ```bash
-  python .windsurf/skills/scheduler-ops/scripts/scheduler_snapshot.py > debug/scheduler.json
+  python scripts/scheduler_snapshot.py > debug/scheduler.json
   ```
 - Endpoint `/healthz` accessible.
 

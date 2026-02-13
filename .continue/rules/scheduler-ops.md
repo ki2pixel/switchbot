@@ -1,6 +1,8 @@
 ---
-name: scheduler-ops
 description: Runbook SchedulerService (start/stop/reschedule) avec APScheduler, détection Gunicorn vs flask run et healthchecks.
+globs: 
+  - "**/*.{py,js,md}"
+alwaysApply: true
 ---
 
 # Pilotage SchedulerService
@@ -15,8 +17,8 @@ Déclencher ce skill pour manipuler APScheduler en toute sécurité.
   scheduler.is_running()
   ```
 - Consulter `/healthz` pour confirmer `last_tick_at`.
-- Script diagnostic : `scripts/scheduler_snapshot.py` → `python scripts/scheduler_snapshot.py > debug/scheduler.json`.
-- Checklist détaillée : `references/scheduler_checklist.md` (reschedule, pause, restart, incidents).
+- Script diagnostic : `.windsurf/skills/scheduler-ops/scripts/scheduler_snapshot.py` → `python .windsurf/skills/scheduler-ops/scripts/scheduler_snapshot.py > debug/scheduler.json`.
+- Checklist détaillée : `.windsurf/skills/scheduler-ops/references/scheduler_checklist.md` (reschedule, pause, restart, incidents).
 
 ## 2. Opérations courantes
 1. **Reschedule** : appeler `scheduler.reschedule(poll_interval_seconds)` après modification des réglages; gérer `StoreError` éventuels.
@@ -31,4 +33,4 @@ Déclencher ce skill pour manipuler APScheduler en toute sécurité.
 ## 4. Bonnes pratiques
 - Jamais de `BackgroundScheduler` multiple : `WEB_CONCURRENCY=1`, `gunicorn.conf.py` (1 worker, 2 threads).
 - Après une erreur Postgres, attendre 3 échecs consécutifs avant fallback JsonStore; consigner dans Memory Bank.
-- Toute modification durable doit être notée dans `docs/architecture/scheduler.md` + Memory Bank decisionLog.
+- Toute modification durable doit être notée dans `docs/architecture/scheduler.md` + Memory Bank decisionLog. 
