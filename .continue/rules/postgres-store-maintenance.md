@@ -1,8 +1,9 @@
 ---
 description: Guide pour maintenir PostgresStore (migrations, bascule JsonStore, validation pool psycopg) et scripts Neon.
 globs: 
-  - "**/*.{py,js,md}"
-alwaysApply: true
+  - "**/config_store.py"
+  - "**/models.py"
+alwaysApply: false
 ---
 
 # Maintenance PostgresStore

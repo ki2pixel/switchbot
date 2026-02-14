@@ -12,7 +12,7 @@ description: Docs Updater (Standard Tools: Cloc/Radon + Quality Context)
 
 ## 🚨 Protocoles Critiques
 1.  **Outils autorisés** : L'usage de `run_command` est **strictement limité** aux commandes d'audit : `tree`, `cloc`, `radon`, `ls`.
-2.  **Contexte** : Charger la Memory Bank (`productContext.md`, `systemPatterns.md`, `activeContext`, `progress.md`) via `read_file` avant toute action.
+2.  **Contexte** : Charger la Memory Bank (`productContext.md`, `systemPatterns.md`, `activeContext`, `progress.md`) via `mcp0_read_text_file` avant toute action.
 3.  **Source de Vérité** : Le Code (analysé par outils) > La Documentation existante > La Mémoire.
 
 ## Étape 1 — Audit Structurel et Métrique
@@ -34,9 +34,9 @@ Comparer les sources pour détecter les incohérences :
 
 | Source | Rôle | Outil |
 | :--- | :--- | :--- |
-| **Intention** | Le "Pourquoi" | `read_file` (Memory Bank) |
-| **Réalité** | Le "Quoi" & "Comment" | `radon` (complexité), `cloc` (volume), `code_search` |
-| **Existant** | L'état actuel | `find_by_name` (sur `docs/core` ou `docs/guides`), `read_file` |
+| **Intention** | Le "Pourquoi" | `mcp0_read_text_file` (Memory Bank) |
+| **Réalité** | Le "Quoi" & "Comment" | `radon` (complexité), `cloc` (volume), `mcp1_search` |
+| **Existant** | L'état actuel | `mcp0_search_files` (sur `docs/core` ou `docs/guides`), `mcp0_read_text_file` |
 
 **Action** : Identifier les divergences. Ex: "Le script `migrate_to_postgres.py` existe, mais la doc `docs/core/deployment.md` le marque comme 'à faire'."
 
@@ -70,12 +70,11 @@ Générer un plan de modification avant d'appliquer :
   ```markdown
   [Explication du mécanisme de backoff exponentiel]
   ```
-```
 
 ## Étape 5 — Application et Finalisation
-1.  **Exécution** : Après validation, utiliser `apply_patch`.
+1.  **Exécution** : Après validation, utiliser `edit` ou `multi_edit`.
 2.  **Mode Rédaction — documentation/SKILL.md** :
-    - Charger immédiatement `.sixthskills/documentation/SKILL.md`.
+    - Charger immédiatement `.windsurf/skills/documentation/SKILL.md`.
     - Appliquer les checkpoints obligatoires du skill (TL;DR, ouverture orientée problème, comparaison ❌/✅, tableau de trade-offs si pertinent, Golden Rule, vérification ponctuation) avant toute rédaction.
     - Tracer la conformité dans vos commits/PR : `Guidé par documentation/SKILL.md — sections: TLDR, Problem-first, Comparaison, Trade-offs, Golden Rule`.
 3.  **Mise à jour Memory Bank** :

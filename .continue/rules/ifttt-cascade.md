@@ -1,8 +1,9 @@
 ---
 description: Runbook pour orchestrer la cascade IFTTT → Scènes → Commandes directes (validation HTTPS, fallback, tests).
 globs: 
-  - "**/*.{py,js,md}"
-alwaysApply: true
+  - "**/ifttt.py"
+  - "**/automation.py"
+alwaysApply: false
 ---
 
 # Cascade IFTTT / Scènes / Commandes

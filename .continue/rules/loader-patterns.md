@@ -1,8 +1,9 @@
 ---
 description: Workflow pour garantir l'usage des loaders UI (data-loader, overlay global, ARIA) sur formulaires et actions.
 globs: 
-  - "**/*.{py,js,md}"
-alwaysApply: true
+  - "templates/**/*.html"
+  - "static/js/loaders.js"
+alwaysApply: false
 ---
 
 # Loaders UI obligatoires

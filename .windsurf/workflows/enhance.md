@@ -1,44 +1,68 @@
 ---
-description: Améliorer un Prompt avec le Contexte du Projet, Techniques Avancées et Skills Spécialisés
+description: Analyse la demande, charge les Skills techniques appropriés et génère un Mega-Prompt optimisé pour le SwitchBot Dashboard.
 ---
 
+# Rôle : Architecte de Prompt & Stratège Technique
+
+**OBJECTIF UNIQUE :** Tu ne dois **PAS RÉPONDRE** à la question de l'utilisateur. Tu dois **CONSTRUIRE UN PROMPT AMÉLIORÉ** (Mega-Prompt) qui contient tout le contexte technique nécessaire pour qu'une nouvelle instance d'IA puisse exécuter la tâche parfaitement sur le projet SwitchBot Dashboard.
+
+## Protocole d'Exécution
+
+### PHASE 1 : Analyse & Chargement du Contexte (CRITIQUE)
+
+1.  **Analyse l'intention** de la demande brute (ci-dessous).
+2.  **Charge la Mémoire** : Lis impérativement `memory-bank/activeContext.md` et `memory-bank/progress.md` en utilisant `read_file`.
+3.  **Active les "Skills" (Règles)** : Selon les mots-clés détectés, utilise tes outils (`read_file`) pour charger le contenu des règles spécifiques (qui sont désactivées par défaut) :
+
+    *   **Si DEBUGGING / ERREUR / CRASH :**
+        *   Lis `.windsurf/skills/debugging-strategies/SKILL.md` en utilisant `read_file`.
+        *   Cherche les logs récents dans les fichiers d'historique en utilisant `search`.
+
+    *   **Si ARCHITECTURE / NOUVEAU SERVICE :**
+        *   Lis `.windsurf/skills/scheduler-ops/SKILL.md` pour SchedulerService en utilisant `read_file`.
+        *   Lis `.windsurf/skills/postgres-store-maintenance/SKILL.md` pour les stores/DB en utilisant `read_file`.
+        *   Lis `.windsurf/skills/switchbot-api-dev/SKILL.md` pour l'API/HMAC en utilisant `read_file`.
+        *   Lis `.windsurf/skills/performance-audit-runbook/SKILL.md` pour les architectures performance en utilisant `read_file`.
+
+    *   **Si FEATURES SPÉCIFIQUES (Ciblez le fichier précis) :**
+        *   *Automation / Schedule / Tick* → Lis `.windsurf/skills/automation-diagnostics/SKILL.md` en utilisant `read_file`
+        *   *History / Charts* → Lis `.windsurf/skills/history-dashboard-updater/SKILL.md` en utilisant `read_file`
+        *   *API / Quota / HMAC* → Lis `.windsurf/skills/switchbot-api-dev/SKILL.md` en utilisant `read_file`
+        *   *Quota / Alerting* → Lis `.windsurf/skills/quota-alerting/SKILL.md` en utilisant `read_file`
+        *   *Frontend / UI / Loader* → Lis `.windsurf/skills/loader-patterns/SKILL.md` en utilisant `read_file`
+        *   *IFTTT / Scènes* → Lis `.windsurf/skills/ifttt-cascade/SKILL.md` en utilisant `read_file`
+        *   *Nouvelles Features* → Lis `.windsurf/skills/add-feature/SKILL.md` en utilisant `read_file`
+
+### PHASE 2 : Génération du Mega-Prompt
+
+Une fois les fichiers ci-dessus lus et analysés, génère un **bloc de code Markdown** contenant le prompt final. Ne mets rien d'autre.
+
+**Structure du Prompt à générer :**
+
+```markdown
+# Rôle
+[Définis le rôle expert selon le contexte SwitchBot (ex: Expert Python Backend Flask & SwitchBot API, Expert Frontend Chart.js & Loaders...)]
+
+# Contexte du Projet (Chargé via Skills)
+[Résumé des points clés trouvés dans les fichiers .windsurf/skills/ que tu as lus]
+[État actuel tiré du memory-bank pour le SwitchBot Dashboard]
+
+# Standards à Respecter
+[Rappel bref des codingstandards.md si pertinent pour la tâche du SwitchBot Dashboard]
+[Standards spécifiques au SwitchBot : Service Injection, Store Discipline, Input Validation, etc.]
+
+# Tâche à Exécuter
+[Reformulation précise et technique de la demande utilisateur pour le contexte SwitchBot]
+[Étapes logiques suggérées adaptées aux patterns du projet]
+
+# Contraintes
+- [Liste des contraintes techniques du SwitchBot Dashboard (ex: API SwitchBot v1.1, quotas, stores Postgres/JsonStore, timezone IANA, etc.)]
+- Respecter l'architecture Service Injection uniquement
+- Utiliser les stores appropriés (PostgresStore prioritaire, JsonStore fallback)
+- Validation input via _as_bool/_as_int/_as_float
+```
+
 ---
-description: Améliorer un Prompt avec le Contexte du Projet, Techniques Avancées et Skills Spécialisés
----
 
-### `/enhance` — Optimisation Avancée de Prompt
-1. **Analyse Contextuelle & Détection d'Intention**
-   - Lire la requête brute de l'utilisateur.
-   - Charger le contexte global via `mcp0_read_text_file` sur les fichiers de la Memory Bank (`activeContext.md`, `progress.md`, `systemPatterns.md`, etc.).
-   - **Détection de Skill** : Analyser la nature de la tâche :
-     - Si **Debugging** (bug, crash, erreur, performance) : Charger immédiatement `.windsurf/skills/debugging-strategies/SKILL.md`.
-     - Si **Architecture** : Identifier le sous-domaine concerné et charger les SKILL workspace pertinents (`.windsurf/skills/scheduler-ops/SKILL.md` pour SchedulerService, `.windsurf/skills/postgres-store-maintenance/SKILL.md` pour les stores/DB, `.windsurf/skills/switchbot-api-dev/SKILL.md` pour l'API/HMAC, `.windsurf/skills/performance-audit-runbook/SKILL.md` pour les architectures performance). Mentionner explicitement les SKILL consultés dans le prompt.
-     - Si **Feature** : Charger `.windsurf/skills/add-feature/SKILL.md` puis compléter avec les SKILL métier associés (ex. `history-dashboard-updater`, `quota-alerting`, `loader-patterns`, `ifttt-cascade`, `automation-diagnostics`) selon la fonctionnalité visée. Lister ces SKILL dans le prompt final.
-
-2. **Recherche Active de Documentation**
-   - Identifier les règles spécifiques au projet via `mcp1_search` dans `docs/` et `.windsurf/rules/codingstandards.md`.
-   - Utiliser `mcp0_read_text_file` sur les documents pertinents trouvés.
-   - Si mode **Debugging** activé : Vérifier via `mcp1_advanced-search` si les outils mentionnés dans le Skill (ex: configurations de log, profileurs) sont déjà présents dans le code source pour les inclure dans le contexte.
-
-3. **Synthèse et Rédaction Structurée (Prompt Engineering)**
-   - Compiler les informations en un "Mega-Prompt".
-   - **Si mode Debugging détecté**, forcer la structure suivante basée sur le Skill :
-     - **Rôle** : "Expert Debugging & Root Cause Analysis".
-     - **Méthodologie** : Imposer les phases du Skill (1. Reproduire, 2. Collecter, 3. Hypothèse, 4. Test).
-     - **Checklist** : Inclure les points de vérification spécifiques au langage détecté (issus du fichier Skill).
-   - **Si mode Standard** :
-     - **Persona** : Définir le rôle exact (ex: "Expert Senior React" ou "Architecte Système").
-     - **Contexte Projet** : Injecter explicitement les règles trouvées en étape 2 (Standards, Tech Stack).
-     - **Chain-of-Thought (CoT)** : Si la tâche est complexe, instruire l'IA de "penser étape par étape" avant de coder.
-     - **Format de Sortie** : Imposer un format strict (ex: XML tags, JSON, ou Markdown structuré) comme suggéré dans les modèles "Claude/GPT Optimized".
-     - **Constitutional AI** : Ajouter une contrainte de vérification (sécurité, pas de régression, respect des types).
-   
-   - **Action** : Proposer *uniquement* le prompt amélioré sous forme de bloc de code.
-
-4. **Validation et Exécution**
-   - Demander confirmation à l'utilisateur ("Voulez-vous exécuter ce prompt ?").
-   - Une fois validé :
-     - Exécuter le prompt.
-     - Si Debugging : Appliquer rigoureusement la méthode scientifique (ne pas proposer de fix sans avoir isolé la cause).
-     - Utiliser systématiquement les outils (`mcp0_read_text_file`, `edit`/`multi_edit`, `run_command`) pour réaliser la tâche.
-     - Vérifier la qualité du résultat final par rapport aux critères définis dans le prompt amélioré.
+## DEMANDE UTILISATEUR ORIGINALE :
+{{{ input }}}

@@ -1,8 +1,9 @@
 ---
 description: Runbook SchedulerService (start/stop/reschedule) avec APScheduler, détection Gunicorn vs flask run et healthchecks.
 globs: 
-  - "**/*.{py,js,md}"
-alwaysApply: true
+  - "**/scheduler_service.py"
+  - "**/scheduler.py"
+alwaysApply: false
 ---
 
 # Pilotage SchedulerService

@@ -1,8 +1,6 @@
 ---
 description: Workflow complet pour ajouter une nouvelle fonctionnalité (Backend + Frontend) au Dashboard SwitchBot.
-globs: 
-  - "**/*.{py,js,md}"
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Ajouter une fonctionnalité au Dashboard SwitchBot

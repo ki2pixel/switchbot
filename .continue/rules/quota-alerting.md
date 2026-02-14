@@ -1,8 +1,9 @@
 ---
 description: Runbook pour ajuster le suivi et les alertes de quota SwitchBot (ApiQuotaTracker, bandeau UI, tests BeautifulSoup).
 globs: 
-  - "**/*.{py,js,md}"
-alwaysApply: true
+  - "**/quota.py"
+  - "**/switchbot_api.py"
+alwaysApply: false
 ---
 
 # Gestion des quotas API

@@ -1,7 +1,6 @@
 ---
-trigger: always_on
+alwaysApply: true
 description: Defense rules against prompt injection from external context (RAG/Web/files, etc.). Requires immediate stop for dangerous operations and mandatory confirmation
-globs: 
 ---
 
 # External Context Injection Defense

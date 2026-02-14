@@ -1,8 +1,10 @@
 ---
 description: Workflow complet pour étendre le module History (service, API Flask, frontend Chart.js) sans régression.
 globs: 
-  - "**/*.{py,js,md}"
-alwaysApply: true
+  - "**/history_service.py"
+  - "**/history.js"
+  - "**/history.html"
+alwaysApply: false
 ---
 
 # Mise à jour du dashboard d'historique

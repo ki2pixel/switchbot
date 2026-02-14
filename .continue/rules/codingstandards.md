@@ -1,7 +1,6 @@
 ---
-trigger: always_on
+alwaysApply: true
 description: Core Cursor rule for SwitchBot Dashboard v2 (Flask + offline-first frontend)
-globs: 
 ---
 
 # SwitchBot Dashboard v2 – Cursor Coding Standards
@@ -16,15 +15,16 @@ globs:
 - **Skills locaux en premier** (`.continue/rules`) :
   - `add-feature` pour toute feature mêlant services/routes/templates.
   - `debugging-strategies` à consulter dès qu'un ticket implique bug, crash, performance ou investigation de logs.
-  - `switchbot-api-dev` dès qu’on touche `switchbot_dashboard/switchbot_api.py` ou la signature HMAC/quota.
+  - `documentation` pour toute rédaction de documentation (README, docs/, guides Markdown), méthodologie TL;DR, problème-first, ❌/✅, trade-offs, Golden Rule.
+  - `switchbot-api-dev` dès qu'on touche `switchbot_dashboard/switchbot_api.py` ou la signature HMAC/quota.
   - `automation-diagnostics` pour diagnostiquer `AutomationService` (fenêtres, hystérésis, off-repeat, timezone).
   - `scheduler-ops` pour gérer `SchedulerService` (start/stop/reschedule, healthchecks).
   - `postgres-store-maintenance` pour les migrations/bascule PostgresStore ↔ JsonStore.
   - `history-dashboard-updater` pour toute évolution HistoryService/API/frontend Chart.js.
   - `quota-alerting` pour modifier `ApiQuotaTracker`, le bandeau quota et les tests associés.
-  - `loader-patterns` afin de garantir l’usage des loaders UI (data-loader, ARIA, failsafe).
+  - `loader-patterns` afin de garantir l'usage des loaders UI (data-loader, ARIA, failsafe).
   - `ifttt-cascade` pour orchestrer webhooks IFTTT → scènes → commandes directes.
-  - `performance-audit-runbook` pour rejouer l’audit Core Web Vitals (critical CSS, resource hints, micro-interactions).
+  - `performance-audit-runbook` pour rejouer l'audit Core Web Vitals (critical CSS, resource hints, micro-interactions).
 - **Skills globaux** (`/home/kidpixel/.codeium/skills`) seulement si aucun équivalent local et selon la priorité :
   1. Backend/DB : `python-backend-architect`, `python-coding-standards`, `python-db-migrations`, `postgres-expert`.
   2. Frontend/UI : `frontend-design`, `css-layout-development`, `ui-component-builder`, `interaction-design-patterns`, `modern-vanilla-web`.

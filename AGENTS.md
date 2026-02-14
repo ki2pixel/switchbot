@@ -31,6 +31,10 @@ When dealing with specific tasks, you **MUST** consult the specialized runbooks 
 | **Automation / Schedule / Tick** | `.sixthskills/automation-diagnostics/SKILL.md` | Time windows, hysteresis, off-repeat logic |
 | **Frontend / UI / Loader** | `.sixthskills/loader-patterns/SKILL.md` | `data-loader`, `loaders.js`, ARIA attributes |
 | **History / Charts** | `.sixthskills/history-dashboard-updater/SKILL.md` | LTTB decimation, batch flush, Chart.js config |
+| **Quota Alerting** | `.sixthskills/quota-alerting/SKILL.md` | ApiQuotaTracker, quota banner, BeautifulSoup tests |
+| **IFTTT Cascade** | `.sixthskills/ifttt-cascade/SKILL.md` | Orchestrate webhooks IFTTT → scenes → commands |
+| **Scheduler Ops** | `.sixthskills/scheduler-ops/SKILL.md` | Start/stop/reschedule, healthchecks |
+| **Documentation** | `.sixthskills/documentation/SKILL.md` | README guidelines, punctuation rules |
 
 ### Global Skills Fallback (when no local skill matches)
 
@@ -265,10 +269,20 @@ curl http://localhost:5000/healthz
 - **Storage Discipline**: `PostgresStore` (Neon) is mandatory. `JsonStore` is allowed solely as emergency fallback when Postgres is unavailable.
 - **Input Validation**: Always funnel user input through `_as_bool`, `_as_int`, `_as_float`. Direct `request.form` access is forbidden.
 
+- **Scheduler & Services**: Services injectés uniques dans `create_app()` (stores, clients, scheduler, automation). Aucun accès direct aux fichiers/clients depuis les blueprints. SchedulerService respecte `SCHEDULER_ENABLED`, évite le reloader Flask (`SERVER_SOFTWARE`), et `scheduler_service.reschedule()` doit suivre toute mutation (fenêtres horaires, `poll_interval_seconds`, bascule store). Tout nouveau service doit être ajouté à `app.extensions` avec clé stable + docstring courte pour guider les blueprints.
+
+- **History & Quota Tracking**: HistoryService uniquement lorsque `settings_store` est PostgreSQL ; logguer les erreurs sans faire tomber l'app. Chaque tick enregistre l'état et nettoie les entrées >6h; quotas API suivis autour de chaque requête.
+
 ### 2. Frontend & UX (Offline-First)
 - **Zero CDN Policy**: Serve Bootstrap, Chart.js, Font Awesome, fonts, and utilities from `switchbot_dashboard/static/vendor/`.
 - **Loader Pattern**: Every POST/form/link triggering actions must include `data-loader` to activate the 15 s failsafe overlay handled by `static/js/loaders.js`.
 - **CSS Hygiene**: No inline styles (outside critical CSS). Persist styles in `static/css/theme.css` or dedicated stylesheets.
+
+- **Graphiques**: Chart.js + décimation LTTB, hauteur mobile ≈180 px, resize géré via `static/js/history.js` (observer + decimation).
+
+- **Bottom Navigation**: Sticky, icônes seules sur mobile, page `actions.html` pour regrouper triggers.
+
+- **Tokens Glassmorphism**: Respecter les tokens dans `theme.css` pour composants (cartes, formulaires, alertes). Snippets complets : voir `templates/index.html`, `static/js/loaders.js`, `static/css/theme.css`.
 
 ### 3. Automation Logic
 - **Hysteresis Enforcement**: Respect `settings["hysteresis_celsius"]` to prevent oscillation.
@@ -429,6 +443,16 @@ tail -f app.log | grep "\[automation\]"
 tail -f app.log | grep "\[scheduler\]"
 tail -f app.log | grep "\[postgres\]"
 ```
+
+## Common Tasks
+
+- **Pytest** : `source /mnt/venv_ext4/venv_switchbot/bin/activate && python -m pytest`, viser ≥85 % (voir `docs/testing.md`).
+
+- **Action IFTTT/Scène** : configurer `/settings`, valider via `_as_*`, déployer, vérifier `_execute_aircon_action` + flashs UI.
+
+- **Bouton avec loader** : ajouter `data-loader`, importer `static/js/loaders.js`, tester overlay + failsafe 15 s + `aria-busy`.
+
+- **Diagnostic automation** : lire `state_store`, analyser logs `[automation]`, vérifier snapshot et cleanup HistoryService si Postgres actif.
 
 ---
 

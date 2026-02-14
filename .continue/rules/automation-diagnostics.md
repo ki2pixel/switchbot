@@ -1,8 +1,6 @@
 ---
 description: Runbook de diagnostic pour AutomationService (fenêtres horaires, hysteresis, off-repeat, timezone) et état state_store.
-globs: 
-  - "**/*.{py,js,md}"
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Diagnostic AutomationService

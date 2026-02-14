@@ -62,5 +62,5 @@ git push -u origin "$BRANCH"
 
 ## Notes
 
-- Follow the commit message format and message generation principles in `.sixthrules/08-commit-message-format.md`.
+- Follow commit message format and message generation principles in `.windsurf/rules/commit-message-format.md`.
 - Recommended to run `git status` or `git diff` to review diffs before execution.

@@ -1,8 +1,8 @@
 ---
 description: Guide pour ajouter de nouvelles commandes ou endpoints à l'API SwitchBot (v1.1) en respectant l'authentification HMAC et les quotas.
 globs: 
-  - "**/*.{py,js,md}"
-alwaysApply: true
+  - "**/switchbot_api.py"
+alwaysApply: false
 ---
 
 # Développement API SwitchBot

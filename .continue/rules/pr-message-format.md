@@ -1,7 +1,6 @@
 ---
-trigger: model_decision
 description: Applied when creating Pull Requests. Format rules for Prefix + English summary + structured body (overview, changes, test content)
-globs:
+alwaysApply: false
 ---
 
 # PR Message Format Rules

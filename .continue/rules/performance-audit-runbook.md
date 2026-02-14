@@ -1,8 +1,6 @@
 ---
 description: Guide pour rejouer l’audit Core Web Vitals (critical CSS, resource hints, micro-interactions) et valider les métriques.
-globs: 
-  - "**/*.{py,js,md}"
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Runbook Audit Performance
