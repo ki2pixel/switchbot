@@ -1,6 +1,7 @@
 ---
-alwaysApply: true
+name: prompt-injection-guard
 description: Defense rules against prompt injection from external context (RAG/Web/files, etc.). Requires immediate stop for dangerous operations and mandatory confirmation
+alwaysApply: true
 ---
 
 # External Context Injection Defense

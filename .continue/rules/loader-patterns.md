@@ -1,4 +1,5 @@
 ---
+name: loader-patterns
 description: Workflow pour garantir l'usage des loaders UI (data-loader, overlay global, ARIA) sur formulaires et actions.
 globs: 
   - "templates/**/*.html"

@@ -1,6 +1,7 @@
 ---
-alwaysApply: true
+name: codingstandards
 description: Core Cursor rule for SwitchBot Dashboard v2 (Flask + offline-first frontend)
+alwaysApply: true
 ---
 
 # SwitchBot Dashboard v2 – Cursor Coding Standards
@@ -25,6 +26,9 @@ description: Core Cursor rule for SwitchBot Dashboard v2 (Flask + offline-first 
   - `loader-patterns` afin de garantir l'usage des loaders UI (data-loader, ARIA, failsafe).
   - `ifttt-cascade` pour orchestrer webhooks IFTTT → scènes → commandes directes.
   - `performance-audit-runbook` pour rejouer l'audit Core Web Vitals (critical CSS, resource hints, micro-interactions).
+  - `render-service-manager` pour les opérations Render.com (déploiement, cron jobs, monitoring, variables d'environnement).
+  - `postgres-ops-manager` pour les opérations PostgreSQL avancées (analyse santé, indexes, requêtes sécurisées, exploration schémas).
+  - `render-postgres-integration` pour l'orchestration Render + PostgreSQL (migrations, backups, monitoring intégré).
 - **Skills globaux** (`/home/kidpixel/.codeium/skills`) seulement si aucun équivalent local et selon la priorité :
   1. Backend/DB : `python-backend-architect`, `python-coding-standards`, `python-db-migrations`, `postgres-expert`.
   2. Frontend/UI : `frontend-design`, `css-layout-development`, `ui-component-builder`, `interaction-design-patterns`, `modern-vanilla-web`.

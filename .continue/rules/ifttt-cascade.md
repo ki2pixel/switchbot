@@ -1,4 +1,5 @@
 ---
+name: ifttt-cascade
 description: Runbook pour orchestrer la cascade IFTTT → Scènes → Commandes directes (validation HTTPS, fallback, tests).
 globs: 
   - "**/ifttt.py"

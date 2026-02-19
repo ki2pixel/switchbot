@@ -1,4 +1,5 @@
 ---
+name: switchbot-api-dev
 description: Guide pour ajouter de nouvelles commandes ou endpoints à l'API SwitchBot (v1.1) en respectant l'authentification HMAC et les quotas.
 globs: 
   - "**/switchbot_api.py"

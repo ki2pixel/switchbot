@@ -1,4 +1,5 @@
 ---
+name: performance-audit-runbook
 description: Guide pour rejouer l’audit Core Web Vitals (critical CSS, resource hints, micro-interactions) et valider les métriques.
 alwaysApply: false
 ---

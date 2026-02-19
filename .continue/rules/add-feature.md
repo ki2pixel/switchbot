@@ -1,4 +1,5 @@
 ---
+name: add-feature
 description: Workflow complet pour ajouter une nouvelle fonctionnalité (Backend + Frontend) au Dashboard SwitchBot.
 alwaysApply: false
 ---

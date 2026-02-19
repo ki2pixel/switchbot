@@ -1,4 +1,5 @@
 ---
+name: quota-alerting
 description: Runbook pour ajuster le suivi et les alertes de quota SwitchBot (ApiQuotaTracker, bandeau UI, tests BeautifulSoup).
 globs: 
   - "**/quota.py"

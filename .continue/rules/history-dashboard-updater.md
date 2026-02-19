@@ -1,4 +1,5 @@
 ---
+name: history-dashboard-updater
 description: Workflow complet pour étendre le module History (service, API Flask, frontend Chart.js) sans régression.
 globs: 
   - "**/history_service.py"
