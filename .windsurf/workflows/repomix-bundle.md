@@ -27,10 +27,10 @@ Créer un bundle optimisé du codebase pour analyse par LLMs externes (Claude, C
 ---
 
 ## Priority of Tools (The "Pull" Hierarchy)
-- **Priority 1**: Use `mcp0_fast_read_file` from fast-filesystem MCP server.
+- **Priority 1**: Use `fast_read_file` from fast-filesystem MCP server.
 - **Priority 2 (Fallback)**: If fast-filesystem server not detected, use `ripgrep` to search in `./memory-bank/` and `filesystem` to read found files.
 - **Prohibition**: Never load more than one file at a time.
 
 ## Technical Lockdown
-- Utilisez les outils fast-filesystem (mcp0_fast_*) pour accéder aux fichiers memory-bank avec des chemins absolus.
+- Utilisez les outils fast-filesystem (fast_*) pour accéder aux fichiers memory-bank avec des chemins absolus.
 - Windsurf is now in 'Token-Saver' mode. Minimize context usage by using tools instead of pre-loading.

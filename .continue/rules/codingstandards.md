@@ -44,6 +44,12 @@ alwaysApply: true
 - Les commentaires expliquent le *pourquoi* ; supprimer immédiatement le code mort/commenté.
 - Nommage descriptif (`meter_device_id`, `assumed_aircon_power`).
 
+## Security
+- **XSS Prevention** : Éviter `innerHTML` pour l'injection de contenu dynamique. Utiliser `textContent`, `createElement()`, ou des bibliothèques de templating sécurisées.
+- **Input Validation** : Valider toutes les entrées utilisateur côté serveur avec les fonctions `_as_*`.
+- **Secrets Management** : Jamais de clés API ou mots de passe en dur. Utiliser exclusivement les variables d'environnement.
+- **HTTPS Only** : Toutes les URLs de webhooks doivent être HTTPS (validé dans `ifttt.py`).
+
 ## Project Structure (rappel)
 | Zone | Rôle |
 | --- | --- |

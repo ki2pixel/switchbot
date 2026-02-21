@@ -50,6 +50,12 @@ alwaysApply: true
 - Les commentaires expliquent le *pourquoi* ; supprimer immédiatement le code mort/commenté.
 - Nommage descriptif (`meter_device_id`, `assumed_aircon_power`).
 
+## Security
+- **XSS Prevention** : Éviter `innerHTML` pour l'injection de contenu dynamique. Utiliser `textContent`, `createElement()`, ou des bibliothèques de templating sécurisées.
+- **Input Validation** : Valider toutes les entrées utilisateur côté serveur avec les fonctions `_as_*`.
+- **Secrets Management** : Jamais de clés API ou mots de passe en dur. Utiliser exclusivement les variables d'environnement.
+- **HTTPS Only** : Toutes les URLs de webhooks doivent être HTTPS (validé dans `ifttt.py`).
+
 ## Project Structure (rappel)
 | Zone | Rôle |
 | --- | --- |
@@ -105,6 +111,11 @@ alwaysApply: true
 2. POST/actions sans loaders → régression UX.
 3. Dépendances CDN → viole l’offline-first.
 4. Commandes de scène sans cascade complète (webhook → scène → direct) → perte de quota/observabilité.
+
+## Error Handling
+- **Logging Obligatoire** : Jamais d'exceptions silencieuses (`except Exception: pass`). Toujours logger les erreurs avec contexte.
+- **Gestion Défensive** : Attraper les exceptions spécifiques plutôt que `Exception` général, mais logger toujours.
+- **Fail-Safe UX** : En cas d'erreur API, retourner des données vides plutôt que planter l'interface (pattern appliqué dans les routes history).
 
 ## Common Tasks
 - **Pytest** : `source /mnt/venv_ext4/venv_switchbot/bin/activate && python -m pytest`, viser ≥85 % (voir `docs/testing.md`).

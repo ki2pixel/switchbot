@@ -10,7 +10,7 @@ Utiliser ce skill pour toute opération sur le stockage Postgres (Neon) et son f
 ## 1. Préparation
 - Lire `switchbot_dashboard/config_store.py` (classes PostgresStore, JsonStore).
 - Vérifier `.env` : `STORE_BACKEND=postgres`, `POSTGRES_URL`, `POSTGRES_SSL_MODE`.
-- Consulter `decisionLog.md` via `mcp0_fast_read_file(path="/absolute/path/to/decisionLog.md")` pour les derniers choix architecturaux.
+- Consulter `decisionLog.md` via `fast_read_file(path="/absolute/path/to/decisionLog.md")` pour les derniers choix architecturaux.
 - Script santé : `scripts/store_health.py` pour inspecter settings/state stores (`python scripts/store_health.py`).
 - Référence incidents : `references/postgres_incident.md` (fallback, migration, corruption).
 
@@ -37,4 +37,4 @@ Utiliser ce skill pour toute opération sur le stockage Postgres (Neon) et son f
 
 ## 5. Documentation
 - Mettre à jour `docs/core/configuration.md` + `docs/core/deployment.md` + Memory Bank (decisionLog + progress) après toute modification structurelle.
-- Référencer les incidents dans `activeContext.md` via `mcp0_fast_edit_block(path="/absolute/path/to/activeContext.md")` si investigation en cours.
+- Référencer les incidents dans `activeContext.md` via `fast_edit_block(path="/absolute/path/to/activeContext.md")` si investigation en cours.

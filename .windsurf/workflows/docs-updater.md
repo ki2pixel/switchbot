@@ -8,39 +8,45 @@ description: Docs Updater (Context-Aware with Code Verification)
 
 ## 🚨 Protocoles Critiques
 1.  **Outils autorisés** : L'usage de `run_command` est **strictement limité** aux commandes d'audit : `tree`, `cloc`, `radon`, `ls`.
-2.  **Contexte** : Initialiser le contexte en appelant l'outil `mcp0_fast_read_file` du serveur fast-filesystem pour lire UNIQUEMENT `activeContext.md`. Ne lire les autres fichiers de la Memory Bank que si une divergence majeure est détectée lors du diagnostic.
+2.  **Contexte** : Initialiser le contexte en appelant l'outil `fast_read_file` du serveur fast-filesystem pour lire UNIQUEMENT `activeContext.md`. Ne lire les autres fichiers de la Memory Bank que si une divergence majeure est détectée lors du diagnostic.
 3.  **Source de Vérité** : Le Code (analysé par outils) > La Documentation existante > La Mémoire.
 4.  **Priority of Tools (The "Pull" Hierarchy)**:
-- **Priority 1**: Use `mcp0_fast_read_file` from fast-filesystem MCP server.
+- **Priority 1**: Use `fast_read_file` from fast-filesystem MCP server.
 - **Priority 2 (Fallback)**: If fast-filesystem server not detected, use `ripgrep` to search in `./memory-bank/` and `filesystem` to read found files.
 - **Prohibition**: Never load more than one file at a time.
 
-**Important:** Utilisez les outils fast-filesystem (mcp0_fast_*) pour accéder aux fichiers memory-bank avec des chemins absolus.
+**Important:** Utilisez les outils fast-filesystem (fast_*) pour accéder aux fichiers memory-bank avec des chemins absolus.
 
 Windsurf is now in 'Token-Saver' mode. Minimize context usage by using tools instead of pre-loading.
 
 ## Étape 1 — Audit Structurel et Métrique
-Lancer les commandes suivantes configurées pour **ignorer le template HTML massif** (`sticky_mobile_template`) et se concentrer sur l'automatisation Python.
+Lancer les commandes suivantes configurées pour **ignorer le template HTML massif** (`sticky_mobile_template`) et se concentrer sur l'automatisation Python, avec extension pour couvrir les parties plus larges et répertoires potentiellement manqués.
 
 1.  **Cartographie (Filtre Template UI)** :
-    - `run_command "tree -L 2 -I '__pycache__|venv|node_modules|.git|sticky_mobile_template|debug|docs|memory-bank'"`
-    - *But* : Visualiser clairement l'app Flask (`switchbot_dashboard`) et les scripts de migration DB sans voir les 400 fichiers HTML du thème.
-2.  **Volumétrie (Code Métier)** :
-    - `run_command "cloc . --exclude-dir=sticky_mobile_template,tests,docs,venv,debug,memory-bank --exclude-ext=json,sql --md"`
-    - *But* : Quantifier le backend Python.
+    - `run_command "tree -L 3 -I '__pycache__|venv|node_modules|.git|sticky_mobile_template|debug|docs|memory-bank'"`
+    - *But* : Visualiser clairement l'app Flask (`switchbot_dashboard`) et les scripts de migration DB sans voir les 400 fichiers HTML du thème, avec profondeur accrue pour détecter les sous-répertoires.
+2.  **Volumétrie Étendue (Scripts et Configurations)** :
+    - `run_command "cloc . --exclude-dir=sticky_mobile_template,tests,docs,venv,debug,memory-bank,.continue,.windsurf --include-ext=py,sh,sql --md"`
+    - *But* : Quantifier le backend Python, scripts shell et SQL, en incluant les répertoires de configuration potentiellement manqués.
 3.  **Complexité Cyclomatique (IoT Core)** :
     - `run_command "radon cc switchbot_dashboard app.py scripts -a -nc"`
-    - *But* : Identifier les points de fragilité.
+    - *But* : Identifier les points de fragilité dans les modules principaux.
     - **Cibles probables** : `switchbot_dashboard/automation.py` et `switchbot_api.py` (gestion des retries/quotas API) sont souvent complexes.
+4.  **Analyse de Dépendances et Imports** :
+    - `run_command "grep -r '^import|^from' --include='*.py' . --exclude-dir=venv,__pycache__,node_modules,.git,sticky_mobile_template,tests,docs,memory-bank | head -50"`
+    - *But* : Détecter les scripts isolés ou manqués via leurs imports, focalisant sur les modules non couverts par l'audit initial.
+5.  **Complexité Cyclomatique Élargie** :
+    - `run_command "radon cc . --exclude-dir=venv,__pycache__,node_modules,.git,sticky_mobile_template,tests,docs,memory-bank,.continue,.windsurf -a -nc"`
+    - *But* : Scanner tous les répertoires Python pour identifier les points de fragilité dans les scripts de déploiement, configuration ou automation manqués.
 
 ## Étape 2 — Diagnostic Triangulé
 Comparer les sources pour détecter les incohérences :
 
 | Source | Rôle | Outil |
 | :--- | :--- | :--- |
-| **Intention** | Le "Pourquoi" | `mcp0_fast_read_file (via fast-filesystem)` |
-| **Réalité** | Le "Quoi" & "Comment" | `radon` (complexité), `cloc` (volume), `mcp1_search` |
-| **Existant** | L'état actuel | `mcp0_search_files` (sur `docs/core` ou `docs/guides`), `mcp0_read_text_file` |
+| **Intention** | Le "Pourquoi" | `fast_read_file (via fast-filesystem)` |
+| **Réalité** | Le "Quoi" & "Comment" | `radon` (complexité), `cloc` (volume), `search` |
+| **Existant** | L'état actuel | `fast_search_files` (sur `docs/core` ou `docs/guides`), `fast_read_text_file` |
 
 **Action** : Identifier les divergences. Ex: "Le script `migrate_to_postgres.py` existe, mais la doc `docs/core/deployment.md` le marque comme 'à faire'."
 
@@ -73,7 +79,7 @@ Générer un plan de modification avant d'appliquer :
 - **Correction** :
   ```markdown
   [Explication du mécanisme de backoff exponentiel]
-  ```
+```
 
 ## Étape 5 — Application et Finalisation
 1.  **Exécution** : Après validation, utiliser `edit` ou `multi_edit`.
@@ -82,11 +88,11 @@ Générer un plan de modification avant d'appliquer :
     - Appliquer les checkpoints obligatoires du skill (TL;DR, ouverture orientée problème, comparaison ❌/✅, tableau de trade-offs si pertinent, Golden Rule, vérification ponctuation) avant toute rédaction.
     - Tracer la conformité dans vos commits/PR : `Guidé par documentation/SKILL.md — sections: TLDR, Problem-first, Comparaison, Trade-offs, Golden Rule`.
 3.  **Mise à jour Memory Bank** :
-    - Mettre à jour la Memory Bank en utilisant EXCLUSIVEMENT l'outil `mcp0_fast_edit_block` du serveur fast-filesystem. Utilisez des chemins absolus.
+    - Mettre à jour la Memory Bank en utilisant EXCLUSIVEMENT l'outil `fast_edit_block` du serveur fast-filesystem. Utilisez des chemins absolus.
     - Si des règles métier cachées (hardcoded) sont trouvées dans `automation.py`, les extraire ou les documenter dans `systemPatterns.md`.
 
 ---
 
 ## Technical Lockdown
-- Utilisez les outils fast-filesystem (mcp0_fast_*) pour accéder aux fichiers memory-bank avec des chemins absolus.
+- Utilisez les outils fast-filesystem (fast_*) pour accéder aux fichiers memory-bank avec des chemins absolus.
 - Windsurf is now in 'Token-Saver' mode. Minimize context usage by using tools instead of pre-loading.
