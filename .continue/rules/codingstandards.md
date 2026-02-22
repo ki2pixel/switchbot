@@ -29,6 +29,10 @@ alwaysApply: true
   - `render-service-manager` pour les opérations Render.com (déploiement, cron jobs, monitoring, variables d'environnement).
   - `postgres-ops-manager` pour les opérations PostgreSQL avancées (analyse santé, indexes, requêtes sécurisées, exploration schémas).
   - `render-postgres-integration` pour l'orchestration Render + PostgreSQL (migrations, backups, monitoring intégré).
+  - `shrimp-task-manager` pour les opérations Shrimp Task Manager (planification, roadmapping, complexité).
+  - `json-query-expert` pour les opérations JSON Query (manipulation, transformation, validation).
+  - `fast-filesystem-ops` pour les opérations Fast Filesystem (lecture, écriture, suppression, renommage).
+  - `sequentialthinking-logic` pour les opérations Sequential Thinking (analyse, planification, complexité).
 - **Skills globaux** (`/home/kidpixel/.codeium/skills`) seulement si aucun équivalent local et selon la priorité :
   1. Backend/DB : `python-backend-architect`, `python-coding-standards`, `python-db-migrations`, `postgres-expert`.
   2. Frontend/UI : `frontend-design`, `css-layout-development`, `ui-component-builder`, `interaction-design-patterns`, `modern-vanilla-web`.

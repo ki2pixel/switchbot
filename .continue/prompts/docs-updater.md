@@ -18,20 +18,20 @@ invokable: true
 Lancer les commandes suivantes configurées pour **ignorer le template HTML massif** (`sticky_mobile_template`) et se concentrer sur l'automatisation Python, avec extension pour couvrir les parties plus larges et répertoires potentiellement manqués.
 
 1.  **Cartographie (Filtre Template UI)** :
-    - `run_command "tree -L 3 -I '__pycache__|venv|node_modules|.git|sticky_mobile_template|debug|docs|memory-bank'"`
+    - `run_command "tree -L 3 -I '__pycache__|venv|node_modules|.git|sticky_mobile_template|debug|docs|memory-bank|.shrimp_task_manager'"`
     - *But* : Visualiser clairement l'app Flask (`switchbot_dashboard`) et les scripts de migration DB sans voir les 400 fichiers HTML du thème, avec profondeur accrue pour détecter les sous-répertoires.
 2.  **Volumétrie Étendue (Scripts et Configurations)** :
-    - `run_command "cloc . --exclude-dir=sticky_mobile_template,tests,docs,venv,debug,memory-bank,.continue,.windsurf --include-ext=py,sh,sql --md"`
+    - `run_command "cloc . --exclude-dir=sticky_mobile_template,tests,docs,venv,debug,memory-bank,.continue,.windsurf,.shrimp_task_manager --include-ext=py,sh,sql --md"`
     - *But* : Quantifier le backend Python, scripts shell et SQL, en incluant les répertoires de configuration potentiellement manqués.
 3.  **Complexité Cyclomatique (IoT Core)** :
     - `run_command "radon cc switchbot_dashboard app.py scripts -a -nc"`
     - *But* : Identifier les points de fragilité dans les modules principaux.
     - **Cibles probables** : `switchbot_dashboard/automation.py` et `switchbot_api.py` (gestion des retries/quotas API) sont souvent complexes.
 4.  **Analyse de Dépendances et Imports** :
-    - `run_command "grep -r '^import|^from' --include='*.py' . --exclude-dir=venv,__pycache__,node_modules,.git,sticky_mobile_template,tests,docs,memory-bank | head -50"`
+    - `run_command "grep -r '^import|^from' --include='*.py' . --exclude-dir=venv,__pycache__,node_modules,.git,sticky_mobile_template,tests,docs,memory-bank,.shrimp_task_manager | head -50"`
     - *But* : Détecter les scripts isolés ou manqués via leurs imports, focalisant sur les modules non couverts par l'audit initial.
 5.  **Complexité Cyclomatique Élargie** :
-    - `run_command "radon cc . --exclude-dir=venv,__pycache__,node_modules,.git,sticky_mobile_template,tests,docs,memory-bank,.continue,.windsurf -a -nc"`
+    - `run_command "radon cc . --exclude-dir=venv,__pycache__,node_modules,.git,sticky_mobile_template,tests,docs,memory-bank,.continue,.windsurf,.shrimp_task_manager -a -nc"`
     - *But* : Scanner tous les répertoires Python pour identifier les points de fragilité dans les scripts de déploiement, configuration ou automation manqués.
 
 ## Étape 2 — Diagnostic Triangulé

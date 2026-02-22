@@ -2,7 +2,7 @@
 name: skills-integration
 description: Skills integration system for automatic detection and loading
 globs: ["**/*.md"]
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Continue Skills Integration System
@@ -16,17 +16,19 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### Task Management Patterns (Priority 1)
 **Déclencheurs**: `tâche`, `task`, `backlog`, `planification`, `roadmap`
 
-**Action**: Charger `.continue/rules/task-master-manager.md`
+**Action**: Charger `fast_read_file(".continue/rules/shrimp-task-manager.md")`
 
 **Outils obligatoires**:
-- `task-master parse-prd` pour analyser et diviser le projet
-- `task-master analyze-complexity` pour évaluer la complexité
-- `task-master next` pour obtenir la prochaine tâche
+- `plan_task` pour la planification structurée
+- `analyze_task` pour l'analyse de complexité technique
+- `split_tasks` pour la décomposition en sous-tâches
+- `execute_task` pour l'exécution guidée
+- `verify_task` pour la validation par scoring
 
 ### Sequential Thinking Patterns (Priority 1)
 **Déclencheurs**: `réflexion`, `think`, `logique`, `architecture`, `analyser`
 
-**Action**: Charger `.continue/rules/sequentialthinking-logic.md`
+**Action**: Charger `fast_read_file(".continue/rules/sequentialthinking-logic.md")`
 
 **Outils obligatoires**:
 - `sequentialthinking_tools` pour valider la logique Background/Content Script
@@ -36,7 +38,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### Fast Filesystem Patterns (Priority 2)
 **Déclencheurs**: `gros fichier`, `massive file`, `chirurgical`, `edit block`
 
-**Action**: Charger `.continue/rules/fast-filesystem-ops.md`
+**Action**: Charger `fast_read_file(".continue/rules/fast-filesystem-ops.md")`
 
 **Outils obligatoires**:
 - `fast_edit_block` pour préserver les tokens
@@ -46,7 +48,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### JSON Query Patterns (Priority 2)
 **Déclencheurs**: `json`, `path`, `structure`, `inspect`, `valeur`, `clé`
 
-**Action**: Charger `.continue/rules/json-query-expert.md`
+**Action**: Charger `fast_read_file(".continue/rules/json-query-expert.md")`
 
 **Stratégie "Sniper"**:
 - Ne jamais charger un fichier > 1000 lignes
@@ -56,7 +58,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### Debugging & Investigation Patterns
 **Déclencheurs**: `bug`, `crash`, `erreur`, `error`, `performance`, `lent`, `slow`, `unexpected`, `weird`, `investigate`, `debug`
 
-**Action**: Charger `.continue/rules/debugging-strategies.md`
+**Action**: Charger `fast_read_file(".continue/rules/debugging-strategies.md")`
 
 **Méthodologie imposée**:
 1. **Reproduce** - Isoler et reproduire le problème
@@ -68,7 +70,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### Feature Development Patterns
 **Déclencheurs**: `feature`, `add`, `implement`, `create`, `new functionality`, `develop`, `build`
 
-**Action**: Charger `.continue/rules/add-feature.md`
+**Action**: Charger `fast_read_file(".continue/rules/add-feature.md")`
 
 **Workflow imposé**:
 1. **Analysis** - Analyser les besoins et impacts
@@ -80,7 +82,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### Performance & Optimization Patterns
 **Déclencheurs**: `performance`, `optimization`, `optimize`, `profiling`, `slow`, `bottleneck`, `improve speed`
 
-**Action**: Charger `.continue/rules/performance-audit-runbook.md`
+**Action**: Charger `fast_read_file(".continue/rules/performance-audit-runbook.md")`
 
 **Audit obligatoire**:
 - Core Web Vitals (LCP, FID, CLS)
@@ -92,7 +94,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### Automation Service Patterns
 **Déclencheurs**: `automation`, `scheduler`, `windows`, `time windows`, `hysteresis`, `cooldown`, `tick`, `run_once`
 
-**Action**: Charger `.continue/rules/automation-diagnostics.md`
+**Action**: Charger `fast_read_file(".continue/rules/automation-diagnostics.md")`
 
 **Diagnostics ciblés**:
 - État des fenêtres horaires
@@ -104,7 +106,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### API Development Patterns
 **Déclencheurs**: `api`, `switchbot api`, ` HMAC`, `quota`, `rate limiting`, `endpoint`, `webhook`
 
-**Action**: Charger `.continue/rules/switchbot-api-dev.md`
+**Action**: Charger `fast_read_file(".continue/rules/switchbot-api-dev.md")`
 
 **Vérifications obligatoires**:
 - Signature HMAC et authentification
@@ -116,7 +118,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### Database Operations Patterns
 **Déclencheurs**: `postgres`, `database`, `migration`, `store`, `schema`, `sql`, `pool`, `connection`
 
-**Action**: Charger `.continue/rules/postgres-store-maintenance.md`
+**Action**: Charger `fast_read_file(".continue/rules/postgres-store-maintenance.md")`
 
 **Maintenance requise**:
 - État du pool psycopg
@@ -128,7 +130,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### History & Dashboard Patterns
 **Déclencheurs**: `history`, `chart`, `dashboard`, `graph`, `visualization`, `Chart.js`, `LTTB`
 
-**Action**: Charger `.continue/rules/history-dashboard-updater.md`
+**Action**: Charger `fast_read_file(".continue/rules/history-dashboard-updater.md")`
 
 **Spécifications**:
 - Décimation LTTB pour les graphiques
@@ -140,7 +142,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### Quota Management Patterns
 **Déclencheurs**: `quota`, `tracking`, `alerting`, `bandeau`, `API limit`, `rate limit`
 
-**Action**: Charger `.continue/rules/quota-alerting.md`
+**Action**: Charger `fast_read_file(".continue/rules/quota-alerting.md")`
 
 **Implémentation requise**:
 - ApiQuotaTracker integration
@@ -152,7 +154,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### UI Loaders Patterns
 **Déclencheurs**: `loader`, `data-loader`, `overlay`, `aria`, `UX`, `loading`, `spinner`
 
-**Action**: Charger `.continue/rules/loader-patterns.md`
+**Action**: Charger `fast_read_file(".continue/rules/loader-patterns.md")`
 
 **Standards obligatoires**:
 - `data-loader` attributs
@@ -164,7 +166,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### IFTTT Integration Patterns
 **Déclencheurs**: `IFTTT`, `webhook`, `cascade`, `scene`, `trigger`, `automation flow`
 
-**Action**: Charger `.continue/rules/ifttt-cascade.md`
+**Action**: Charger `fast_read_file(".continue/rules/ifttt-cascade.md")`
 
 **Cascade obligatoire**:
 - Extract IFTTT webhooks
@@ -176,7 +178,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### Scheduler Operations Patterns
 **Déclencheurs**: `scheduler`, `start`, `stop`, `reschedule`, `healthcheck`, `APScheduler`
 
-**Action**: Charger `.continue/rules/scheduler-ops.md`
+**Action**: Charger `fast_read_file(".continue/rules/scheduler-ops.md")`
 
 **Opérations supportées**:
 - Démarrage/arrêt propre
@@ -188,7 +190,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### Documentation Patterns
 **Déclencheurs**: `documentation`, `docs`, `README`, `guide`, `markdown`, `writing`
 
-**Action**: Charger `.continue/rules/documentation.md`
+**Action**: Charger `fast_read_file(".continue/rules/documentation.md")`
 
 **Checkpoints obligatoires**:
 - TL;DR d'abord
@@ -201,7 +203,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### Render Service Management Patterns
 **Déclencheurs**: `render`, `deploy`, `cron`, `web service`, `static site`, `key value`, `environment variables`, `monitoring`, `metrics`, `logs`
 
-**Action**: Charger `.windsurf/skills/render-service-manager/SKILL.md`
+**Action**: Charger `fast_read_file(".continue/rules/render-service-manager.md")`
 
 **Gestion complète**:
 - Déploiement de services web/statiques/cron
@@ -213,7 +215,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### PostgreSQL Operations Patterns
 **Déclencheurs**: `postgres ops`, `analyze health`, `indexes`, `sql queries`, `database optimization`, `explain`, `top queries`, `workload analysis`
 
-**Action**: Charger `.windsurf/skills/postgres-ops-manager/SKILL.md`
+**Action**: Charger `fast_read_file(".continue/rules/postgres-store-maintenance.md")`
 
 **Opérations avancées**:
 - Analyse santé base de données (index, connexions, vacuum)
@@ -225,7 +227,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### Render-PostgreSQL Integration Patterns
 **Déclencheurs**: `render postgres`, `migration environment`, `backup coordination`, `disaster recovery`, `zero downtime`, `blue green`, `cross environment`
 
-**Action**: Charger `.windsurf/skills/render-postgres-integration/SKILL.md`
+**Action**: Charger `fast_read_file(".continue/rules/postgres-store-maintenance.md")`
 
 **Orchestration complète**:
 - Migrations base entre environnements
@@ -239,7 +241,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 ### Automatic Detection
 1. **Analyser la requête utilisateur** pour les patterns ci-dessus
 2. **Identifier le skill principal** (priorité aux patterns les plus spécifiques)
-3. **Charger le skill** via `read_file(".continue/rules/[skill-name].md")`
+3. **Charger le skill** via `fast_read_file(".continue/rules/[skill-name].md")`
 4. **Appliquer la méthodologie** imposée par le skill
 5. **Mentionner explicitement** le skill utilisé dans la réponse
 
