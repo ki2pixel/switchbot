@@ -40,7 +40,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 **Action**: Charger `fast_read_file(".windsurf/skills/fast-filesystem-ops/SKILL.md")`
 
 **Outils obligatoires**:
-- `fast_edit_block` pour préserver les tokens
+- `edit_file` pour préserver les tokens
 - `fast_search_code` pour recherche globale
 - Édition chirurgicale des fichiers
 
@@ -52,7 +52,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 **Stratégie "Sniper"**:
 - Ne jamais charger un fichier > 1000 lignes
 - `json_query_jsonpath` pour localiser précisément les données
-- `fast_edit_block` pour édition ciblée
+- `edit_file` pour édition ciblée
 
 ### Debugging & Investigation Patterns
 **Déclencheurs**: `bug`, `crash`, `erreur`, `error`, `performance`, `lent`, `slow`, `unexpected`, `weird`, `investigate`, `debug`

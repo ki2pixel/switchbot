@@ -307,4 +307,4 @@ Les réglages métier survivent aux redeploys, les secrets restent en environnem
 
 ---
 
-*Voir aussi [Guide d'intégration IFTTT](../guides/ifttt.md) pour la configuration des webhooks, [Migration PostgreSQL](../ops/postgresql-migration.md) pour le guide de migration, et [Référence des standards](../../../.windsurf/rules/codingstandards.md) pour les patterns de développement.*
+*Voir aussi [Guide d'intégration IFTTT](../guides/ifttt.md) pour la configuration des webhooks, [Migration PostgreSQL](../ops/postgresql-migration.md) pour le guide de migration, et [Référence des standards](../../../.clinerules/codingstandards.md) pour les patterns de développement.*

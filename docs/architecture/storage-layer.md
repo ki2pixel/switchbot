@@ -217,8 +217,8 @@ L'endpoint `/healthz` inclut automatiquement le statut PostgreSQL store pour le 
 ## Références techniques
 
 ### Standards de développement
-- [`.windsurf/rules/codingstandards.md`](../../.windsurf/rules/codingstandards.md) – Règles de codage obligatoires
-- [`.windsurf/skills/postgres-store-maintenance/`](../../.windsurf/skills/postgres-store-maintenance/) – Guide maintenance PostgreSQL
+- [`.clinerules/codingstandards.md`](../../.clinerules/codingstandards.md) – Règles de codage obligatoires
+- [`.cline/skills/postgres-store-maintenance/`](../../.cline/skills/postgres-store-maintenance/) – Guide maintenance PostgreSQL
 
 ### Documentation backend
 - [DOCUMENTATION.md](../../docs/DOCUMENTATION.md) – Architecture complète et métriques

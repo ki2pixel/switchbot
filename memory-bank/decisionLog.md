@@ -1,3 +1,9 @@
+[2026-03-09 23:15:00] - Passe de conformité SKILL.md
+- Décision : auditer et mettre à jour les 13 skills locaux du SwitchBot Dashboard pour refléter les évolutions récentes du codebase (polling adaptatif, intégration UI/Postgres).
+- Motivation : les SKILL.md contenaient des références à des scripts inexistants et ne documentaient pas les nouvelles fonctionnalités implémentées (polling adaptatif, `assumed_aircon_mode`, etc.).
+- Implémentation : (1) Audit complet des 13 SKILL.md vs code réel, (2) synchronisation des scripts/references depuis `.windsurf/skills/` vers `.agents/skills/`, (3) mise à jour de 6 SKILL.md avec corrections spécifiques, (4) ajout d'avertissements pour les skills Render MCP placeholders.
+- Implication : les skills sont désormais alignés avec le code actuel, les références scripts/references sont disponibles dans `.agents/skills/`, et les workflows documentés reflètent les patterns réels du projet.
+
 [2026-02-09 12:24:00] - Mise à jour documentation adaptive polling
 - Décision : mettre à jour la documentation existante pour refléter l'implémentation complète du polling adaptatif dans SchedulerService, avec détails techniques et patterns d'utilisation.
 - Motivation : la documentation existante ne couvrait pas les nouveaux paramètres `adaptive_polling_enabled`, `idle_poll_interval_seconds`, et `poll_warmup_minutes` ni l'auto-reschedule intelligent, créant un décalage entre le code et les guides.

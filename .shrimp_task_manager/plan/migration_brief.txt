@@ -1,0 +1,22 @@
+# Brief de Migration Windsurf vers Cline
+
+## Objectif
+Migrer complètement les configurations Windsurf (.windsurf/rules, .windsurf/skills, .windsurf/workflows) vers le format Cline.
+
+## Exigences Détaillées
+- **Lecture documentation Cline** : Étudier attentivement les docs officielles dans `docs/cline/customization` pour comprendre les formats requis pour rules, skills et workflows.
+- **Adaptation frontmatters** : Les formats frontmatters Cline sont différents de Windsurf. Adapter chaque fichier en conséquence.
+- **Différenciation rules** :
+  - Rules prioritaires (celles avec trigger: always_on dans Windsurf) : Ne pas injecter de frontmatter, car elles seront activées automatiquement dans Cline sans conditions.
+  - Rules secondaires (toutes autres) : Adapter le frontmatter requis pour Cline avec le paramètre `paths:` adapté pour chacune.
+- **Migration complète** : Couvrir rules, skills et workflows.
+- **Vérification finale** : S'assurer qu'il ne reste plus de liens pointant vers .windsurf après la migration de tous les fichiers.
+
+## Contraintes
+- Respecter strictement les spécifications Cline.
+- Maintenir la fonctionnalité équivalente.
+- Aucun fichier ne doit être perdu ou corrompu.
+
+## Livrables
+- Structure Cline fonctionnelle.
+- Absence totale de références .windsurf.
