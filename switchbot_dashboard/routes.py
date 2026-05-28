@@ -435,6 +435,9 @@ def update_settings() -> Any:
     settings["automation_enabled"] = _as_bool(request.form.get("automation_enabled"))
     settings["mode"] = str(request.form.get("mode", settings.get("mode", "winter"))).strip().lower()
 
+    trigger_mode_raw = str(request.form.get("trigger_mode", settings.get("trigger_mode", "direct"))).strip().lower()
+    settings["trigger_mode"] = trigger_mode_raw if trigger_mode_raw in ("direct", "ifttt") else "direct"
+
     settings["poll_interval_seconds"] = _as_int(
         request.form.get("poll_interval_seconds"),
         default=int(settings.get("poll_interval_seconds", 120) or 120),
@@ -632,6 +635,7 @@ def _execute_aircon_action(
     ifttt_client = current_app.extensions["ifttt_client"]
 
     settings = settings_store.read()
+    trigger_mode = settings.get("trigger_mode", "direct")
     webhooks = _extract_ifttt_webhooks(settings)
     scenes = _extract_aircon_scenes(settings)
     aircon_id = str(settings.get("aircon_device_id", "")).strip()
@@ -639,74 +643,84 @@ def _execute_aircon_action(
     webhook_url = webhooks.get(action_key, "").strip()
     scene_id = scenes.get(action_key, "").strip()
 
-    if webhook_url:
-        try:
-            ifttt_client.trigger_webhook(webhook_url)
-            state = state_store.read()
-            state["assumed_aircon_power"] = assumed_power
-            state["assumed_aircon_mode"] = None
-            state["assumed_aircon_parameter"] = None
-            state["last_action"] = f"ifttt_webhook({action_key}) ({state_reason})"
-            state["last_action_at"] = _utc_now_iso()
-            state["last_error"] = None
-            state_store.write(state)
-            flash(flash_label)
+    if trigger_mode == "ifttt":
+        if webhook_url:
+            try:
+                ifttt_client.trigger_webhook(webhook_url)
+                state = state_store.read()
+                state["assumed_aircon_power"] = assumed_power
+                state["assumed_aircon_mode"] = None
+                state["assumed_aircon_parameter"] = None
+                state["last_action"] = f"ifttt_webhook({action_key}) ({state_reason})"
+                state["last_action_at"] = _utc_now_iso()
+                state["last_error"] = None
+                state_store.write(state)
+                flash(flash_label)
+                return redirect(url_for("dashboard.index"))
+            except IFTTTWebhookError as exc:
+                state = state_store.read()
+                state["last_error"] = f"IFTTT webhook failed: {exc}"
+                state_store.write(state)
+                flash(f"IFTTT webhook failed for {action_key}: {exc}", "error")
+                return redirect(url_for("dashboard.index"))
+        else:
+            action_label = AIRCON_SCENE_LABELS.get(action_key, action_key)
+            flash(f"Aucun webhook configuré pour {action_label} en mode IFTTT.", "error")
             return redirect(url_for("dashboard.index"))
-        except IFTTTWebhookError as exc:
-            current_app.logger.warning(f"IFTTT webhook failed for {action_key}: {exc}. Falling back to scene.")
 
-    if scene_id:
-        try:
-            client.run_scene(scene_id)
-            state = state_store.read()
-            state["assumed_aircon_power"] = assumed_power
-            state["assumed_aircon_mode"] = None
-            state["assumed_aircon_parameter"] = None
-            state["last_action"] = f"scene({scene_id}) ({state_reason})"
-            state["last_action_at"] = _utc_now_iso()
-            state["last_error"] = None
-            state_store.write(state)
-            flash(flash_label)
-            return redirect(url_for("dashboard.index"))
-        except SwitchBotApiError as exc:
+    else:
+        if scene_id:
+            try:
+                client.run_scene(scene_id)
+                state = state_store.read()
+                state["assumed_aircon_power"] = assumed_power
+                state["assumed_aircon_mode"] = None
+                state["assumed_aircon_parameter"] = None
+                state["last_action"] = f"scene({scene_id}) ({state_reason})"
+                state["last_action_at"] = _utc_now_iso()
+                state["last_error"] = None
+                state_store.write(state)
+                flash(flash_label)
+                return redirect(url_for("dashboard.index"))
+            except SwitchBotApiError as exc:
+                if not aircon_id:
+                    state = state_store.read()
+                    state["last_error"] = str(exc)
+                    state_store.write(state)
+                    flash(str(exc), "error")
+                    return redirect(url_for("dashboard.index"))
+                current_app.logger.warning(f"Scene execution failed for {action_key}: {exc}. Falling back to direct command.")
+
+        if action_key == "off":
             if not aircon_id:
+                flash("aircon_device_id manquant pour commande directe", "error")
+                return redirect(url_for("dashboard.index"))
+            try:
+                client.send_command(aircon_id, command="turnOff", parameter="default", command_type="command")
+                state = state_store.read()
+                state["assumed_aircon_power"] = "off"
+                state["assumed_aircon_mode"] = None
+                state["assumed_aircon_parameter"] = None
+                state["last_action"] = f"turnOff ({state_reason})"
+                state["last_action_at"] = _utc_now_iso()
+                state["last_error"] = None
+                state_store.write(state)
+                flash(flash_label)
+                return redirect(url_for("dashboard.index"))
+            except SwitchBotApiError as exc:
                 state = state_store.read()
                 state["last_error"] = str(exc)
                 state_store.write(state)
                 flash(str(exc), "error")
                 return redirect(url_for("dashboard.index"))
-            current_app.logger.warning(f"Scene execution failed for {action_key}: {exc}. Falling back to direct command.")
-
-    if not webhook_url and not scene_id:
-        action_label = AIRCON_SCENE_LABELS.get(action_key, action_key)
-        flash(f"Aucun webhook ou scène configuré pour {action_label}", "error")
-        return redirect(url_for("dashboard.index"))
-
-    if action_key == "off":
-        if not aircon_id:
-            flash("aircon_device_id manquant", "error")
-            return redirect(url_for("dashboard.index"))
-        try:
-            client.send_command(aircon_id, command="turnOff", parameter="default", command_type="command")
-            state = state_store.read()
-            state["assumed_aircon_power"] = "off"
-            state["assumed_aircon_mode"] = None
-            state["assumed_aircon_parameter"] = None
-            state["last_action"] = f"turnOff ({state_reason})"
-            state["last_action_at"] = _utc_now_iso()
-            state["last_error"] = None
-            state_store.write(state)
-            flash(flash_label)
-            return redirect(url_for("dashboard.index"))
-        except SwitchBotApiError as exc:
-            state = state_store.read()
-            state["last_error"] = str(exc)
-            state_store.write(state)
-            flash(str(exc), "error")
-            return redirect(url_for("dashboard.index"))
-    else:
-        flash(f"Impossible d'exécuter l'action {action_key} : aucune méthode disponible", "error")
-        return redirect(url_for("dashboard.index"))
+        else:
+            if not scene_id:
+                action_label = AIRCON_SCENE_LABELS.get(action_key, action_key)
+                flash(f"Aucune scène configurée pour {action_label} en mode API Direct.", "error")
+                return redirect(url_for("dashboard.index"))
+            else:
+                flash(f"Impossible d'exécuter l'action {action_key} : scène échouée et pas de commande directe supportée", "error")
+                return redirect(url_for("dashboard.index"))
 
 
 @dashboard_bp.post("/actions/aircon_on")
@@ -762,6 +776,25 @@ def devices() -> str:
 
     try:
         data = client.get_devices()
+        body = data.get("body", {}) if isinstance(data, dict) else {}
+        device_list = body.get("deviceList") if isinstance(body, dict) else None
+        
+        if device_list:
+            for device in device_list:
+                device_id = device.get("deviceId")
+                if device_id:
+                    try:
+                        status_data = client.get_device_status(device_id)
+                        status_body = status_data.get("body", {}) if isinstance(status_data, dict) else {}
+                        if status_body:
+                            # Add missing fields from status_body to the device dictionary
+                            for key in ["onlineStatus", "battery", "version", "firmwareVersion"]:
+                                if key in status_body:
+                                    device[key] = status_body[key]
+                                    if key == "version":
+                                        device["firmwareVersion"] = status_body[key]
+                    except SwitchBotApiError as status_exc:
+                        current_app.logger.warning(f"Failed to fetch status for {device_id}: {status_exc}")
     except SwitchBotApiError as exc:
         error = str(exc)
 

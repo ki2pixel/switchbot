@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import datetime as dt
 from pathlib import Path
+from unittest.mock import MagicMock
 
 from flask import Flask
 
@@ -158,6 +159,7 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
     initial_settings = {
         "automation_enabled": False,
         "mode": "winter",
+        "trigger_mode": "direct",
         "poll_interval_seconds": 120,
         "adaptive_polling_enabled": True,
         "idle_poll_interval_seconds": 600,
@@ -178,6 +180,7 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
     form = {
         "automation_enabled": "on",
         "mode": "summer",
+        "trigger_mode": "ifttt",
         "poll_interval_seconds": "300",
         "adaptive_polling_enabled": "on",
         "idle_poll_interval_seconds": "900",
@@ -218,6 +221,7 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "fan": "scene-f",
         "off": "scene-off",
     }
+    assert persisted["trigger_mode"] == "ifttt"
     assert persisted["adaptive_polling_enabled"] is True
     assert persisted["idle_poll_interval_seconds"] == 900
     assert persisted["poll_warmup_minutes"] == 20
@@ -313,6 +317,33 @@ def test_aircon_on_winter_runs_scene_and_updates_state() -> None:
     assert state["last_action"].startswith("scene(scene-w)")
 
 
+def test_aircon_on_winter_runs_webhook_when_ifttt_mode() -> None:
+    settings = {
+        "mode": "winter",
+        "trigger_mode": "ifttt",
+        "aircon_device_id": "aircon",
+        "aircon_scenes": {"winter": "scene-w", "summer": "", "fan": "", "off": ""},
+        "ifttt_webhooks": {"winter": "https://hook.ifttt/w", "summer": "", "fan": "", "off": ""}
+    }
+    dummy_client = DummyClient()
+    app, settings_store, state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state={"assumed_aircon_power": "off"},
+        client=dummy_client,
+    )
+    dummy_ifttt = app.extensions["ifttt_client"]
+
+    with app.test_client() as client:
+        response = client.post("/actions/aircon_on_winter", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert dummy_ifttt.webhook_calls == ["https://hook.ifttt/w"]
+    assert dummy_client.scene_calls == []
+    state = state_store.read()
+    assert state["assumed_aircon_power"] == "on"
+    assert state["last_action"].startswith("ifttt_webhook(winter)")
+
+
 def test_aircon_on_winter_reports_missing_scene_id() -> None:
     settings = {
         "mode": "winter",
@@ -330,6 +361,31 @@ def test_aircon_on_winter_reports_missing_scene_id() -> None:
 
     assert response.status_code == 200
     assert dummy_client.scene_calls == []
+    state = state_store.read()
+    assert state.get("last_action") is None
+
+
+def test_aircon_on_winter_reports_missing_webhook_in_ifttt_mode() -> None:
+    settings = {
+        "mode": "winter",
+        "trigger_mode": "ifttt",
+        "aircon_device_id": "aircon",
+        "aircon_scenes": {"winter": "scene-w", "summer": "", "fan": "", "off": ""},
+        "ifttt_webhooks": {"winter": "", "summer": "", "fan": "", "off": ""}
+    }
+    dummy_client = DummyClient()
+    app, settings_store, state_store, _scheduler, _tracker = _build_app(
+        settings,
+        client=dummy_client,
+    )
+    dummy_ifttt = app.extensions["ifttt_client"]
+
+    with app.test_client() as client:
+        response = client.post("/actions/aircon_on_winter", follow_redirects=True)
+
+    assert response.status_code == 200
+    assert dummy_ifttt.webhook_calls == []
+    assert dummy_client.scene_calls == []  # Ensure no fallback
     state = state_store.read()
     assert state.get("last_action") is None
 
@@ -644,6 +700,7 @@ def test_settings_page_renders_form_fields() -> None:
     settings = {
         "automation_enabled": True,
         "mode": "winter",
+        "trigger_mode": "direct",
         "poll_interval_seconds": 180,
         "adaptive_polling_enabled": True,
         "idle_poll_interval_seconds": 900,
@@ -779,3 +836,36 @@ def test_debug_state_not_configured() -> None:
 
     assert response.status_code == 404
 
+
+def test_devices_page_enriches_device_status() -> None:
+    settings = {"aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""}}
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(settings)
+
+    mock_client = MagicMock()
+    mock_client.get_devices.return_value = {
+        "statusCode": 100,
+        "body": {
+            "deviceList": [
+                {"deviceId": "dev1", "deviceName": "Hub Mini", "deviceType": "Hub Mini"}
+            ]
+        }
+    }
+    mock_client.get_device_status.return_value = {
+        "statusCode": 100,
+        "body": {
+            "deviceId": "dev1",
+            "onlineStatus": "online",
+            "firmwareVersion": "V3.9-2.4",
+        }
+    }
+    app.extensions["switchbot_client"] = mock_client
+
+    with app.test_client() as client:
+        response = client.get("/devices")
+
+    assert response.status_code == 200
+    mock_client.get_devices.assert_called_once()
+    mock_client.get_device_status.assert_called_once_with("dev1")
+    
+    html = response.data.decode("utf-8")
+    assert "V3.9-2.4" in html

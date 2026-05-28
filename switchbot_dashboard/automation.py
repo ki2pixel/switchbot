@@ -542,6 +542,11 @@ class AutomationService:
         if handled:
             return True
 
+        settings = self._settings_store.read()
+        trigger_mode = settings.get("trigger_mode", "direct")
+        if trigger_mode != "direct":
+            return False
+
         if not aircon_device_id:
             return False
 
@@ -573,6 +578,9 @@ class AutomationService:
         scenes: dict[str, str],
         aircon_device_id: str = "",
     ) -> bool:
+        settings = self._settings_store.read()
+        trigger_mode = settings.get("trigger_mode", "direct")
+
         webhook_url = webhooks.get(action_key, "").strip()
         scene_id = scenes.get(action_key, "").strip()
         aircon_device_id = aircon_device_id.strip()
@@ -580,80 +588,92 @@ class AutomationService:
         friendly_webhook = AIRCON_IFTTT_LABELS.get(action_key, action_key)
         friendly_scene = AIRCON_SCENE_LABELS.get(action_key, action_key)
 
-        if webhook_url:
-            self._debug(
-                "Triggering IFTTT webhook",
-                trigger=trigger,
-                action_key=action_key,
-                state_reason=state_reason,
-            )
-            try:
-                self._ifttt_client.trigger_webhook(webhook_url)
-                self._update_state(
-                    assumed_aircon_power=assumed_power,
-                    assumed_aircon_mode=None,
-                    assumed_aircon_parameter=None,
-                    last_action=f"ifttt_webhook({action_key}) ({state_reason})",
-                    last_action_at=_utc_now_iso(),
-                    last_error=None,
-                )
-                return True
-            except IFTTTWebhookError as exc:
-                self._error(
-                    "IFTTT webhook failed",
+        if trigger_mode == "ifttt":
+            if webhook_url:
+                self._debug(
+                    "Triggering IFTTT webhook",
                     trigger=trigger,
                     action_key=action_key,
-                    error=str(exc),
+                    state_reason=state_reason,
                 )
-                self._warning("Falling back to SwitchBot scene", trigger=trigger, action_key=action_key)
+                try:
+                    self._ifttt_client.trigger_webhook(webhook_url)
+                    self._update_state(
+                        assumed_aircon_power=assumed_power,
+                        assumed_aircon_mode=None,
+                        assumed_aircon_parameter=None,
+                        last_action=f"ifttt_webhook({action_key}) ({state_reason})",
+                        last_action_at=_utc_now_iso(),
+                        last_error=None,
+                    )
+                    return True
+                except IFTTTWebhookError as exc:
+                    self._error(
+                        "IFTTT webhook failed",
+                        trigger=trigger,
+                        action_key=action_key,
+                        error=str(exc),
+                    )
+                    self._update_state(last_error=f"IFTTT webhook failed: {exc}")
+                    return False
+            else:
+                self._update_state(last_error=f"Missing webhook for {friendly_webhook} in IFTTT mode")
+                self._warning(
+                    "Skipping automation: no webhook configured in IFTTT mode",
+                    trigger=trigger,
+                    action_key=action_key,
+                )
+                return False
 
-        if scene_id:
-            self._debug(
-                "Using SwitchBot scene (webhook unavailable)",
-                trigger=trigger,
-                action_key=action_key,
-                scene_id=scene_id,
-                state_reason=state_reason,
-            )
-            try:
-                self._client.run_scene(scene_id)
-                self._log_quota_snapshot(context=f"scene_{action_key}")
-                self._update_state(
-                    assumed_aircon_power=assumed_power,
-                    assumed_aircon_mode=None,
-                    assumed_aircon_parameter=None,
-                    last_action=f"scene({scene_id}) ({state_reason})",
-                    last_action_at=_utc_now_iso(),
-                    last_error=None,
-                )
-                return True
-            except SwitchBotApiError as exc:
-                self._error(
-                    "Scene execution failed",
+        else:
+            if scene_id:
+                self._debug(
+                    "Using SwitchBot scene",
                     trigger=trigger,
                     action_key=action_key,
                     scene_id=scene_id,
-                    error=str(exc),
+                    state_reason=state_reason,
                 )
-                if aircon_device_id:
-                    self._warning(
-                        "Falling back to direct command",
+                try:
+                    self._client.run_scene(scene_id)
+                    self._log_quota_snapshot(context=f"scene_{action_key}")
+                    self._update_state(
+                        assumed_aircon_power=assumed_power,
+                        assumed_aircon_mode=None,
+                        assumed_aircon_parameter=None,
+                        last_action=f"scene({scene_id}) ({state_reason})",
+                        last_action_at=_utc_now_iso(),
+                        last_error=None,
+                    )
+                    return True
+                except SwitchBotApiError as exc:
+                    self._error(
+                        "Scene execution failed",
                         trigger=trigger,
                         action_key=action_key,
+                        scene_id=scene_id,
+                        error=str(exc),
                     )
-                else:
-                    self._update_state(last_error=str(exc))
-                    return False
+                    if aircon_device_id:
+                        self._warning(
+                            "Falling back to direct command within direct mode",
+                            trigger=trigger,
+                            action_key=action_key,
+                        )
+                    else:
+                        self._update_state(last_error=str(exc))
+                        return False
 
-        if not webhook_url and not scene_id:
-            self._update_state(last_error=f"Missing webhook and scene for {friendly_webhook}")
-            self._warning(
-                "Skipping automation: no webhook or scene configured",
-                trigger=trigger,
-                action_key=action_key,
-            )
+            if not scene_id:
+                self._update_state(last_error=f"Missing scene for {friendly_scene} in API Direct mode")
+                self._warning(
+                    "Skipping automation: no scene configured in API Direct mode",
+                    trigger=trigger,
+                    action_key=action_key,
+                )
+                return False
 
-        return False
+            return False
 
     def run_once(self) -> None:
         if hasattr(self._state_store, "transaction"):
@@ -670,6 +690,7 @@ class AutomationService:
         now = dt.datetime.now(dt.timezone.utc).astimezone(timezone_info)
         poll_interval = int(settings.get("poll_interval_seconds", 0) or 0)
         automation_enabled = bool(settings.get("automation_enabled", False))
+        trigger_mode = settings.get("trigger_mode", "direct")
         outcome = "noop"
 
         scenes = extract_aircon_scenes(settings)
@@ -815,7 +836,7 @@ class AutomationService:
                         scenes=scenes,
                         aircon_device_id=aircon_id,
                     )
-                    if not executed and aircon_id:
+                    if not executed and aircon_id and trigger_mode == "direct":
                         self._send_aircon_setall(
                             aircon_id,
                             temperature=target_temp,
@@ -867,7 +888,7 @@ class AutomationService:
                         scenes=scenes,
                         aircon_device_id=aircon_id,
                     )
-                    if not executed and aircon_id:
+                    if not executed and aircon_id and trigger_mode == "direct":
                         self._send_aircon_setall(
                             aircon_id,
                             temperature=target_temp,

@@ -72,6 +72,14 @@
                   </div>
 
                   <div class="col-12 col-md-4">
+                    <label class="form-label" for="trigger_mode">Mode de déclenchement</label>
+                    <select class="form-select" id="trigger_mode" name="trigger_mode">
+                      <option value="direct" {% if settings.get('trigger_mode', 'direct') == 'direct' %}selected{% endif %}>API SwitchBot Direct</option>
+                      <option value="ifttt" {% if settings.get('trigger_mode') == 'ifttt' %}selected{% endif %}>Webhooks IFTTT</option>
+                    </select>
+                  </div>
+
+                  <div class="col-12 col-md-4">
                     <label class="form-label" for="poll_interval_seconds">Intervalle de sondage (s)</label>
                     <input
                       class="form-control"
@@ -433,9 +441,16 @@
 
                 <hr class="my-4" />
 
-                <h2 class="h6">Webhooks IFTTT (Priorité)</h2>
+                <h2 class="h6">
+                  Webhooks IFTTT
+                  {% if settings.get('trigger_mode', 'direct') == 'ifttt' %}
+                    <span class="badge bg-success-subtle text-success-emphasis ms-1">Actif</span>
+                  {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary-emphasis ms-1">Inactif</span>
+                  {% endif %}
+                </h2>
                 <p class="small text-muted">
-                  Renseignez les URLs des webhooks IFTTT pour déclencher vos scènes via le cloud. Les webhooks sont prioritaires sur les scènes SwitchBot natives.
+                  Renseignez les URLs des webhooks IFTTT pour déclencher vos scènes via le cloud. (Actif uniquement en mode <strong>Webhooks IFTTT</strong>).
                 </p>
                 <div class="row g-3 mb-4">
                   {% for key in aircon_scene_keys %}
@@ -458,9 +473,16 @@
                   {% endfor %}
                 </div>
 
-                <h2 class="h6">Scènes favorites SwitchBot (Fallback)</h2>
+                <h2 class="h6">
+                  Scènes favorites SwitchBot (API Directe)
+                  {% if settings.get('trigger_mode', 'direct') == 'direct' %}
+                    <span class="badge bg-success-subtle text-success-emphasis ms-1">Actif</span>
+                  {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary-emphasis ms-1">Inactif</span>
+                  {% endif %}
+                </h2>
                 <p class="small text-muted">
-                  Renseignez les IDs des scènes favorites (SwitchBot → Scenes). Elles servent de fallback si les webhooks IFTTT échouent ou ne sont pas configurés.
+                  Renseignez les IDs des scènes favorites (SwitchBot → Scenes). Elles seront utilisées via l'API SwitchBot locale/cloud. (Actif uniquement en mode <strong>API SwitchBot Direct</strong>).
                 </p>
                 <div class="row g-3">
                   {% for key in aircon_scene_keys %}

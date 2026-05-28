@@ -77,6 +77,7 @@ def _default_settings() -> dict[str, Any]:
     return {
         "automation_enabled": True,
         "mode": "winter",
+        "trigger_mode": "direct",
         "meter_device_id": "meter-1",
         "aircon_device_id": "aircon-1",
         "hysteresis_celsius": 0.5,
@@ -197,6 +198,41 @@ def test_run_once_prefers_winter_scene_and_records_quota() -> None:
     assert state["assumed_aircon_power"] == "on"
     assert str(state["last_action"]).startswith("scene(")
     assert int(state["api_requests_total"]) >= 1
+
+
+def test_run_once_prefers_webhook_when_in_ifttt_mode() -> None:
+    settings = _default_settings()
+    settings["trigger_mode"] = "ifttt"
+    settings["ifttt_webhooks"] = {"winter": "http://webhook/winter"}
+    service, client, _settings_store, state_store = _build_service(
+        settings=settings, temperature=17.0
+    )
+
+    service.run_once()
+
+    # Webhook called, scene not called
+    assert service._ifttt_client.webhook_calls == ["http://webhook/winter"]
+    assert client.run_scene_calls == []
+    state = state_store.read()
+    assert state["assumed_aircon_power"] == "on"
+    assert str(state["last_action"]).startswith("ifttt_webhook(")
+
+
+def test_run_once_ifttt_mode_does_not_fallback_to_scene() -> None:
+    settings = _default_settings()
+    settings["trigger_mode"] = "ifttt"
+    # No webhook configured
+    settings["ifttt_webhooks"] = {"winter": ""}
+    service, client, _settings_store, state_store = _build_service(
+        settings=settings, temperature=17.0
+    )
+
+    service.run_once()
+
+    assert service._ifttt_client.webhook_calls == []
+    assert client.run_scene_calls == []  # No fallback!
+    state = state_store.read()
+    assert "Missing webhook" in str(state.get("last_error", ""))
 
 
 def test_run_once_falls_back_to_setall_when_scene_missing() -> None:
