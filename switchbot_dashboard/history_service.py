@@ -58,7 +58,7 @@ class HistoryService:
                 temperature DECIMAL(4,1),
                 humidity DECIMAL(4,1),
                 assumed_aircon_power VARCHAR(10),
-                last_action VARCHAR(50),
+                last_action VARCHAR(255),
                 api_requests_today INTEGER DEFAULT 0,
                 error_count INTEGER DEFAULT 0,
                 last_temperature_stale BOOLEAN DEFAULT FALSE,
