@@ -8,8 +8,12 @@ import os
 
 
 # Single worker to prevent APScheduler conflicts
-# Can be overridden via WEB_CONCURRENCY env var if scheduler is disabled
-workers = int(os.environ.get("WEB_CONCURRENCY", "1"))
+# Force 1 worker if scheduler is enabled to prevent duplicate jobs
+scheduler_enabled = str(os.environ.get("SCHEDULER_ENABLED", "true")).lower() == "true"
+if scheduler_enabled:
+    workers = 1
+else:
+    workers = int(os.environ.get("WEB_CONCURRENCY", "1"))
 bind = f"0.0.0.0:{os.environ.get('PORT', '8000')}"
 timeout = 120
 accesslog = "-"

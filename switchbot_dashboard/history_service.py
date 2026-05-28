@@ -393,9 +393,9 @@ class HistoryService:
             HistoryServiceError: If retrieval fails
         """
         query = sql.SQL("""
-            SELECT *
+            SELECT DISTINCT ON (date_trunc('minute', timestamp)) *
             FROM state_history
-            ORDER BY timestamp DESC
+            ORDER BY date_trunc('minute', timestamp) DESC, timestamp DESC
             LIMIT %s
         """)
 
