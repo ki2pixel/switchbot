@@ -3,6 +3,7 @@
  * Handles real-time monitoring charts and data visualization
  */
 
+(() => {
 class HistoryDashboard {
     constructor() {
         this.charts = {};
@@ -267,7 +268,7 @@ class HistoryDashboard {
         });
 
         // Page Visibility API to pause updates when tab is hidden
-        document.addEventListener('visibilitychange', () => {
+        this.visibilityHandler = () => {
             if (document.hidden) {
                 console.log('[history] Page hidden: pausing network polling.');
                 this.stopRealTimeUpdates();
@@ -276,7 +277,8 @@ class HistoryDashboard {
                 this.startRealTimeUpdates();
                 this.loadInitialData();
             }
-        });
+        };
+        document.addEventListener('visibilitychange', this.visibilityHandler);
     }
 
     async loadInitialData() {
@@ -542,6 +544,11 @@ class HistoryDashboard {
     destroy() {
         this.stopRealTimeUpdates();
         
+        if (this.visibilityHandler) {
+            document.removeEventListener('visibilitychange', this.visibilityHandler);
+            this.visibilityHandler = null;
+        }
+        
         // Destroy charts
         Object.values(this.charts).forEach(chart => {
             if (chart) chart.destroy();
@@ -569,3 +576,4 @@ window.addEventListener('beforeunload', () => {
         window.historyDashboard.destroy();
     }
 });
+})();

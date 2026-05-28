@@ -67,8 +67,7 @@
       // Preload most critical resources
       const preloadResources = [
         { href: '/static/css/theme.css', as: 'style' },
-        { href: '/static/css/index.css', as: 'style' },
-        { href: '/static/js/loaders.js', as: 'script' }
+        { href: '/static/css/index.css', as: 'style' }
       ];
       
       preloadResources.forEach(resource => {
@@ -114,7 +113,7 @@
       let clsValue = 0;
       let clsEntries = [];
       
-      if ('PerformanceObserver' in window) {
+      if ('PerformanceObserver' in window && PerformanceObserver.supportedEntryTypes && PerformanceObserver.supportedEntryTypes.includes('layout-shift')) {
         const clsObserver = new PerformanceObserver((list) => {
           list.getEntries().forEach(entry => {
             if (!entry.hadRecentInput) {
@@ -230,7 +229,7 @@
       this.addPassiveListeners();
       
       // Monitor First Input Delay
-      if ('PerformanceObserver' in window) {
+      if ('PerformanceObserver' in window && PerformanceObserver.supportedEntryTypes && PerformanceObserver.supportedEntryTypes.includes('first-input')) {
         const fidObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
           entries.forEach(entry => {
@@ -351,7 +350,7 @@
       this.optimizeLCPElements();
       
       // Monitor LCP
-      if ('PerformanceObserver' in window) {
+      if ('PerformanceObserver' in window && PerformanceObserver.supportedEntryTypes && PerformanceObserver.supportedEntryTypes.includes('largest-contentful-paint')) {
         const lcpObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
           const lastEntry = entries[entries.length - 1];
@@ -593,7 +592,7 @@
     
     monitorFCP() {
       // First Contentful Paint
-      if ('PerformanceObserver' in window) {
+      if ('PerformanceObserver' in window && PerformanceObserver.supportedEntryTypes && PerformanceObserver.supportedEntryTypes.includes('paint')) {
         const fcpObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
           entries.forEach(entry => {

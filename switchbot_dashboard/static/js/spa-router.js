@@ -14,7 +14,8 @@ class SPARouter {
       'alerts.js',
       'bottom-nav.js',
       'performance-optimizer.js',
-      'advanced-optimizer.js'
+      'advanced-optimizer.js',
+      'spa-router.js'
     ];
     this.init();
   }
@@ -80,6 +81,16 @@ class SPARouter {
       currentContent.style.transition = 'opacity 0.15s ease-in-out';
       
       await new Promise(resolve => setTimeout(resolve, 150));
+      
+      // Clean up previous page specific components
+      if (window.historyDashboard && typeof window.historyDashboard.destroy === 'function') {
+        try {
+          window.historyDashboard.destroy();
+          window.historyDashboard = null;
+        } catch (e) {
+          console.error('[SPARouter] Error cleaning up history dashboard:', e);
+        }
+      }
       
       // 5. Replace page content and update title
       currentContent.innerHTML = newContent.innerHTML;

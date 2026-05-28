@@ -182,16 +182,18 @@
         fidObserver.observe({ entryTypes: ['first-input'] });
         
         // Cumulative Layout Shift (CLS)
-        let clsValue = 0;
-        const clsObserver = new PerformanceObserver((list) => {
-          list.getEntries().forEach(entry => {
-            if (!entry.hadRecentInput) {
-              clsValue += entry.value;
-            }
+        if (PerformanceObserver.supportedEntryTypes && PerformanceObserver.supportedEntryTypes.includes('layout-shift')) {
+          let clsValue = 0;
+          const clsObserver = new PerformanceObserver((list) => {
+            list.getEntries().forEach(entry => {
+              if (!entry.hadRecentInput) {
+                clsValue += entry.value;
+              }
+            });
+            console.log('CLS:', clsValue);
           });
-          console.log('CLS:', clsValue);
-        });
-        clsObserver.observe({ entryTypes: ['layout-shift'] });
+          clsObserver.observe({ entryTypes: ['layout-shift'] });
+        }
       }
     }
     
