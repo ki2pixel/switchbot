@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+const initSettings = () => {
   const summary = document.getElementById("time_window_days_summary");
   if (!summary) {
     return;
@@ -18,4 +18,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   render();
-});
+};
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initSettings);
+} else {
+  initSettings();
+}

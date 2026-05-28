@@ -18,7 +18,7 @@
     window.setTimeout(removeAfterTransition, 600);
   };
 
-  document.addEventListener("DOMContentLoaded", () => {
+  const initAlerts = () => {
     document.querySelectorAll("[data-auto-dismiss]").forEach((alertElement) => {
       const timeout = Number(alertElement.dataset.autoDismiss) || 0;
       if (timeout <= 0) {
@@ -27,5 +27,11 @@
 
       window.setTimeout(() => dismissAlert(alertElement), timeout);
     });
-  });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener("DOMContentLoaded", initAlerts);
+  } else {
+    initAlerts();
+  }
 })();

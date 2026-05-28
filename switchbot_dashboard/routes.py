@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import hmac
 import json
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -20,6 +21,8 @@ from .config_store import StoreError
 from .ifttt import IFTTTWebhookError, extract_ifttt_webhooks
 from .switchbot_api import SwitchBotApiError
 
+
+from .extensions import limiter
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -347,7 +350,10 @@ def debug_state() -> Any:
     expected_token = current_app.config.get("STATE_DEBUG_TOKEN")
     provided_token = request.args.get("token")
 
-    if not expected_token or provided_token != expected_token:
+    if not expected_token or not provided_token:
+        abort(404)
+
+    if not hmac.compare_digest(provided_token, expected_token):
         abort(404)
 
     state_store = current_app.extensions["state_store"]
@@ -586,7 +592,7 @@ def update_settings() -> Any:
     return redirect(url_for("dashboard.index"))
 
 
-@dashboard_bp.route("/actions/run_once", methods=["GET", "POST"])
+@dashboard_bp.post("/actions/run_once")
 def run_once() -> Any:
     """Execute a single automation cycle manually.
 
@@ -814,9 +820,15 @@ def actions_page() -> str:
 
 
 @dashboard_bp.get("/history/api/data")
+@limiter.limit("30 per minute")
 def history_api_data() -> Any:
     history_service = current_app.extensions.get("history_service")
     if not history_service:
+        if not current_app.debug and not current_app.testing:
+            return {
+                "error": "Service Historique indisponible. La base de données PostgreSQL est déconnectée."
+            }, 503
+        
         # Return mock data when service is not available
         import random
         
@@ -835,7 +847,7 @@ def history_api_data() -> Any:
                 "api_requests_today": random.randint(100, 200),
                 "error_count": random.randint(0, 2)
             })
-            current += timedelta(minutes=5)
+            current += dt.timedelta(minutes=5)
         
         return {
             "data": mock_data,
@@ -917,10 +929,16 @@ def history_api_data() -> Any:
 
 
 @dashboard_bp.get("/history/api/aggregates")
+@limiter.limit("30 per minute")
 def history_api_aggregates() -> Any:
     """API endpoint for aggregated statistics."""
     history_service = current_app.extensions.get("history_service")
     if not history_service:
+        if not current_app.debug and not current_app.testing:
+            return {
+                "error": "Service Historique indisponible. La base de données PostgreSQL est déconnectée."
+            }, 503
+        
         # Return mock aggregates when service is not available
         import random
         
@@ -997,9 +1015,15 @@ def history_api_aggregates() -> Any:
 
 
 @dashboard_bp.get("/history/api/latest")
+@limiter.limit("30 per minute")
 def history_api_latest() -> Any:
     history_service = current_app.extensions.get("history_service")
     if not history_service:
+        if not current_app.debug and not current_app.testing:
+            return {
+                "error": "Service Historique indisponible. La base de données PostgreSQL est déconnectée."
+            }, 503
+        
         # Return mock latest records when service is not available
         import random
         

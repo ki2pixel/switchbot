@@ -65,25 +65,12 @@ def test_run_once_accepts_post_method() -> None:
     assert automation_service.run_once_called
 
 
-def test_run_once_accepts_get_method() -> None:
-    """Vérifie que GET /actions/run_once fonctionne (pour cron jobs)."""
+def test_run_once_rejects_get_method() -> None:
+    """Vérifie que GET /actions/run_once est rejeté avec un code 405."""
     app, automation_service = _build_test_app()
 
     with app.test_client() as client:
         response = client.get("/actions/run_once", follow_redirects=False)
 
-    assert response.status_code == 302  # Redirect
-    assert automation_service.run_once_called
-
-
-def test_run_once_get_no_405_error() -> None:
-    """Vérifie que GET ne retourne pas 405 (erreur méthode non autorisée)."""
-    app, automation_service = _build_test_app()
-
-    with app.test_client() as client:
-        response = client.get("/actions/run_once", follow_redirects=False)
-
-    # Vérifie que ce n'est PAS une erreur 405
-    assert response.status_code != 405
-    assert response.status_code == 302  # Redirect vers index
-    assert automation_service.run_once_called
+    assert response.status_code == 405
+    assert not automation_service.run_once_called

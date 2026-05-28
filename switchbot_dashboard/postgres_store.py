@@ -16,32 +16,138 @@ class PostgresStoreError(RuntimeError):
     """Raised when PostgreSQL storage backend cannot satisfy an operation."""
 
 
+class PostgresStoreTransactionContext:
+    def __init__(self, store: PostgresStore):
+        self._store = store
+        self._conn_ctx = None
+        self._conn = None
+        self._cur = None
+        self._cached_data = None
+        self._dirty = False
+        self._previous_transaction = None
+
+    def __enter__(self):
+        self._previous_transaction = getattr(self._store._local, "active_transaction", None)
+        self._store._local.active_transaction = self
+        
+        try:
+            self._conn_ctx = self._store.pool.connection()
+            self._conn = self._conn_ctx.__enter__()
+            self._conn.autocommit = False
+            self._cur = self._conn.cursor(row_factory=dict_row)
+            
+            # Row-level locking on json_store
+            self._cur.execute("SELECT data FROM json_store WHERE kind = %s FOR UPDATE", (self._store._kind,))
+            result = self._cur.fetchone()
+            
+            if result is None:
+                self._cached_data = {}
+            else:
+                data = result["data"]
+                if isinstance(data, str):
+                    self._cached_data = json.loads(data)
+                elif isinstance(data, dict):
+                    self._cached_data = data
+                else:
+                    self._cached_data = {}
+        except Exception as exc:
+            self._store._local.active_transaction = self._previous_transaction
+            if self._conn_ctx:
+                try:
+                    self._conn_ctx.__exit__(type(exc), exc, exc.__traceback__)
+                except Exception:
+                    pass
+            raise PostgresStoreError(f"Failed to start transaction for {self._store._kind} store") from exc
+        return self
+
+    def read(self) -> dict[str, Any]:
+        import copy
+        return copy.deepcopy(self._cached_data)
+
+    def write(self, data: dict[str, Any]) -> None:
+        import copy
+        self._cached_data = copy.deepcopy(data)
+        self._dirty = True
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._store._local.active_transaction = self._previous_transaction
+        
+        try:
+            if exc_type is not None:
+                self._conn.rollback()
+                self._store._logger.info(
+                    "[postgres] Transaction rolled back for %s store due to exception: %s",
+                    self._store._kind,
+                    exc_val,
+                )
+            else:
+                if self._dirty:
+                    query = sql.SQL("""
+                        INSERT INTO json_store (kind, data, updated_at)
+                        VALUES (%s, %s, NOW())
+                        ON CONFLICT (kind)
+                        DO UPDATE SET
+                            data = EXCLUDED.data,
+                            updated_at = EXCLUDED.updated_at
+                    """)
+                    self._cur.execute(query, (self._store._kind, Jsonb(self._cached_data)))
+                    self._conn.commit()
+                    self._store._logger.debug("[postgres] Transaction committed with write for %s store", self._store._kind)
+                else:
+                    self._conn.commit()
+                    self._store._logger.debug("[postgres] Transaction committed (no write) for %s store", self._store._kind)
+        except Exception as exc:
+            self._store._logger.error("[postgres] Failed to finalize transaction for %s store (%s)", self._store._kind, exc)
+            if exc_type is None:
+                raise PostgresStoreError(f"Failed to commit PostgreSQL transaction for {self._store._kind} store") from exc
+        finally:
+            if self._cur:
+                try:
+                    self._cur.close()
+                except Exception:
+                    pass
+            if self._conn_ctx:
+                try:
+                    self._conn_ctx.__exit__(exc_type, exc_val, exc_tb)
+                except Exception:
+                    pass
+
+
 class PostgresStore:
     """PostgreSQL JSON store implementing BaseStore interface for Neon PostgreSQL."""
 
     def __init__(
         self,
-        connection_string: str,
-        kind: str,
+        connection_string: str | None = None,
+        kind: str = "settings",
         *,
         logger: logging.Logger,
         ssl_mode: str = "require",
         max_connections: int = 10,
+        pool: ConnectionPool | None = None,
     ) -> None:
         self._kind = kind
         self._logger = logger
         self._lock = threading.Lock()
+        self._pool = pool
+        self._owns_pool = (pool is None)
+        self._local = threading.local()
 
-        # Configure connection parameters for Neon
-        self._connection_params = {
-            "conninfo": connection_string,
-            "min_size": 1,
-            "max_size": max_connections,
-        }
+        if self._pool is None:
+            if not connection_string:
+                raise PostgresStoreError("Either connection_string or pool must be provided")
+            # Configure connection parameters for Neon
+            self._connection_params: dict[str, Any] = {
+                "conninfo": connection_string,
+                "min_size": 1,
+                "max_size": max_connections,
+            }
+            self._initialize_pool()
+        else:
+            self._logger.info(
+                "[postgres] Reusing shared connection pool for %s store", self._kind
+            )
 
-        # Initialize connection pool
-        self._pool = None
-        self._initialize_pool()
         self._ensure_table_exists()
 
     def _initialize_pool(self) -> None:
@@ -91,7 +197,13 @@ class PostgresStore:
                 f"Failed to ensure table exists for {self._kind} store"
             ) from exc
 
+    def transaction(self) -> Any:
+        return PostgresStoreTransactionContext(self)
+
     def read(self) -> dict[str, Any]:
+        tx = getattr(self._local, "active_transaction", None)
+        if tx is not None:
+            return tx.read()
         query = sql.SQL("SELECT data FROM json_store WHERE kind = %s")
 
         try:
@@ -128,6 +240,10 @@ class PostgresStore:
             ) from exc
 
     def write(self, data: dict[str, Any]) -> None:
+        tx = getattr(self._local, "active_transaction", None)
+        if tx is not None:
+            tx.write(data)
+            return
         query = sql.SQL("""
             INSERT INTO json_store (kind, data, updated_at)
             VALUES (%s, %s, NOW())
@@ -156,9 +272,15 @@ class PostgresStore:
                 f"PostgreSQL write failed for {self._kind} store"
             ) from exc
 
+    @property
+    def pool(self) -> ConnectionPool:
+        if self._pool is None:
+            raise RuntimeError("Database pool has not been initialized or has been closed")
+        return self._pool
+
     def close(self) -> None:
-        """Close connection pool and cleanup resources."""
-        if self._pool:
+        """Close connection pool and cleanup resources if owned."""
+        if self._pool and self._owns_pool:
             try:
                 self._pool.close()
                 self._logger.info("[postgres] Connection pool closed for %s store", self._kind)
@@ -170,6 +292,9 @@ class PostgresStore:
                 )
             finally:
                 self._pool = None
+        elif self._pool:
+            self._logger.debug("[postgres] Skipping closing shared pool for %s store", self._kind)
+            self._pool = None
 
     def health_check(self) -> bool:
         if not self._pool:

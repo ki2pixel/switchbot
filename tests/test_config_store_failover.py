@@ -31,6 +31,12 @@ class StubStore:
         self.write_exc_sequence: Iterator[Exception | None] | None = iter(write_exc_sequence) if write_exc_sequence else None
         self.calls: list[str] = []
         self.written: list[dict[str, Any]] = []
+        import threading
+        self._local = threading.local()
+
+    def transaction(self) -> Any:
+        from switchbot_dashboard.config_store import SimpleTransactionContext
+        return SimpleTransactionContext(self)
 
     def read(self) -> dict[str, Any]:
         self.calls.append(f"{self.name}:read")
@@ -175,11 +181,24 @@ def test_create_app_uses_postgres_store_when_configured(monkeypatch, tmp_path) -
         def __init__(self, *args, **kwargs):
             self._data: dict[str, Any] = {"meter_device_id": "dummy"}
             self._pool = MagicMock()
+            import threading
+            self._local = threading.local()
+
+        def transaction(self) -> Any:
+            from switchbot_dashboard.config_store import SimpleTransactionContext
+            return SimpleTransactionContext(self)
 
         def read(self) -> dict[str, Any]:
+            tx = getattr(self._local, "active_transaction", None)
+            if tx is not None:
+                return tx.read()
             return self._data
 
         def write(self, data: dict[str, Any]) -> None:
+            tx = getattr(self._local, "active_transaction", None)
+            if tx is not None:
+                tx.write(data)
+                return
             self._data = dict(data)
 
         def health_check(self) -> bool:

@@ -22,7 +22,8 @@ def validate_webhook_url(url: str) -> bool:
         return False
     try:
         parsed = urlparse(url)
-        return parsed.scheme == "https" and bool(parsed.netloc)
+        return parsed.scheme == "https" and parsed.netloc == "maker.ifttt.com"
+
     except Exception:
         return False
 

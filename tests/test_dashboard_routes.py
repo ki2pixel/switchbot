@@ -8,6 +8,8 @@ from flask import Flask
 
 from bs4 import BeautifulSoup
 
+from flask_wtf.csrf import CSRFProtect
+
 from switchbot_dashboard.config_store import StoreError
 from switchbot_dashboard.quota import ApiQuotaTracker
 from switchbot_dashboard.routes import dashboard_bp
@@ -107,6 +109,9 @@ def _build_app(
     static_folder = project_root / "switchbot_dashboard" / "static"
     app = Flask(__name__, template_folder=str(template_folder), static_folder=str(static_folder))
     app.secret_key = "test"
+    app.config["WTF_CSRF_ENABLED"] = False
+    CSRFProtect(app)
+
 
     settings_store = MemoryStore(initial_settings)
     state_store = MemoryStore(initial_state or {})
@@ -709,3 +714,68 @@ def test_quota_refresh_normalizes_state_and_shows_flash() -> None:
     success = soup.select_one(".alert-success")
     assert success is not None
     assert "Quota mis à jour" in success.get_text()
+
+
+def test_debug_state_valid_token() -> None:
+    settings = {"aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""}}
+    state = {"temperature": 22.5, "humidity": 50.0}
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state=state,
+    )
+    app.config["STATE_DEBUG_TOKEN"] = "secure-debug-token"
+
+    with app.test_client() as client:
+        response = client.get("/debug/state?token=secure-debug-token")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["temperature"] == 22.5
+    assert payload["humidity"] == 50.0
+
+
+def test_debug_state_invalid_token() -> None:
+    settings = {"aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""}}
+    state = {"temperature": 22.5, "humidity": 50.0}
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state=state,
+    )
+    app.config["STATE_DEBUG_TOKEN"] = "secure-debug-token"
+
+    with app.test_client() as client:
+        response = client.get("/debug/state?token=wrong-token")
+
+    assert response.status_code == 404
+
+
+def test_debug_state_missing_token() -> None:
+    settings = {"aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""}}
+    state = {"temperature": 22.5, "humidity": 50.0}
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state=state,
+    )
+    app.config["STATE_DEBUG_TOKEN"] = "secure-debug-token"
+
+    with app.test_client() as client:
+        response = client.get("/debug/state")
+
+    assert response.status_code == 404
+
+
+def test_debug_state_not_configured() -> None:
+    settings = {"aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""}}
+    state = {"temperature": 22.5, "humidity": 50.0}
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state=state,
+    )
+    # Token not configured at all
+    app.config["STATE_DEBUG_TOKEN"] = ""
+
+    with app.test_client() as client:
+        response = client.get("/debug/state?token=some-token")
+
+    assert response.status_code == 404
+

@@ -29,9 +29,11 @@
   color: var(--sb-text);
 }
 
-.day-chip .btn:focus-visible {
+.day-chip .btn:focus-visible,
+.day-chip .btn-check:focus-visible + .btn {
   outline: 2px solid var(--sb-accent);
   outline-offset: 2px;
+  box-shadow: 0 0 0 0.25rem rgba(138, 180, 255, 0.4);
 }
 
 /* Mobile Form Optimization */

@@ -102,37 +102,47 @@ jobs:
 
 ### Configuration Render
 
-**Variables d'environnement** :
+L'application prend en charge deux topologies de déploiement en production :
 
-```bash
-# SwitchBot API
-SWITCHBOT_TOKEN=votre_token_ici
-SWITCHBOT_SECRET=votre_secret_ici
+#### Option A : Le Monolithe Compact (Idéal pour Render Free Tier)
+Un unique service Web Gunicorn fait tout (sert l'IHM et exécute les ticks du planificateur).
+* **Variables d'environnement** :
+  ```bash
+  SCHEDULER_ENABLED=true
+  WEB_CONCURRENCY=1          # Obligatoire pour éviter les ticks dupliqués
+  LOG_LEVEL=warning
+  ```
+* **Commande de démarrage Render** (Service Web) :
+  ```bash
+  gunicorn 'switchbot_dashboard:create_app()' --bind 0.0.0.0:${PORT} --workers 1 --threads 2 --timeout 120
+  ```
 
-# Flask
-FLASK_SECRET_KEY=clé_aléatoire_32_caractères
+#### Option B : Le Découplage Web & Worker (Recommandé pour la Scalabilité Enterprise)
+Nous séparons la réception du trafic HTTP de l'exécution du planificateur à l'aide de deux services Render distincts :
+1. **Service Web** (Génère autant d'instances ou workers que souhaité pour absorber la charge) :
+   * **Variables d'environnement** :
+     ```bash
+     SCHEDULER_ENABLED=false
+     WEB_CONCURRENCY=4       # Configurez librement selon vos besoins
+     LOG_LEVEL=warning
+     ```
+   * **Commande de démarrage** (Service Web) :
+     ```bash
+     gunicorn 'switchbot_dashboard:create_app()' --bind 0.0.0.0:${PORT} --workers 4 --threads 2 --timeout 120
+     ```
+2. **Service Background Worker** (Singleton unique pour exécuter l'automatisation de manière isolée) :
+   * **Type de service Render** : *Background Worker*
+   * **Variables d'environnement** :
+     ```bash
+     SCHEDULER_ENABLED=true
+     LOG_LEVEL=info
+     ```
+   * **Commande de démarrage** (Background Worker) :
+     ```bash
+     python run_worker.py
+     ```
+   * **Mise à l'échelle** : Toujours laisser à **1 instance** (Singleton).
 
-# Base de données (recommandé)
-STORE_BACKEND=postgres
-POSTGRES_URL=postgresql://user:pass@host/db
-POSTGRES_SSL_MODE=require
-
-# Gunicorn
-WEB_CONCURRENCY=1
-LOG_LEVEL=warning
-
-# Scheduler
-SCHEDULER_ENABLED=true
-
-# IFTTT (optionnel)
-IFTTT_TIMEOUT_SECONDS=10
-IFTTT_RETRY_ATTEMPTS=1
-```
-
-**Commande de démarrage Render** :
-```
-gunicorn 'switchbot_dashboard:create_app()' --bind 0.0.0.0:${PORT} --workers 1 --threads 2 --timeout 120
-```
 
 ## Monitoring santé intégré
 

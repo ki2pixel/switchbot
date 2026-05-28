@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import datetime as dt
-import json
 import logging
 import threading
 from typing import Any, Optional
 
-import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
@@ -131,10 +129,10 @@ class HistoryService:
         
         for metric in metrics:
             if metric == "timestamp":
-                select_fields.append(sql.SQL("date_trunc(%s, timestamp) as timestamp"))
+                select_fields.append(sql.SQL("{} as timestamp").format(time_bucket))
                 timestamp_included = True
             elif metric in ["temperature", "humidity"]:
-                select_fields.append(sql.SQL("AVG({}) as {}").format(
+                select_fields.append(sql.SQL("ROUND(AVG({})::numeric, 1) as {}").format(
                     sql.Identifier(metric), sql.Identifier(metric)
                 ))
             elif metric == "assumed_aircon_power":
@@ -148,53 +146,42 @@ class HistoryService:
             elif metric == "last_temperature_stale":
                 select_fields.append(sql.SQL("BOOL_OR(last_temperature_stale) as last_temperature_stale"))
 
-        # Always include timestamp for ordering
+        # Always include timestamp for ordering and grouping
         if not timestamp_included:
-            select_fields.insert(0, sql.SQL("date_trunc(%s, timestamp) as timestamp"))
+            select_fields.insert(0, sql.SQL("{} as timestamp").format(time_bucket))
 
         # If no metrics specified, return empty result
         if not select_fields:
             self._logger.warning("[history] No valid metrics specified: %s", metrics)
             return []
 
-        # Build query using subqueries for each metric to avoid GROUP BY issues
-        if not metrics:
-            self._logger.warning("[history] No valid metrics specified: %s", metrics)
-            return []
-
-        # For now, implement a simple approach without aggregation
-        # Get raw data and let frontend handle the aggregation
-        select_fields_raw = []
-        
-        # Always include timestamp
-        select_fields_raw.append(sql.SQL("timestamp"))
-        
-        for metric in metrics:
-            if metric in ["temperature", "humidity", "assumed_aircon_power", "last_action", "api_requests_today", "error_count", "last_temperature_stale"]:
-                select_fields_raw.append(sql.Identifier(metric))
-
         query = sql.SQL("""
-            SELECT {}
+            SELECT {fields}
             FROM state_history
             WHERE timestamp >= %s AND timestamp < %s
+            GROUP BY {bucket}
             ORDER BY timestamp DESC
             LIMIT %s
         """).format(
-            sql.SQL(", ").join(select_fields_raw)
+            fields=sql.SQL(", ").join(select_fields),
+            bucket=time_bucket
         )
 
         try:
             with self._pool.connection() as conn:
                 with conn.cursor(row_factory=dict_row) as cur:
-                    # Simple parameters: start + end + limit
                     params = [start, end, limit]
                     cur.execute(query, params)
                     results = cur.fetchall()
 
-                    # Convert datetime objects to ISO strings for JSON serialization
+                    # Convert datetime objects to ISO strings and Decimals to float for JSON compatibility
+                    from decimal import Decimal
                     for result in results:
                         if "timestamp" in result and result["timestamp"]:
                             result["timestamp"] = result["timestamp"].isoformat()
+                        for k, v in result.items():
+                            if isinstance(v, Decimal):
+                                result[k] = float(v)
 
                     self._logger.debug("[history] Retrieved %d records", len(results))
                     return results
@@ -202,6 +189,7 @@ class HistoryService:
         except Exception as exc:
             self._logger.error("[history] Failed to retrieve history (%s)", exc)
             raise HistoryServiceError("Failed to retrieve historical data") from exc
+
 
     def get_aggregates(self, period_hours: int = 1) -> dict[str, Any]:
         """
@@ -378,14 +366,18 @@ class HistoryService:
 
     def _get_time_bucket_expression(self, granularity: str) -> sql.SQL:
         """Get PostgreSQL time bucket expression for given granularity."""
+        if granularity == "5min":
+            return sql.SQL("date_trunc('hour', timestamp) + floor(extract(minute from timestamp) / 5) * 5 * interval '1 minute'")
+        elif granularity == "15min":
+            return sql.SQL("date_trunc('hour', timestamp) + floor(extract(minute from timestamp) / 15) * 15 * interval '1 minute'")
+
         granularity_map = {
             "minute": "minute",
-            "5min": "5 minutes",
-            "15min": "15 minutes",
             "hour": "hour",
+            "day": "day",
         }
         bucket = granularity_map.get(granularity, "minute")
-        return sql.SQL("date_trunc(%s, timestamp)").format(sql.Literal(bucket))
+        return sql.SQL("date_trunc({}, timestamp)").format(sql.Literal(bucket))
 
     def get_latest_records(self, limit: int = 10) -> list[dict[str, Any]]:
         """

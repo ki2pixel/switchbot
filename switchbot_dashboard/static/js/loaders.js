@@ -1,4 +1,62 @@
 (() => {
+    // ----------------------------------------------------
+    // Unified CSRF Validation Interceptors
+    // ----------------------------------------------------
+    const setupCsrfInterceptors = () => {
+        const csrfMethods = ['POST', 'PUT', 'DELETE', 'PATCH'];
+        
+        // 1. Fetch API Interceptor
+        const originalFetch = window.fetch;
+        window.fetch = function(input, init) {
+            init = init || {};
+            const method = init.method ? init.method.toUpperCase() : 'GET';
+            
+            if (csrfMethods.includes(method)) {
+                const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+                if (tokenMeta && tokenMeta.content) {
+                    init.headers = init.headers || {};
+                    if (init.headers instanceof Headers) {
+                        if (!init.headers.has('X-CSRFToken')) {
+                            init.headers.append('X-CSRFToken', tokenMeta.content);
+                        }
+                    } else if (Array.isArray(init.headers)) {
+                        const hasCsrf = init.headers.some(h => h[0].toLowerCase() === 'x-csrftoken');
+                        if (!hasCsrf) {
+                            init.headers.push(['X-CSRFToken', tokenMeta.content]);
+                        }
+                    } else {
+                        if (!init.headers['X-CSRFToken'] && !init.headers['x-csrftoken'] && !init.headers['X-CSRF-Token'] && !init.headers['x-csrf-token']) {
+                            init.headers['X-CSRFToken'] = tokenMeta.content;
+                        }
+                    }
+                }
+            }
+            return originalFetch.call(this, input, init);
+        };
+
+        // 2. XMLHttpRequest Interceptor
+        const originalOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url, ...args) {
+            this._method = method;
+            return originalOpen.apply(this, [method, url, ...args]);
+        };
+
+        const originalSend = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function(...args) {
+            const method = this._method ? this._method.toUpperCase() : 'GET';
+            if (csrfMethods.includes(method)) {
+                const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+                if (tokenMeta && tokenMeta.content) {
+                    this.setRequestHeader('X-CSRFToken', tokenMeta.content);
+                }
+            }
+            return originalSend.apply(this, args);
+        };
+    };
+
+    // Initialize CSRF Interceptors immediately
+    setupCsrfInterceptors();
+
     const LOADER_CLASS = 'sb-loader';
     const LOADER_ACTIVE_CLASS = 'sb-loader--active';
     const LOADER_OVERLAY_CLASS = 'sb-loader-overlay';
@@ -32,16 +90,18 @@
         loaderFailsafes.set(element, timerId);
     };
     
-    const createLoaderOverlay = () => {
+    const createLoaderOverlay = (element) => {
         const overlay = document.createElement('span');
         overlay.className = LOADER_OVERLAY_CLASS;
         overlay.setAttribute('aria-hidden', 'true');
         overlay.setAttribute('role', 'presentation');
         
+        const loaderText = element ? (element.getAttribute('data-loader-text') || 'Chargement...') : 'Chargement...';
+        
         const spinner = document.createElement('span');
         spinner.className = LOADER_SPINNER_CLASS;
         spinner.setAttribute('role', 'img');
-        spinner.setAttribute('aria-label', 'Chargement...');
+        spinner.setAttribute('aria-label', loaderText);
         
         overlay.appendChild(spinner);
         return overlay;
@@ -104,7 +164,7 @@
         element.classList.add(LOADER_ACTIVE_CLASS);
         element.setAttribute('aria-busy', 'true');
         
-        const overlay = createLoaderOverlay();
+        const overlay = createLoaderOverlay(element);
         element.style.position = 'relative';
         element.appendChild(overlay);
         
@@ -145,7 +205,8 @@
                     showLoader(submitButton);
                     
                     const originalText = submitButton.textContent;
-                    submitButton.textContent = 'Chargement...';
+                    const loaderText = submitButton.getAttribute('data-loader-text') || form.getAttribute('data-loader-text') || 'Chargement...';
+                    submitButton.textContent = loaderText;
                     submitButton.disabled = true;
                     
                     setTimeout(() => {
@@ -180,7 +241,8 @@
                 showLoader(button);
                 
                 const originalText = button.textContent;
-                button.textContent = 'Chargement...';
+                const loaderText = button.getAttribute('data-loader-text') || 'Chargement...';
+                button.textContent = loaderText;
                 button.disabled = true;
 
                 const finalizeAction = () => {
@@ -223,7 +285,11 @@
                 });
 
                 setTimeout(() => {
-                    window.location.href = href;
+                    if (window.SwitchBotRouter && typeof window.SwitchBotRouter.navigate === 'function') {
+                        window.SwitchBotRouter.navigate(href, link);
+                    } else {
+                        window.location.href = href;
+                    }
                 }, 150);
             });
         });

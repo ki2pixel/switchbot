@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
     <title>Historique Monitoring - SwitchBot Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/space-grotesk.css') }}" />
@@ -10,57 +11,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/sticky-footer.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}" />
-    <style>
-      /* Centrage et blocs des checkboxes de métriques */
-      .metric-checkboxes {
-        display: flex;
-        justify-content: center;
-        align-items: stretch;
-        gap: 1rem;
-        flex-wrap: wrap;
-      }
-      
-      .metric-checkboxes .metric-option {
-        flex: 1 1 140px;
-        min-width: 140px;
-        background: var(--sb-card);
-        border: 1px solid var(--sb-card-border);
-        border-radius: 0.75rem;
-        padding: 0.75rem 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin: 0;
-        box-shadow: var(--sb-shadow);
-      }
-      
-      .metric-checkboxes .metric-option:hover {
-        border-color: var(--sb-accent);
-      }
-      
-      .metric-checkboxes .metric-option .form-check-input {
-        margin: 0;
-        width: 1.1rem;
-        height: 1.1rem;
-      }
-      
-      .metric-checkboxes .metric-option .form-check-label {
-        margin: 0;
-        font-weight: 600;
-        color: var(--sb-text);
-        display: flex;
-        align-items: center;
-      }
-      
-      @media (max-width: 768px) {
-        .metric-checkboxes {
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-      }
-    </style>
   </head>
   <body class="sb-dark">
+    <div id="app-content">
     <div class="container py-4">
       <header class="page-header mb-4">
         <div class="page-header-main">
@@ -250,6 +203,7 @@
         </div>
       </section>
     </div>
+    </div>
 
     {% include '_footer_nav.html' %}
 
@@ -257,6 +211,7 @@
     <script src="{{ url_for('static', filename='vendor/js/chart.umd.min.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/js/chartjs-adapter-date-fns.bundle.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/loaders.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/spa-router.js') }}"></script>
     <script src="{{ url_for('static', filename='js/history.js') }}"></script>
   </body>
 </html>

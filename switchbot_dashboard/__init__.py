@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 
 from flask import Flask
 
+from flask_wtf.csrf import CSRFProtect
+from psycopg_pool import ConnectionPool
+
 from .automation import AutomationService
 from .config_store import BaseStore, JsonStore, StoreError
 from .postgres_store import PostgresStore, PostgresStoreError
@@ -27,6 +30,7 @@ def _build_store(
     kind: str,
     default_path: str,
     path_env: str,
+    pool: ConnectionPool | None = None,
 ) -> BaseStore:
     backend = os.environ.get("STORE_BACKEND", "postgres").strip().lower()
     selected_backend = backend or "postgres"
@@ -39,7 +43,7 @@ def _build_store(
     # PostgreSQL backend (preferred)
     if selected_backend == "postgres":
         postgres_url = os.environ.get("POSTGRES_URL", "").strip()
-        if not postgres_url:
+        if not postgres_url and not pool:
             app.logger.error(
                 "[store] STORE_BACKEND=postgres but no POSTGRES_URL configured. Falling back to filesystem for %s store.",
                 kind,
@@ -49,10 +53,11 @@ def _build_store(
         try:
             ssl_mode = os.environ.get("POSTGRES_SSL_MODE", "require").strip()
             store = PostgresStore(
-                connection_string=postgres_url,
+                connection_string=postgres_url if pool is None else None,
                 kind=kind,
                 logger=app.logger,
                 ssl_mode=ssl_mode,
+                pool=pool,
             )
             
             # Health check
@@ -105,13 +110,55 @@ def _mark_temperature_stale(app: Flask, state_store: BaseStore, *, reason: str) 
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev")
+    flask_secret = os.environ.get("FLASK_SECRET_KEY")
+    if not flask_secret and not app.debug and not app.testing:
+        import sys
+        is_pytest = "pytest" in sys.modules or any("pytest" in arg for arg in sys.argv)
+        if not is_pytest:
+            raise RuntimeError("Security Violation: FLASK_SECRET_KEY must be set in production environments")
+    app.secret_key = flask_secret or "dev-local-only"
     app.config["STATE_DEBUG_TOKEN"] = os.environ.get("STATE_DEBUG_TOKEN", "").strip()
 
     log_level_raw = os.environ.get("LOG_LEVEL", "info").strip().upper()
     log_level = getattr(logging, log_level_raw, logging.INFO)
     logging.getLogger().setLevel(log_level)
     app.logger.setLevel(log_level)
+
+    # Initialize CSRF Protection globally
+    csrf = CSRFProtect()
+    csrf.init_app(app)
+
+    # Initialize Rate Limiter
+    from .extensions import limiter
+    app.config.setdefault("RATELIMIT_ENABLED", not app.testing)
+    app.config.setdefault("RATELIMIT_STORAGE_URI", "memory://")
+    limiter.init_app(app)
+
+    # Initialize shared connection pool for PostgreSQL if selected
+    shared_pool = None
+    store_backend = os.environ.get("STORE_BACKEND", "postgres").strip().lower()
+    if store_backend == "postgres":
+        postgres_url = os.environ.get("POSTGRES_URL", "").strip()
+        if postgres_url:
+            try:
+                shared_pool = ConnectionPool(
+                    conninfo=postgres_url,
+                    min_size=1,
+                    max_size=10,
+                )
+                app.logger.info("[postgres] Shared connection pool initialized successfully")
+                
+                # Register atexit shutdown handler
+                import atexit
+                @atexit.register
+                def close_shared_pool() -> None:
+                    try:
+                        shared_pool.close()
+                        logging.getLogger().info("[postgres] Shared connection pool closed successfully via atexit")
+                    except Exception as exc:
+                        logging.getLogger().warning("[postgres] Error closing shared connection pool via atexit (%s)", exc)
+            except Exception as exc:
+                app.logger.error("[postgres] Failed to initialize shared connection pool (%s)", exc)
 
     project_root = Path(__file__).resolve().parents[1]
     default_settings_path = str(project_root / "config" / "settings.json")
@@ -122,12 +169,14 @@ def create_app() -> Flask:
         kind="settings",
         default_path=default_settings_path,
         path_env="SWITCHBOT_SETTINGS_PATH",
+        pool=shared_pool,
     )
     state_store = _build_store(
         app,
         kind="state",
         default_path=default_state_path,
         path_env="SWITCHBOT_STATE_PATH",
+        pool=shared_pool,
     )
 
     poll_interval_env = os.environ.get("SWITCHBOT_POLL_INTERVAL_SECONDS")
@@ -167,7 +216,7 @@ def create_app() -> Flask:
         quota_tracker=quota_tracker,
     )
 
-    ifttt_client = IFTTTWebhookClient(timeout=10.0, logger_instance=app.logger)
+    ifttt_client = IFTTTWebhookClient(timeout=30.0, logger_instance=app.logger)
 
     # Initialize HistoryService if PostgreSQL is available
     history_service = None
@@ -177,7 +226,7 @@ def create_app() -> Flask:
     if isinstance(settings_store, PostgresStore):
         try:
             history_service = HistoryService(
-                connection_pool=settings_store._pool,
+                connection_pool=settings_store.pool,
                 logger=app.logger,
                 retention_hours=6,
             )

@@ -95,24 +95,71 @@
       // Monitor Core Web Vitals
       this.measureCoreWebVitals();
       
-      // Monitor memory usage
-      if (performance.memory) {
-        setInterval(() => {
-          const memoryUsage = {
+      // Setup Web Worker for offloaded tracking
+      if (window.Worker) {
+        try {
+          this.perfWorker = new Worker('/static/js/perf-worker.js');
+          this.perfWorker.onmessage = (event) => {
+            const { type, metric, message, details } = event.data;
+            if (type === 'warning' || type === 'alert') {
+              console.log(`[PerfWorker Alert] ${message}`, details);
+            }
+          };
+          console.log('🚀 Performance Worker initialized');
+        } catch (e) {
+          console.warn('Failed to start performance worker:', e);
+        }
+      }
+      
+      // Periodically collect metrics and send to worker
+      this.startMetricsReporting();
+    }
+    
+    startMetricsReporting() {
+      let frameCount = 0;
+      let lastTime = performance.now();
+      
+      const countFrame = () => {
+        frameCount++;
+        this.frameRequest = requestAnimationFrame(countFrame);
+      };
+      this.frameRequest = requestAnimationFrame(countFrame);
+
+      // Every 10 seconds, compute current FPS and memory, and report to worker
+      this.metricsInterval = setInterval(() => {
+        const currentTime = performance.now();
+        const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+        frameCount = 0;
+        lastTime = currentTime;
+        
+        let memory = null;
+        if (performance.memory) {
+          memory = {
             used: Math.round(performance.memory.usedJSHeapSize / 1048576),
             total: Math.round(performance.memory.totalJSHeapSize / 1048576),
             limit: Math.round(performance.memory.jsHeapSizeLimit / 1048576)
           };
-          
-          // Log memory warnings
-          if (memoryUsage.used / memoryUsage.limit > 0.8) {
-            console.warn('High memory usage detected:', memoryUsage);
+        }
+        
+        if (this.perfWorker) {
+          this.perfWorker.postMessage({
+            type: 'metrics',
+            data: {
+              fps: fps,
+              memory: memory,
+              timestamp: Date.now()
+            }
+          });
+        } else {
+          // Fallback if worker failed to load
+          if (fps < 30) {
+            console.warn('Low FPS detected (fallback):', fps);
           }
-        }, 30000); // Check every 30 seconds
-      }
-      
-      // Monitor FPS
-      this.monitorFPS();
+          if (memory && (memory.used / memory.limit > 0.8)) {
+            console.warn('High memory usage detected (fallback):', memory);
+          }
+        }
+      }, 10000); // Check and report every 10 seconds
     }
     
     measureCoreWebVitals() {
@@ -146,32 +193,6 @@
         });
         clsObserver.observe({ entryTypes: ['layout-shift'] });
       }
-    }
-    
-    monitorFPS() {
-      let lastTime = performance.now();
-      let frameCount = 0;
-      
-      const measureFPS = () => {
-        frameCount++;
-        const currentTime = performance.now();
-        
-        if (currentTime >= lastTime + 1000) {
-          const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
-          
-          // Log FPS warnings
-          if (fps < 30) {
-            console.warn('Low FPS detected:', fps);
-          }
-          
-          frameCount = 0;
-          lastTime = currentTime;
-        }
-        
-        requestAnimationFrame(measureFPS);
-      };
-      
-      requestAnimationFrame(measureFPS);
     }
     
     optimizeImages() {
@@ -235,6 +256,16 @@
     destroy() {
       this.observers.forEach(observer => observer.disconnect());
       this.observers.clear();
+      
+      if (this.metricsInterval) {
+        clearInterval(this.metricsInterval);
+      }
+      if (this.frameRequest) {
+        cancelAnimationFrame(this.frameRequest);
+      }
+      if (this.perfWorker) {
+        this.perfWorker.terminate();
+      }
     }
   }
   

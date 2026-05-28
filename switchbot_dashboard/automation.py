@@ -656,6 +656,13 @@ class AutomationService:
         return False
 
     def run_once(self) -> None:
+        if hasattr(self._state_store, "transaction"):
+            with self._state_store.transaction():
+                self._run_once_impl()
+        else:
+            self._run_once_impl()
+
+    def _run_once_impl(self) -> None:
         trigger = self._detect_trigger_source()
         self._update_state(last_tick=_utc_now_iso())
         settings = self._settings_store.read()

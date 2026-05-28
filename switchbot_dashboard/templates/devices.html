@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
     <title>Appareils - SwitchBot Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/space-grotesk.css') }}" />
@@ -12,6 +13,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}" />
   </head>
   <body class="sb-dark">
+    <div id="app-content">
     <div class="container py-4">
       <h1 class="h3 mb-4">Appareils</h1>
 
@@ -209,10 +211,12 @@
         <div class="alert alert-warning">Aucune donnée.</div>
       {% endif %}
     </div>
+    </div>
     
     {% include '_footer_nav.html' %}
     
     <script src="{{ url_for('static', filename='js/devices.js') }}"></script>
     <script src="{{ url_for('static', filename='js/loaders.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/spa-router.js') }}"></script>
   </body>
 </html>

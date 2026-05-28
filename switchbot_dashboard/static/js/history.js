@@ -265,6 +265,18 @@ class HistoryDashboard {
                 this.updateMetrics();
             });
         });
+
+        // Page Visibility API to pause updates when tab is hidden
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                console.log('[history] Page hidden: pausing network polling.');
+                this.stopRealTimeUpdates();
+            } else {
+                console.log('[history] Page visible: resuming network polling and refreshing data.');
+                this.startRealTimeUpdates();
+                this.loadInitialData();
+            }
+        });
     }
 
     async loadInitialData() {
@@ -509,6 +521,9 @@ class HistoryDashboard {
     }
 
     startRealTimeUpdates() {
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+        }
         // Update every 30 seconds
         this.updateInterval = setInterval(() => {
             this.loadHistoryData();
@@ -517,10 +532,15 @@ class HistoryDashboard {
         }, 30000);
     }
 
-    destroy() {
+    stopRealTimeUpdates() {
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
+            this.updateInterval = null;
         }
+    }
+
+    destroy() {
+        this.stopRealTimeUpdates();
         
         // Destroy charts
         Object.values(this.charts).forEach(chart => {
@@ -529,10 +549,19 @@ class HistoryDashboard {
     }
 }
 
-// Initialize dashboard when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize dashboard safely
+const initHistoryDashboard = () => {
+    if (window.historyDashboard) {
+        window.historyDashboard.destroy();
+    }
     window.historyDashboard = new HistoryDashboard();
-});
+};
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHistoryDashboard);
+} else {
+    initHistoryDashboard();
+}
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {

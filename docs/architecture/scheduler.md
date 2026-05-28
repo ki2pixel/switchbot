@@ -121,6 +121,28 @@ def _maybe_reschedule_after_tick(self) -> None:
 
 Le scheduler se reprogramme automatiquement lors des changements de mode (idle→warmup→in-window).
 
+---
+
+## 🚀 Architecture de Production Découplée (Option Évolutive)
+
+Dans les déploiements de niveau entreprise ou à forte charge (par exemple sur Render avec mise à l'échelle automatique), il est recommandé de décorréler complètement l'exécution du planificateur de l'application Flask principale. Cela permet de faire évoluer le nombre de conteneurs/processus Web de manière indépendante pour absorber le trafic HTTP tout en gardant une source unique de vérité pour le planificateur.
+
+Cette topologie repose sur deux types d'instances :
+
+### 1. Les Instances Web (Multiples & Scalables)
+Ces instances reçoivent le trafic des utilisateurs et servent les APIs. On peut configurer autant de workers et de serveurs Gunicorn que désiré car le planificateur interne y est désactivé.
+* **Variable d'environnement** : `SCHEDULER_ENABLED=false`
+* **Configuration Gunicorn** : `workers > 1` (par exemple 2, 4 ou 8) pour une performance maximale.
+
+### 2. L'Instance Worker (Singleton Obligatoire)
+Un unique processus (Singleton) tourne en arrière-plan et exécute les cycles de régulation sans interagir avec le trafic HTTP direct. Il démarre l'application Flask uniquement pour charger le contexte de services de façon DRY.
+* **Script de démarrage** : `python run_worker.py`
+* **Variable d'environnement forcée** : `SCHEDULER_ENABLED=true`
+* **Mise à l'échelle** : Toujours limitée à **1 réplique** unique pour éviter toute collision d'automatisation.
+
+---
+
+
 ## Les Pièges : Erreurs Communes
 
 ### ❌ Multi-workers Gunicorn
