@@ -1,4 +1,13 @@
 ## Terminé
+[2026-05-30 15:21:00] - Alignement des règles IA, consolidation des compétences locales et nettoyage
+
+- **Nettoyage des règles dépréciées** : Suppression des anciens modèles de prompts, des anciennes règles `.continue` et configurations obsolètes.
+- **Alignement Windsurf et AI** : Mise à jour de `.clinerules/codingstandards.md` et `.windsurf/rules/codingstandards.md` pour utiliser `.agents/skills` et standardiser les instructions d'agent.
+- **Réorganisation des Skills et Rules** : Relocalisation et formatage des compétences locales sous `.agents/skills/` et des règles globales sous `.agents/rules/`.
+- **Ajout de Scripts de Validation** : Création de `check_links.sh` et `check_relative_links.sh` pour vérifier les références croisées et les liens de documentation.
+- **Synchronisation des Fichiers** : Synchronisation des fichiers de compétences critiques (`fast-filesystem-ops`, `json-query-expert`, `documentation`, `render-postgres-integration`) pour intégrer les améliorations et structures.
+- **Mise à jour des logs** : Archive des traces d'audit et enrichissement de `debug/logs_render.log`.
+
 [2026-05-27 13:48:00] - Correction de l'AttributeError de gestion de transaction PostgresStore
 - **Gestion manuelle du Context Manager** : Correction de `PostgresStoreTransactionContext` pour invoquer explicitement `__enter__()` et `__exit__()` sur le context manager de connexion `psycopg_pool.ConnectionPool.connection()`. Cela évite l'AttributeError lié au fait d'appeler directement `.cursor()` sur le gestionnaire de contexte et garantit le bon recyclage des connexions dans le pool.
 - **Fiabilisation des Mocks dans les Tests** : Mise à jour de `tests/test_phase3.py` pour simuler le comportement réel en tant que gestionnaire de contexte lors du test des transactions PostgreSQL.
