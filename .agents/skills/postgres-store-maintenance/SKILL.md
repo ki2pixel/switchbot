@@ -37,4 +37,4 @@ Utiliser ce skill pour toute opération sur le stockage Postgres (Neon) et son f
 
 ## 5. Documentation
 - Mettre à jour `docs/core/configuration.md` + `docs/core/deployment.md` + Memory Bank (decisionLog + progress) après toute modification structurelle.
-- Référencer les incidents dans `activeContext.md` via `edit_file(path="/home/kidpixel/SwitchBot/memory-bank/activeContext.md")` si investigation en cours.
+- Référencer les incidents dans `activeContext.md` via `edit_file(path="/absolute/path/to/activeContext.md")` si investigation en cours.

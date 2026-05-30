@@ -1,3 +1,15 @@
+---
+trigger: always_on
+description: 
+globs: 
+---
+
+---
+description: Core AI rule for SwitchBot Dashboard v2 (Flask + offline-first frontend)
+globs: ["**/*.py", "**/*.html", "**/*.js", "**/*.css"]
+alwaysApply: true
+---
+
 # SwitchBot Dashboard v2 – AI Coding Standards
 
 ## Tech Stack
@@ -7,7 +19,7 @@
 - **Tests** : `/mnt/venv_ext4/venv_switchbot/bin/python -m pytest`, objectif 85 %+ avec focus automation/IFTTT/history/quota (`docs/ops/testing-strategy.md`).
 
 ## AI Skill Usage
-- **Skills locaux en premier** (`.agents/skills` ou `.cline/skills`) :
+- **Skills locaux en premier** (`.agents/skills` ou `.agents/skills`) :
   - `add-feature` pour toute feature mêlant services/routes/templates.
   - `debugging-strategies` à consulter dès qu'un ticket implique bug, crash, performance ou investigation de logs.
   - `documentation` pour toute rédaction de documentation (README, docs/, guides Markdown), méthodologie TL;DR, problème-first, ❌/✅, trade-offs, Golden Rule.

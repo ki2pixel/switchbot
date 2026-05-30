@@ -30,13 +30,13 @@ JSON Query Expert utilise le pattern "Sniper" pour les fichiers JSON :
 
 ```bash
 # 1. Localiser la configuration cible
-json_query_jsonpath package.json "$.scripts.dev"
+json_query_jsonpath settings.json "$.scheduler.poll_interval_seconds"
 
 # 2. Trouver les lignes correspondantes
-json_query_search_keys package.json "scripts.dev"
+json_query_search_keys settings.json "scheduler.poll_interval_seconds"
 
 # 3. Éditer chirurgicalement
-edit_file package.json --line 15 --replacement '"dev": "vite --port 3000",'
+edit_file settings.json --line 15 --replacement '"poll_interval_seconds": 60,'
 ```
 
 #### Pour manipulation de i18n
@@ -237,10 +237,10 @@ json_query_search_keys file.json "array[?]"
 
 ## When to use this skill
 
-- **Fichiers de configuration** : package.json, tsconfig.json, manifest.json
+- **Fichiers de configuration** : settings.json, ifttt_webhooks.json, state.json
 - **Traductions i18n** : Fichiers de traduction volumineux
 - **Données structurées** : JSON > 1000 lignes
-- **Configurations complexes** : webpack, babel, eslint configs
+- **Configurations complexes** : dumps Postgres, historiques JSON
 - **Métadonnées** : lock files, caches, états sérialisés
 - **API responses** : Fichiers de mock ou fixtures
 
@@ -260,22 +260,22 @@ Utilise pour manipuler les fichiers de configuration générés par Shrimp Task 
 
 ## File type specific strategies
 
-### package.json
+### settings.json
 ```bash
-json_query_jsonpath package.json "$.scripts"
-json_query_search_keys package.json "dependencies"
+json_query_jsonpath settings.json "$.automation"
+json_query_search_keys settings.json "automation.hysteresis"
 ```
 
-### manifest.json (Chrome/Extension)
+### ifttt_webhooks.json
 ```bash
-json_query_jsonpath manifest.json "$.permissions"
-json_query_search_keys manifest.json "content_scripts"
+json_query_jsonpath ifttt_webhooks.json "$.webhooks[*].url"
+json_query_search_keys ifttt_webhooks.json "webhooks"
 ```
 
-### tsconfig.json
+### state.json
 ```bash
-json_query_jsonpath tsconfig.json "$.compilerOptions"
-json_query_search_keys tsconfig.json "include"
+json_query_jsonpath state.json "$.devices[*].assumed_state"
+json_query_search_keys state.json "assumed_state"
 ```
 
 ### i18n files

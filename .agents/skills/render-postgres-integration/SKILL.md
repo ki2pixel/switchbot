@@ -377,7 +377,6 @@ def create_environment(env_name):
 ### Performance
 - **Connection pooling** : pgbouncer pour haute disponibilité
 - **Read replicas** : Répartition charge lecture/écriture
-- **Caching** : Redis pour données fréquentes
 - **Compression** : Backups compressés, WAL compression
 
 ### Observabilité

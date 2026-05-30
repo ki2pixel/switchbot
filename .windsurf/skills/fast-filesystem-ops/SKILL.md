@@ -43,14 +43,14 @@ edit_file src/calculations.py --start 45 --end 67 --replacement "new_function_co
 
 ```bash
 # 1. Rechercher toutes les occurrences
-fast_search_code "deprecated_function" --language javascript
+fast_search_code "deprecated_function" --language python
 
 # 2. Lire les sections pertinentes de chaque fichier
-fast_read_multiple_files file1.js file2.js file3.js --context 3
+fast_read_multiple_files file1.py file2.py file3.py --context 3
 
 # 3. Éditer chaque occurrence chirurgicalement
-edit_file file1.js --line 123 --replacement "new_function_call"
-edit_file file2.js --line 45 --replacement "new_function_call"
+edit_file file1.py --line 123 --replacement "new_function_call"
+edit_file file2.py --line 45 --replacement "new_function_call"
 ```
 
 ## Production-safe patterns
@@ -65,7 +65,7 @@ fast_search_code "class UserController" --language python --exclude test/
 fast_search_code "TODO.*performance" --context 2
 
 # Recherche multi-langages
-fast_search_code "import.*React" --language javascript,typescript
+fast_search_code "import.*flask" --language python
 ```
 
 ### Lecture chirurgicale
@@ -85,13 +85,13 @@ fast_read_multiple_files src/*.js --pattern "export.*function"
 
 ```bash
 # Édition par ligne unique
-edit_file src/app.js --line 234 --replacement "newCode"
+edit_file switchbot_dashboard/routes.py --line 234 --replacement "newCode"
 
 # Édition par bloc
-edit_file src/app.js --start 200 --end 250 --replacement "newBlock"
+edit_file switchbot_dashboard/routes.py --start 200 --end 250 --replacement "newBlock"
 
 # Édition avec recherche automatique
-edit_file src/app.js --search "oldPattern" --replacement "newPattern"
+edit_file switchbot_dashboard/routes.py --search "oldPattern" --replacement "newPattern"
 ```
 
 ## Token optimization strategies
@@ -115,7 +115,7 @@ edit_file target_file.py --line 125 --replacement "optimized code"
 Toujours rechercher avant de lire :
 ```bash
 # 1. Localiser
-fast_search_code "targetPattern" --language typescript
+fast_search_code "targetPattern" --language python
 
 # 2. Lire uniquement les résultats
 fast_read_multiple_files results... --context 2

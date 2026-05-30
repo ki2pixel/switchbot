@@ -5,21 +5,21 @@ globs:
 ---
 
 ---
-description: Core Cursor rule for SwitchBot Dashboard v2 (Flask + offline-first frontend)
+description: Core AI rule for SwitchBot Dashboard v2 (Flask + offline-first frontend)
 globs: ["**/*.py", "**/*.html", "**/*.js", "**/*.css"]
 alwaysApply: true
 ---
 
-# SwitchBot Dashboard v2 – Cursor Coding Standards
+# SwitchBot Dashboard v2 – AI Coding Standards
 
 ## Tech Stack
 - **Backend** : Flask 2.x + APScheduler, services injectés (`AutomationService`, `SchedulerService`, `ApiQuotaTracker`, `HistoryService`).
 - **Stockage** : `PostgresStore` (prioritaire) via psycopg_pool, fallback `JsonStore`. Redis conservé uniquement en compat.
 - **Frontend** : Templates Jinja, assets offline-first depuis `static/vendor`, Chart.js avec décimation LTTB, loaders obligatoires.
-- **Tests** : `/mnt/venv_ext4/venv_switchbot/bin/python -m pytest`, objectif 85 %+ avec focus automation/IFTTT/history/quota (`docs/testing.md`).
+- **Tests** : `/mnt/venv_ext4/venv_switchbot/bin/python -m pytest`, objectif 85 %+ avec focus automation/IFTTT/history/quota (`docs/ops/testing-strategy.md`).
 
-## Windsurf Skill Usage
-- **Skills locaux en premier** (`.continue/rules`) :
+## AI Skill Usage
+- **Skills locaux en premier** (`.agents/skills` ou `.windsurf/skills`) :
   - `add-feature` pour toute feature mêlant services/routes/templates.
   - `debugging-strategies` à consulter dès qu'un ticket implique bug, crash, performance ou investigation de logs.
   - `documentation` pour toute rédaction de documentation (README, docs/, guides Markdown), méthodologie TL;DR, problème-first, ❌/✅, trade-offs, Golden Rule.
@@ -68,7 +68,7 @@ alwaysApply: true
 | `switchbot_dashboard/automation.py` | Boucle métier, cascade IFTTT → scènes → commandes, enregistrement history |
 | `switchbot_dashboard/routes.py` | Routes UI, validation formulaire, actions manuelles |
 | `switchbot_dashboard/static/` | Assets offline-first (Bootstrap, FontAwesome, loaders, history) |
-| `templates/*.html` | Pages dark glassmorphism + bottom navigation |
+| `switchbot_dashboard/templates/*.html` | Pages dark glassmorphism + bottom navigation |
 
 ## Backend Patterns
 ### Store Selection & Failover
@@ -102,7 +102,7 @@ alwaysApply: true
 - Pour les snippets complets (quota banner, loaders, tokens CSS), voir `templates/index.html`, `static/js/loaders.js`, `static/css/theme.css`.
 
 ## Documentation Updates
-- Chaque fois que vous créez ou modifiez de la documentation (README, docs/, guides Markdown), vous **devez** appliquer la méthodologie définie dans `.windsurf/skills/documentation/SKILL.md` (TL;DR d'abord, ouverture orientée problème, blocs ❌/✅, tableaux de compromis, Golden Rule). Considérez ce fichier skill comme la checklist de référence avant toute rédaction.
+- Chaque fois que vous créez ou modifiez de la documentation (README, docs/, guides Markdown), vous **devez** appliquer la méthodologie définie dans `.agents/skills/documentation/SKILL.md` (TL;DR d'abord, ouverture orientée problème, blocs ❌/✅, tableaux de compromis, Golden Rule). Considérez ce fichier skill comme la checklist de référence avant toute rédaction.
 
 ## Testing & Quality
 - Commande canonique : `source /mnt/venv_ext4/venv_switchbot/bin/activate && python -m pytest` (≥85 %).
@@ -122,7 +122,7 @@ alwaysApply: true
 - **Fail-Safe UX** : En cas d'erreur API, retourner des données vides plutôt que planter l'interface (pattern appliqué dans les routes history).
 
 ## Common Tasks
-- **Pytest** : `source /mnt/venv_ext4/venv_switchbot/bin/activate && python -m pytest`, viser ≥85 % (voir `docs/testing.md`).
+- **Pytest** : `source /mnt/venv_ext4/venv_switchbot/bin/activate && python -m pytest`, viser ≥85 % (voir `docs/ops/testing-strategy.md`).
 - **Action IFTTT/Scène** : configurer `/settings`, valider via `_as_*`, déployer, vérifier `_execute_aircon_action` + flashs UI.
 - **Bouton avec loader** : ajouter `data-loader`, importer `static/js/loaders.js`, tester overlay + failsafe 15 s + `aria-busy`.
 - **Diagnostic automation** : lire `state_store`, analyser logs `[automation]`, vérifier snapshot et cleanup HistoryService si Postgres actif.

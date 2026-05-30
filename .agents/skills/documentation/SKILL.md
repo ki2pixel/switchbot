@@ -97,8 +97,6 @@ When the user provides a voice transcript, tone guidance, or example text to mat
 
 Not every article needs a story arc. Some are just direct statements of practice. Match the user's intent.
 
----
-
 ## Technical Writing Voice
 
 ### Choosing Your Voice: Narrative vs Instructional
@@ -149,8 +147,6 @@ Default to instructional for technical patterns. Use narrative when the personal
 - Don't: "In conclusion, both patterns have merit"
 - Do: "The lesson: Not every data access needs a service"
 
----
-
 ## Authentic Communication Style
 
 - Avoid emojis in headings and formal content unless explicitly requested
@@ -159,8 +155,6 @@ Default to instructional for technical patterns. Use narrative when the personal
 - Mirror the straightforward tone of established sections when editing
 - Prefer "I built this because..." over "Revolutionary new..."
 
----
-
 ## Open Source Mindset
 
 - Emphasize user control and data ownership
@@ -168,8 +162,6 @@ Default to instructional for technical patterns. Use narrative when the personal
 - Focus on direct relationships (user -> provider) over middleman models
 - Present honest cost comparisons with specific, real numbers
 - Acknowledge limitations and trade-offs openly
-
----
 
 ## Avoiding AI-Generated Feel
 
@@ -212,8 +204,6 @@ What it actually does -> Technical details -> Genuine question to community
 - Natural transitions like "So I built..." or "Here's the thing..."
 - End with engagement, not a sales pitch
 
----
-
 ## README Structure Principles
 
 - Start with what the tool actually does, not why it's amazing
@@ -221,8 +211,6 @@ What it actually does -> Technical details -> Genuine question to community
 - Present facts and let users draw conclusions
 - Include real limitations and use cases
 - Make pricing transparent with actual provider costs
-
----
 
 # Punctuation Guidelines
 
@@ -242,7 +230,7 @@ The pattern " - " (space-hyphen-space) is a common AI writing artifact that shou
 
 3. **Em dash**: Use for dramatic pauses or parenthetical statements where semicolon and colon don't work
    - Before: `The app is fast - really fast`
-   - After: `The app is fast—really fast`
+   - After: `The app is fast-really fast`
 
 ### Common Patterns
 
@@ -251,11 +239,9 @@ The pattern " - " (space-hyphen-space) is a common AI writing artifact that shou
 - **Examples/Lists**: Use colon
   - `**Examples**: item1, item2, item3`
 - **Dramatic emphasis**: Use em dash
-  - `It's more than fast—it's instant`
+  - `It's more than fast-it's instant`
 - **Related statements**: Use semicolon
   - `The API is simple; the documentation is clear`
-
----
 
 # README and Documentation Guidelines
 
@@ -310,12 +296,10 @@ Services that connect to servers you deploy yourself. You provide the base URL o
   - `openai.ts`: OpenAI Whisper API
   - `groq.ts`: Groq transcription
   - `deepgram.ts`: Deepgram API
-[... exhaustive listing of every file]
+    [... exhaustive listing of every file]
 ```
 
 The good example explains the reasoning (deployment model categorization) without listing specifics. The bad example duplicates what's already visible and requires updates whenever files change.
-
----
 
 # Writing Style Examples
 
@@ -360,32 +344,70 @@ When delegating article writing to a `document-writer` subagent, structure your 
 
 1. **Target audience**: Who is reading? What do they already know?
 
-```
-"Developers intermediate in TypeScript but new to API design trade-offs"
-```
+   ```
+   "Developers intermediate in TypeScript but new to API design trade-offs"
+   ```
 
 2. **Numbered themes**: List 5-8 specific topics to cover
 
-```
-1. What is introspection?
-2. The fundamental tension (functions vs objects)
-3. Example 1: Workspace system
-4. Example 2: Standard Schema
-...
-```
+   ```
+   1. What is introspection?
+   2. The fundamental tension (functions vs objects)
+   3. Example 1: Workspace system
+   4. Example 2: Standard Schema
+   ...
+   ```
 
 3. **Code examples in prompt**: Provide ❌/✅ patterns for the agent to expand on
 
+   ```typescript
+   // ❌ Cannot introspect
+   actions: (ctx) => ({ create: { handler: () => ctx.db.insert() } });
+
+   // ✅ Can introspect
+   actions: {
+   	create: {
+   		handler: (input, ctx) => ctx.db.insert();
+   	}
+   }
+   ```
+
 4. **Style constraints**: Word count, TL;DR requirement, analogy suggestions
 
-```
-"~1500-2000 words, include TL;DR at top, use restaurant menu analogy"
-```
+   ```
+   "~1500-2000 words, include TL;DR at top, use restaurant menu analogy"
+   ```
 
 5. **Exact output path**: No ambiguity
+   ```
+   "Save to: /path/to/docs/articles/my-article.md"
+   ```
+
+### Example Full Prompt
 
 ```
-"Save to: /path/to/docs/articles/my-article.md"
+Write a beginner-friendly technical article about [CONCEPT].
+
+**Target audience**: [WHO] who are [SKILL LEVEL] in [TOPIC].
+
+**Title suggestion**: "[CATCHY TITLE]"
+
+**Key themes to cover**:
+1. [THEME 1]
+2. [THEME 2]
+...
+
+**Concrete examples**:
+[CODE BLOCK showing bad approach]
+[CODE BLOCK showing good approach]
+
+**Style**:
+- Use code examples liberally
+- ~1500-2000 words
+- Include TL;DR at top
+- Use [SPECIFIC ANALOGY] throughout
+
+**Output**: /path/to/file.md
 ```
 
 ### What NOT to Do
