@@ -31,6 +31,7 @@
 | `postgres-ops-manager` | Corrigé tables SQL (`state_history`, `history_entries`) |
 | `render-postgres-integration` | Ajouté avertissement scripts placeholder |
 | `render-service-manager` | Ajouté avertissement scripts placeholder |
+| Audit Général des Outils | Remédiation de 8 incohérences de signatures MCP/APIs dans les rules/skills/workflows |
 | Tous les skills | Synchronisé scripts/references depuis `.windsurf/skills/` |
 
 ## Questions/Problèmes Ouverts

@@ -1,233 +1,119 @@
 ---
 name: fast-filesystem-ops
-description: Expert en édition chirurgicale. Obligation d'utiliser edit_file pour préserver les tokens. Recherche globale via fast_search_code.
+description: Expert en édition chirurgicale. Obligation d'utiliser edit_file pour préserver les tokens. Recherche globale via grep_search.
 ---
 
 # Fast Filesystem Operations
 
-> **Expertise** : Édition chirurgicale de fichiers, optimisation token, recherche efficace, manipulation précise de codebase.
+> **Expertise** : Édition chirurgicale de fichiers, optimisation token, recherche textuelle efficace, manipulation précise de codebase via MCP.
 
 ## Quick Start
 
 ### Mental Model
 
-Fast Filesystem Ops optimise chaque opération fichier pour minimiser l'usage de tokens :
-- Édition ciblée avec `edit_file`
-- Recherche intelligente avec `fast_search_code`
-- Lecture multiple avec `fast_read_multiple_files`
-- Évitement des chargements inutiles
+Fast Filesystem Ops optimise chaque opération de fichier pour minimiser l'usage de tokens :
+- Recherche textuelle ciblée avec `grep_search` (outil d'API standard) pour localiser le code.
+- Recherche de fichiers par nom avec `fast_search_files` (substring match sur le nom du fichier).
+- Lecture ciblée via `view_file` (ou `fast_read_file` pour la Memory Bank).
+- Édition chirurgicale et fine avec `edit_file` du serveur `filesystem-agent` pour éviter les réécritures complètes.
 
 ### Workflow obligatoire
 
-1. **Localisation** : `fast_search_code` pour trouver les cibles
-2. **Lecture minimale** : `fast_read_multiple_files` uniquement des sections nécessaires
-3. **Édition chirurgicale** : `edit_file` pour modifications précises
-4. **Validation** : Vérification minimale des changements
+1. **Localisation textuelle** : Utiliser `grep_search` pour trouver le code cible précis.
+2. **Recherche de structure** : `fast_search_files` si vous cherchez simplement un fichier par son nom.
+3. **Lecture chirurgicale** : `view_file` (ou `fast_read_multiple_files` si plusieurs fichiers sont nécessaires) pour lire uniquement les sections indispensables.
+4. **Édition ciblée** : `edit_file` avec des blocs d'édition précis (`oldText`/`newText`).
+5. **Validation** : Vérifier que les modifications préservent la validité syntaxique.
 
-### Patterns d'utilisation
+### Patterns d'utilisation Réels (MCP JSON)
 
-#### Pour modification de fonction spécifique
+#### 1. Localisation et lecture d'une fonction spécifique
 
-```bash
-# 1. Localiser la fonction
-fast_search_code "function calculateTotal" --language python
+Pour localiser et éditer une fonction `calculate_total` :
 
-# 2. Lire uniquement le fichier contenant la fonction
-fast_read_multiple_files src/calculations.py --lines 45-67
+```json
+// Étape 1 : Localiser précisément la fonction dans le codebase
+default_api:grep_search({
+  "Query": "def calculate_total",
+  "SearchPath": "/home/kidpixel/SwitchBot"
+})
 
-# 3. Éditer chirurgicalement
-edit_file src/calculations.py --start 45 --end 67 --replacement "new_function_code"
-```
+// Étape 2 : Lire la section de code identifiée
+default_api:view_file({
+  "AbsolutePath": "/home/kidpixel/SwitchBot/src/calculations.py",
+  "StartLine": 45,
+  "EndLine": 67
+})
 
-#### Pour refactoring multi-fichiers
-
-```bash
-# 1. Rechercher toutes les occurrences
-fast_search_code "deprecated_function" --language python
-
-# 2. Lire les sections pertinentes de chaque fichier
-fast_read_multiple_files file1.py file2.py file3.py --context 3
-
-# 3. Éditer chaque occurrence chirurgicalement
-edit_file file1.py --line 123 --replacement "new_function_call"
-edit_file file2.py --line 45 --replacement "new_function_call"
-```
-
-## Production-safe patterns
-
-### Recherche optimisée
-
-```bash
-# Recherche ciblée avec filtres
-fast_search_code "class UserController" --language python --exclude test/
-
-# Recherche par pattern avec contexte limité
-fast_search_code "TODO.*performance" --context 2
-
-# Recherche multi-langages
-fast_search_code "import.*flask" --language python
-```
-
-### Lecture chirurgicale
-
-```bash
-# Lire uniquement les lignes nécessaires
-fast_read_multiple_files large_file.py --lines 1000-1050
-
-# Lire avec contexte minimal
-fast_read_multiple_files config.json --context 1
-
-# Lecture multi-fichiers optimisée
-fast_read_multiple_files src/*.js --pattern "export.*function"
-```
-
-### Édition précise
-
-```bash
-# Édition par ligne unique
-edit_file switchbot_dashboard/routes.py --line 234 --replacement "newCode"
-
-# Édition par bloc
-edit_file switchbot_dashboard/routes.py --start 200 --end 250 --replacement "newBlock"
-
-# Édition avec recherche automatique
-edit_file switchbot_dashboard/routes.py --search "oldPattern" --replacement "newPattern"
+// Étape 3 : Éditer précisément
+mcp:filesystem-agent/edit_file({
+  "path": "/home/kidpixel/SwitchBot/src/calculations.py",
+  "edits": [
+    {
+      "oldText": "def calculate_total(a, b):\n    return a + b",
+      "newText": "def calculate_total(a, b):\n    # Utilise un typage précis\n    return float(a + b)"
+    }
+  ]
+})
 ```
 
 ## Token optimization strategies
 
-### Éviter les chargements massifs
+### Éviter les chargements massifs de fichiers
+
+Ne chargez pas un fichier de plus de 1000 lignes avec `read_file` ou `view_file` sans cibler les lignes :
 
 ❌ **Incorrect** :
-```bash
-read_file large_project/src/entier_fichier.py  # 5000+ lignes
+```json
+default_api:view_file({
+  "AbsolutePath": "/home/kidpixel/SwitchBot/large_file.py"
+}) // Plus de 5000 lignes lues d'un coup = gaspillage de tokens !
 ```
 
 ✅ **Correct** :
-```bash
-fast_search_code "function targetFunction" --language python
-fast_read_multiple_files target_file.py --lines 100-150
-edit_file target_file.py --line 125 --replacement "optimized code"
+```json
+default_api:view_file({
+  "AbsolutePath": "/home/kidpixel/SwitchBot/large_file.py",
+  "StartLine": 120,
+  "EndLine": 150
+})
 ```
 
-### Recherche avant lecture
+## API Reference (Vrais Outils MCP & Standard API)
 
-Toujours rechercher avant de lire :
-```bash
-# 1. Localiser
-fast_search_code "targetPattern" --language python
+### Outils de Recherche
+- **`default_api:grep_search`** : Recherche textuelle précise par pattern (regex ou literal) dans un répertoire/fichier.
+  - `Query` (string) : Texte à chercher.
+  - `SearchPath` (string) : Chemin absolu.
+- **`mcp:fast-filesystem/fast_search_files`** : Recherche simple de fichiers par substring match sur le nom du fichier.
+  - `directory` (string) : Répertoire de recherche.
+  - `pattern` (string) : Nom du fichier ou partie du nom.
 
-# 2. Lire uniquement les résultats
-fast_read_multiple_files results... --context 2
+### Outils de Lecture
+- **`default_api:view_file`** : Outil standard hautement optimisé pour visualiser le contenu d'un fichier (supporte `StartLine` et `EndLine`).
+- **`mcp:fast-filesystem/fast_read_multiple_files`** : Lecture simultanée de plusieurs fichiers.
+  - `paths` (array de strings) : Liste des chemins de fichiers.
+- **`mcp:fast-filesystem/fast_read_file`** : Lecture ciblée (particulièrement recommandé pour la Memory Bank).
+  - `path` (string) : Chemin absolu.
 
-# 3. Éditer
-edit_file target_file.ts --line X --replacement "new code"
-```
-
-### Lecture multiple optimisée
-
-```bash
-# Lire plusieurs fichiers en une seule passe
-fast_read_multiple_files file1.js file2.js file3.js --pattern "export.*"
-
-# Plutôt que
-read_file file1.js
-read_file file2.js  
-read_file file3.js
-```
-
-## Common gotchas
-
-### Fichiers volumineux (>1000 lignes)
-
-```bash
-# ❌ Ne jamais charger entièrement
-read_file massive_config.json  # 5000+ lignes
-
-# ✅ Utiliser JSON Query pour les gros JSON
-json_query_jsonpath massive_config.json "$.database.connection"
-
-# ✅ Pour code, recherche ciblée
-fast_search_code "database.*connection" --language python
-fast_read_multiple_files config.py --lines 50-60
-```
-
-### Éditions en cascade
-
-```bash
-# Pour modifications multi-fichiers, utiliser la lecture multiple
-fast_read_multiple_files file1.js file2.js file3.js --pattern "oldFunction"
-
-# Puis éditer séquentiellement
-edit_file file1.js --search "oldFunction" --replacement "newFunction"
-edit_file file2.js --search "oldFunction" --replacement "newFunction"
-```
-
-### Contexte insuffisant
-
-```bash
-# Toujours inclure un peu de contexte pour éviter les erreurs
-fast_read_multiple_files target.py --lines 100-120 --context 3
-
-# Plutôt que
-fast_read_multiple_files target.py --lines 100-120  # Risque d'erreur
-```
-
-## API Reference
-
-### Commandes principales
-
-- `fast_search_code "<pattern>"` : Recherche intelligente avec options
-- `fast_read_multiple_files <files>` : Lecture optimisée multi-fichiers  
-- `edit_file <file>` : Édition chirurgicale précise
-
-### Options de recherche
-
-- `--language <lang>` : Filtrer par langage (python, javascript, typescript, etc.)
-- `--exclude <pattern>` : Exclure fichiers/dossiers
-- `--context <n>` : Nombre de lignes de contexte
-- `--max-results <n>` : Limiter nombre de résultats
-
-### Options de lecture
-
-- `--lines <start-end>` : Lignes spécifiques
-- `--context <n>` : Lignes de contexte supplémentaires
-- `--pattern <regex>` : Filtrer lignes par pattern
-
-### Options d'édition
-
-- `--line <n>` : Ligne spécifique à remplacer
-- `--start <n> --end <n>` : Bloc de lignes
-- `--search <pattern>` : Rechercher et remplacer
-- `--replacement <code>` : Code de remplacement
-
-## Debugging checklist
-
-- Confirmer que la recherche retourne les bons fichiers avant lecture
-- Vérifier que les lignes spécifiées existent dans les fichiers
-- Tester les patterns de recherche sur petits échantillons
-- Valider que les éditions ne cassent pas la syntaxe
-- Contrôler l'usage token après chaque opération
+### Outils d'Écriture et Modification
+- **`mcp:filesystem-agent/edit_file`** : Édition chirurgicale ligne par ligne.
+  - `path` (string) : Chemin absolu du fichier.
+  - `edits` (array) : `{ "oldText": "...", "newText": "..." }`.
+  - `dryRun` (boolean) : Pour prévisualiser les changements.
+- **`default_api:replace_file_content`** / **`default_api:multi_replace_file_content`** : Outils par défaut hautement performants pour les remplacements de blocs de code contigus ou non.
 
 ## When to use this skill
 
-- **Fichiers volumineux** : Quand les fichiers dépassent 1000 lignes
-- **Modifications ciblées** : Pour changer des fonctions spécifiques
-- **Refactoring** : Quand plusieurs fichiers nécessitent des changements
-- **Recherche globale** : Pour trouver des patterns dans tout le codebase
-- **Optimisation token** : Quand l'usage de tokens est critique
-- **Édition chirurgicale** : Pour modifications précises sans effets de bord
+- **Fichiers volumineux** : Quand les fichiers dépassent 1000 lignes.
+- **Modifications ciblées** : Pour modifier des fonctions spécifiques sans toucher au reste.
+- **Optimisation de tokens** : Pour garder la fenêtre de contexte propre et réactive.
+- **Opérations sur la Memory Bank** : Pour manipuler chirurgicalement `activeContext.md` et `progress.md`.
 
 ## Integration patterns
 
 ### Avec Sequential Thinking
-
-Utilise `sequentialthinking_tools` pour valider la logique des modifications avant édition.
-
-### Avec Shrimp Task Manager
-
-Utilise pour implémenter les tâches générées par Shrimp Task Manager de manière optimisée.
+Valider la logique de l'édition avec `sequentialthinking_tools` avant d'appliquer `edit_file`.
 
 ### Avec JSON Query
-
-Utilise `json_query_jsonpath` pour les fichiers JSON volumineux avant édition.
+Utiliser `json_query_query_json` pour inspecter et interroger un fichier JSON complexe avant de modifier ses clés avec `edit_file`.

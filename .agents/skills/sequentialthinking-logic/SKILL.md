@@ -5,184 +5,97 @@ description: Expert en raisonnement décomposé. Force l'usage de sequentialthin
 
 # Sequential Thinking Logic
 
-> **Expertise** : Raisonnement décomposé, validation logique, analyse étape par étape, pensée structurée pour architectures complexes.
+> **Expertise** : Raisonnement décomposé, validation logique, analyse étape par étape, pensée structurée pour architectures complexes via MCP.
 
 ## Quick Start
 
 ### Mental Model
 
-Sequential Thinking Logic décompose les problèmes complexes en séquences logiques validées :
-- Analyse Background Script vs Content Script
-- Validation des flux de données
-- Identification des points de défaillance
-- Construction de chaînes de raisonnement robustes
+Sequential Thinking Logic décompose les problèmes complexes en séquences de pensée logiques validées dynamiquement.
+L'outil MCP `sequentialthinking_tools` permet d'exécuter un raisonnement par étapes (chaînes de pensées rigoureuses) pour :
+- Décomposer une architecture ou un flux de données (ex: Background Script vs Content Script).
+- Formuler et tester des hypothèses de manière isolée.
+- Anticiper et identifier les points de rupture et cas limites.
+- Garantir une progression structurée exempte de dépendances circulaires.
 
 ### Workflow obligatoire
 
-1. **Décomposition** : Identifier les composants logiques principaux
-2. **Validation** : Utiliser `sequentialthinking_tools` pour chaque étape
-3. **Chaînage** : Connecter les étapes en une séquence cohérente
-4. **Test logique** : Valider les hypothèses et points de rupture
+1. **Initialisation** : Lancer la première étape de pensée avec `sequentialthinking_tools` en décrivant le `problem`.
+2. **Progression séquentielle** : Dérouler les étapes logiques en incrémentant `thought_number`, en détaillant la pensée dans `thought` et en indiquant si une étape suivante est requise (`next_thought_needed`).
+3. **Analyse de structure** : Valider séparément les composants (par ex. isoler la logique Background Script de la logique Content Script).
+4. **Validation logique** : Conclure la séquence logique lorsque le problème est résolu en fixant `next_thought_needed` à `false`.
 
-### Patterns d'utilisation
+### Patterns d'utilisation Réels (MCP JSON)
 
-#### Pour architecture d'extension
+Voici comment invoquer dynamiquement `sequentialthinking_tools` pour concevoir une architecture d'extension ou analyser un flux d'authentification complexe :
 
-```bash
-# Décomposer l'architecture
-sequentialthinking_tools decompose "Extension Chrome: Background <-> Content <-> API"
+```json
+// Étape 1 : Initialiser la pensée en définissant le problème global
+mcp:sequential-thinking/sequentialthinking_tools({
+  "problem": "Concevoir l'architecture de communication bidirectionnelle sécurisée entre un Background Script et un Content Script d'une extension Chrome.",
+  "thought": "1. Décomposer les composants principaux : Le Content Script (côté DOM utilisateur) et le Background Script (contexte privilégié de l'extension). La communication doit se faire via des ports durables chrome.runtime.connect.",
+  "thought_number": 1,
+  "total_thoughts": 4,
+  "next_thought_needed": true
+})
 
-# Valider chaque composant
-sequentialthinking_tools validate "Background script logic"
-sequentialthinking_tools validate "Content script injection"
-sequentialthinking_tools validate "API communication flow"
+// Étape 2 : Analyser la logique de sécurité et d'injection
+mcp:sequential-thinking/sequentialthinking_tools({
+  "problem": "Concevoir l'architecture de communication bidirectionnelle sécurisée entre un Background Script et un Content Script d'une extension Chrome.",
+  "thought": "2. Analyser le Content Script : Il s'exécute dans un contexte isolé du DOM mais partage la même page. Il doit valider strictement les messages reçus de la page web avant de les transférer au Background pour éviter les injections de privilèges.",
+  "thought_number": 2,
+  "total_thoughts": 4,
+  "next_thought_needed": true
+})
 
-# Tester la séquence complète
-sequentialthinking_tools test-sequence "user_action -> background -> content -> api -> response"
+// Étape 3 : Structurer la gestion d'état et les cas limites
+mcp:sequential-thinking/sequentialthinking_tools({
+  "problem": "Concevoir l'architecture de communication bidirectionnelle sécurisée entre un Background Script et un Content Script d'une extension Chrome.",
+  "thought": "3. Analyser le Background Script : C'est le cœur de l'extension. Il gère l'état global et appelle les API externes. Si le port de communication se déconnecte accidentellement, il doit implémenter un mécanisme de reconnexion automatique (onDisconnectListener).",
+  "thought_number": 3,
+  "total_thoughts": 4,
+  "next_thought_needed": true
+})
+
+// Étape 4 : Conclure et formaliser le flux logique validé
+mcp:sequential-thinking/sequentialthinking_tools({
+  "problem": "Concevoir l'architecture de communication bidirectionnelle sécurisée entre un Background Script et un Content Script d'une extension Chrome.",
+  "thought": "4. Synthèse et flux logique validé : [User Action] -> [Content Script (validation)] -> [chrome.runtime Port] -> [Background Script (traitement API)] -> [Retour de réponse avec gestion d'erreurs]. L'architecture est exempte de cycles et isole parfaitement les responsabilités. Prêt pour l'implémentation.",
+  "thought_number": 4,
+  "total_thoughts": 4,
+  "next_thought_needed": false
+})
 ```
 
-#### Pour logique métier complexe
+## Token optimization strategies
 
-```bash
-# Analyser le flux métier
-sequentialthinking_tools decompose "User authentication flow"
+### Clarté et concision des pensées
 
-# Valider chaque étape
-sequentialthinking_tools validate "Input validation"
-sequentialthinking_tools validate "Credential verification"
-sequentialthinking_tools validate "Session management"
-sequentialthinking_tools validate "Error handling"
+N'allongez pas inutilement les descriptions textuelles dans l'argument `thought`. Restez ultra-focalisé sur les aspects purement techniques, architecturaux et logiques de l'étape courante.
 
-# Identifier les points de rupture
-sequentialthinking_tools find-breakpoints "auth_flow"
-```
+## API Reference (Vrais Outils MCP de sequential-thinking)
 
-## Production-safe patterns
+Le serveur MCP `sequential-thinking` fournit un unique outil puissant :
 
-### Validation systématique
-
-Pour chaque composant logique :
-
-```bash
-# 1. Décomposition
-sequentialthinking_tools decompose "[composant]"
-
-# 2. Validation logique
-sequentialthinking_tools validate "[sous-composant_1]"
-sequentialthinking_tools validate "[sous-composant_2]"
-
-# 3. Test de séquence
-sequentialthinking_tools test-sequence "[flux_complet]"
-```
-
-### Background vs Content Script
-
-Pattern spécifique pour extensions web :
-
-```bash
-# Background Script Logic
-sequentialthinking_tools validate-background "event_listeners"
-sequentialthinking_tools validate-background "message_routing"
-sequentialthinking_tools validate-background "storage_management"
-
-# Content Script Logic
-sequentialthinking_tools validate-content "dom_manipulation"
-sequentialthinking_tools validate-content "user_interaction"
-sequentialthinking_tools validate-content "message_communication"
-
-# Cross-script communication
-sequentialthinking_tools test-communication "background <-> content"
-```
-
-### Gestion des erreurs logiques
-
-```bash
-# Identifier les points de défaillance
-sequentialthinking_tools find-breakpoints "[flux]"
-
-# Analyser les cas limites
-sequentialthinking_tools edge-cases "[composant]"
-
-# Valider la gestion d'erreurs
-sequentialthinking_tools validate-error-handling "[flux]"
-```
-
-## Common gotchas
-
-### Séquences incomplètes
-
-- Toujours valider le début ET la fin de chaque séquence
-- Les points de décision doivent avoir tous les cas couverts
-- Les boucles doivent avoir des conditions de sortie claires
-
-### Dépendances circulaires
-
-```bash
-# Détecter les circularités
-sequentialthinking_tools detect-cycles "[architecture]"
-
-# Résoudre les dépendances
-sequentialthinking_tools resolve-dependencies "[composants]"
-```
-
-### Background/Content contamination
-
-- Éviter de mélanger logique UI et logique métier
-- Isoler les communications entre scripts
-- Valider les contextes d'exécution séparément
-
-## API Reference
-
-### Commandes principales
-
-- `sequentialthinking_tools decompose "<concept>"` : Décompose en composants logiques
-- `sequentialthinking_tools validate "<composant>"` : Valide la logique d'un composant
-- `sequentialthinking_tools test-sequence "<flux>"` : Teste une séquence complète
-- `sequentialthinking_tools find-breakpoints "<flux>"` : Identifie les points de rupture
-- `sequentialthinking_tools edge-cases "<composant>"` : Analyse les cas limites
-
-### Commandes spécialisées
-
-- `sequentialthinking_tools validate-background "<logique>"` : Validation Background Script
-- `sequentialthinking_tools validate-content "<logique>"` : Validation Content Script
-- `sequentialthinking_tools test-communication "<scripts>"` : Test communication inter-scripts
-- `sequentialthinking_tools detect-cycles "<architecture>"` : Détection dépendances circulaires
-- `sequentialthinking_tools resolve-dependencies "<composants>"` : Résolution dépendances
-
-### Options avancées
-
-- `--depth <n>` : Profondeur d'analyse (1-5)
-- `--verbose` : Sortie détaillée du raisonnement
-- `--export-logic` : Exporte le modèle logique en JSON
-- `--test-cases` : Génère cas de test automatiquement
-
-## Debugging checklist
-
-- Confirmer que chaque étape a une entrée ET une sortie
-- Vérifier que les points de décision sont complets
-- Tester les cas limites et erreurs
-- Valider les communications entre composants
-- Contrôler l'absence de dépendances circulaires
+### `sequentialthinking_tools`
+Exécute une étape dans une chaîne de raisonnement logique structurée.
+- **Paramètres** :
+  - `problem` (string) : Description claire et unique du problème global en cours de résolution.
+  - `thought` (string) : Le contenu textuel détaillé de la pensée logique courante.
+  - `thought_number` (integer) : L'index de l'étape de pensée courante (commence à 1).
+  - `total_thoughts` (integer) : Le nombre total estimé d'étapes de pensée requises pour résoudre le problème.
+  - `next_thought_needed` (boolean) : Mettre à `true` si d'autres étapes de pensée sont nécessaires pour conclure le raisonnement, ou `false` s'il s'agit de l'étape finale.
 
 ## When to use this skill
 
-- **Architecture d'extensions** : Chrome/Firefox Background/Content Scripts
-- **Logique métier complexe** : Flux multi-étapes avec validations
-- **Systèmes distribués** : Communication entre services
-- **Algorithmes séquentiels** : Traitement par étapes
-- **Validation de design** : Revue logique d'architectures
-- **Debugging logique** : Analyse de raisonnement défaillant
+- **Architectures complexes** : Extensions web (Background vs Content), microservices, communication distribuée.
+- **Logiques métier critiques** : Algorithmes de transaction, cascades IFTTT, agrégations PostgreSQL.
+- **Résolution de bugs complexes** : Analyse des causes profondes et diagnostic d'anomalies de concurrence ou d'état.
 
 ## Integration patterns
 
 ### Avec Shrimp Task Manager
-
-Utilise après `analyze_task` pour valider la décomposition logique des tâches.
+Utiliser `sequentialthinking_tools` pour valider la logique de planification d'un backlog complexe généré par `split_tasks`.
 
 ### Avec Fast Filesystem
-
-Utilise pour valider la logique avant les édition chirurgicales avec `edit_file`.
-
-### Avec JSON Query
-
-Utilise `json_query_jsonpath` pour extraire les structures logiques des fichiers de configuration avant validation.
+Valider la logique de refactoring à l'aide de `sequentialthinking_tools` avant d'appliquer les éditions via `edit_file`.

@@ -41,7 +41,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 
 **Outils obligatoires**:
 - `edit_file` pour préserver les tokens
-- `fast_search_code` pour recherche globale
+- `grep_search` pour recherche globale
 - Édition chirurgicale des fichiers
 
 ### JSON Query Patterns (Priority 2)
@@ -51,7 +51,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 
 **Stratégie "Sniper"**:
 - Ne jamais charger un fichier > 1000 lignes
-- `json_query_jsonpath` pour localiser précisément les données
+- `json_query_query_json` pour localiser précisément les données
 - `edit_file` pour édition ciblée
 
 ### Debugging & Investigation Patterns

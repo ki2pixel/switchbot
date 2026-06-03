@@ -1,4 +1,23 @@
 ## Terminé
+[2026-05-31 02:18:00] - Audit et mise à jour de codingstandards.md (SPA Router, CSRF, PostgreSQL pool, Sécurité)
+- **Backend Patterns** : Ajout de directives strictes pour la gestion du pool `psycopg_pool` (context managers sécurisés) et protections SSRF/Timing Attacks.
+- **Frontend & UX** : Formalisation de l'intégration obligatoire avec `spa-router.js` (cycle de vie asynchrone) et utilisation des intercepteurs globaux CSRF (Fetch/XHR).
+- **Anti-Patterns** : Actualisation avec les interdictions de `window.location.reload()`, des requêtes asynchrones sans CSRF et des fuites de connexion PostgreSQL.
+- **Validation** : Suite complète de 159 tests unitaires (pytest) exécutée et validée à 100%.
+
+[2026-05-31 01:20:00] - Audit global et correction des occurrences d'outils MCP dans .agents/
+- **Identification des anomalies** : Détection de 8 incohérences majeures de signatures d'outils, de noms erronés (comme `task-master-ai`, `json_query_jsonpath` et `fast_search_code`) et de fausses documentations de CLI shell (comme dans `sequentialthinking-logic` et `json-query-expert`).
+- **Remédiation rigoureuse** :
+  - **`v5.md`** : Correction de `task-master-ai` en `shrimp-task-manager` et alignement des outils `json-query`.
+  - **`skills-integration.md`** : Mise à jour de `fast_search_code` en `grep_search` et de `json_query_jsonpath` en `json_query_query_json`.
+  - **`docs-updater.md`** : Correction de `fast_read_text_file` en `fast_read_file` et réattribution de `edit_file` à `filesystem-agent`.
+  - **`shrimp-task-manager/SKILL.md`** : Correction de `sequentialthinking-tools` en `sequentialthinking_tools` et `json_query_jsonpath` en `json_query_query_json`.
+  - **`enhance_complex.md`** : Alignement de `json_query_jsonpath` en `json_query_query_json`.
+  - **`fast-filesystem-ops/SKILL.md`** : Réécriture complète sans CLI fictives en ciblant `grep_search`, `fast_search_files` et les formats d'appel JSON structurés pour `edit_file`.
+  - **`json-query-expert/SKILL.md`** : Réécriture complète alignée avec les véritables outils `json_query_query_json`, `json_query_search_keys` et `json_query_search_values` prenant en argument `json_data`.
+  - **`sequentialthinking-logic/SKILL.md`** : Réécriture complète éliminant la fiction CLI et illustrant l'intégration dynamique de `sequentialthinking_tools` avec ses véritables paramètres (`problem`, `thought`, `thought_number`, `total_thoughts`, `next_thought_needed`).
+- **Memory Bank** : Synchronisation du contexte actif et du journal de progression.
+
 [2026-05-30 15:21:00] - Alignement des règles IA, consolidation des compétences locales et nettoyage
 
 - **Nettoyage des règles dépréciées** : Suppression des anciens modèles de prompts, des anciennes règles `.continue` et configurations obsolètes.

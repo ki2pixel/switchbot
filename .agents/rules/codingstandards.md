@@ -58,7 +58,11 @@ alwaysApply: true
 - **XSS Prevention** : Éviter `innerHTML` pour l'injection de contenu dynamique. Utiliser `textContent`, `createElement()`, ou des bibliothèques de templating sécurisées.
 - **Input Validation** : Valider toutes les entrées utilisateur côté serveur avec les fonctions `_as_*`.
 - **Secrets Management** : Jamais de clés API ou mots de passe en dur. Utiliser exclusivement les variables d'environnement.
-- **HTTPS Only** : Toutes les URLs de webhooks doivent être HTTPS (validé dans `ifttt.py`).
+- **SSRF Defense** :
+  - ✅ Validation stricte des URLs de webhooks externes (HTTPS obligatoire).
+  - ✅ Blocage explicite des résolutions IP privées et de la boucle locale.
+- **Timing Attacks** :
+  - ✅ Utilisation systématique de comparaisons à temps constant (`hmac.compare_digest`) pour valider les signatures (ex: IFTTT, webhooks).
 
 ## Project Structure (rappel)
 | Zone | Rôle |
@@ -75,6 +79,10 @@ alwaysApply: true
 - `PostgresStore` par défaut, logs `[store]` et fallback `JsonStore` uniquement en cas d’échec (`current_app.extensions["settings_store"|"state_store"]`).
 - Sur incident Postgres (pool KO, SSL, timeout), consigner l’erreur, retenter côté scheduler, puis alerter si >3 échecs consécutifs.
 - Redis legacy : conserver le warning, lecture seule tolérée mais aucune nouvelle feature ; planifier migration Postgres.
+
+### PostgreSQL Pool Management
+- ✅ Manipuler explicitement les contextes de transaction du `psycopg_pool`.
+- ✅ Garantir la libération des connexions (via `with self.pool.connection() as conn:` ou en gérant manuellement `__enter__`/`__exit__`).
 
 ### Automation Cascade & Hysteresis
 - Chaque tick (`AutomationService.run_once`) évalue fenêtres, hystérésis, cooldowns, files OFF et applique la cascade IFTTT → scènes → commandes directes.
@@ -96,6 +104,12 @@ alwaysApply: true
 - Offline-first strict : Bootstrap/Chart.js/FontAwesome/Space Grotesk servis depuis `static/vendor` (aucun CDN).
 - Templates et CSS séparés (`theme.css` + feuilles spécifiques). Inliner uniquement le CSS critique (LCP).
 - Tous les formulaires/boutons/liens déclencheurs utilisent `data-loader` + `static/js/loaders.js` avec failsafe 15 s.
+- **SPA Router & Cycle de vie** :
+  - ✅ Interception des clics par `spa-router.js` sans rechargement complet du DOM.
+  - ✅ Encapsulation asynchrone des fonctions d'initialisation de page (ex: `window.initSettings = async () => {...}`) pour ré-exécution dynamique.
+  - ✅ Re-liaison explicite des écouteurs d'événements lors des transitions de page.
+- **Protection CSRF** :
+  - ✅ Exploitation des intercepteurs globaux Fetch/XHR pour injecter automatiquement le token CSRF sur toute modification d'état.
 - Graphiques : Chart.js + décimation LTTB, hauteur mobile ≈180 px, resize géré via `static/js/history.js` (observer + decimation).
 - Bottom navigation sticky, icônes seules sur mobile, page `actions.html` pour regrouper les triggers.
 - Toute nouvelle page importe `_footer_nav.html` + `static/js/loaders.js`, fournit labels ARIA, et respecte les tokens glassmorphism (`theme.css`).
@@ -115,6 +129,9 @@ alwaysApply: true
 2. POST/actions sans loaders → régression UX.
 3. Dépendances CDN → viole l’offline-first.
 4. Commandes de scène sans cascade complète (webhook → scène → direct) → perte de quota/observabilité.
+5. ❌ Utiliser `window.location.reload()` ou des balises `<a href="...">` standards forçant le rafraîchissement au lieu de s'intégrer au SPA Router.
+6. ❌ Omettre les en-têtes CSRF sur les appels asynchrones personnalisés.
+7. ❌ Utiliser des context managers invalides ou implicites sur le pool `psycopg_pool` sans garantir la libération des connexions.
 
 ## Error Handling
 - **Logging Obligatoire** : Jamais d'exceptions silencieuses (`except Exception: pass`). Toujours logger les erreurs avec contexte.

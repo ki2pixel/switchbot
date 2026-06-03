@@ -163,7 +163,7 @@ analyze_task(summary="Contexte chargé", initialConcept="Solution", previousAnal
 
 ### Avec Sequential Thinking
 
-Utilise `process_thought` avec `sequentialthinking-tools` pour valider la logique de décomposition et assurer la cohérence.
+Utilise `process_thought` avec `sequentialthinking_tools` pour valider la logique de décomposition et assurer la cohérence.
 
 ### Avec Fast Filesystem
 
@@ -171,4 +171,4 @@ Utilise `edit_file` pour implémenter les tâches générées par Shrimp Task Ma
 
 ### Avec JSON Query
 
-Utilise `json_query_jsonpath` pour extraire les données de configuration des PRD au format JSON.
+Utilise `json_query_query_json` pour extraire les données de configuration des PRD au format JSON.

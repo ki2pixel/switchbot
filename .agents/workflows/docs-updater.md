@@ -46,7 +46,7 @@ Comparer les sources pour détecter les incohérences :
 | :--- | :--- | :--- |
 | **Intention** | Le "Pourquoi" | `fast_read_file (via fast-filesystem)` |
 | **Réalité** | Le "Quoi" & "Comment" | `radon` (complexité), `cloc` (volume), `search` |
-| **Existant** | L'état actuel | `fast_search_files` (sur `docs/core` ou `docs/guides`), `fast_read_text_file` |
+| **Existant** | L'état actuel | `fast_search_files` (sur `docs/core` ou `docs/guides`), `fast_read_file` |
 
 **Action** : Identifier les divergences. Ex: "Le script `migrate_to_postgres.py` existe, mais la doc `docs/core/deployment.md` le marque comme 'à faire'."
 
@@ -87,7 +87,7 @@ Générer un plan de modification avant d'appliquer :
     - Appliquer les checkpoints obligatoires du skill (TL;DR, ouverture orientée problème, comparaison ❌/✅, tableau de trade-offs si pertinent, Golden Rule, vérification ponctuation) avant toute rédaction.
     - Tracer la conformité dans vos commits/PR : `Guidé par documentation/SKILL.md — sections: TLDR, Problem-first, Comparaison, Trade-offs, Golden Rule`.
 3.  **Mise à jour Memory Bank** :
-    - Mettre à jour la Memory Bank en utilisant EXCLUSIVEMENT l'outil `edit_file` du serveur fast-filesystem. Utilisez des chemins absolus.
+    - Mettre à jour la Memory Bank en utilisant EXCLUSIVEMENT l'outil `edit_file` du serveur filesystem-agent. Utilisez des chemins absolus.
     - Si des règles métier cachées (hardcoded) sont trouvées dans `automation.py`, les extraire ou les documenter dans `systemPatterns.md`.
 
 ---
