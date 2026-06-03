@@ -100,30 +100,7 @@ class HistoryService:
         if force_flush:
             self.flush_pending_records(force=True)
 
-    def get_history(
-        self,
-        start: dt.datetime,
-        end: dt.datetime,
-        metrics: Optional[list[str]] = None,
-        granularity: str = "minute",
-        limit: int = 1000,
-    ) -> list[dict[str, Any]]:
-        if metrics is None:
-            metrics = [
-                "timestamp",
-                "temperature",
-                "humidity",
-                "assumed_aircon_power",
-                "last_action",
-                "api_requests_today",
-                "error_count",
-                "last_temperature_stale",
-            ]
-
-        # Build time bucket expression based on granularity
-        time_bucket = self._get_time_bucket_expression(granularity)
-
-        # Build SELECT clause
+    def _build_select_fields(self, metrics: list[str], time_bucket: sql.SQL) -> list[sql.SQL]:
         select_fields = []
         timestamp_included = False
         
@@ -146,13 +123,40 @@ class HistoryService:
             elif metric == "last_temperature_stale":
                 select_fields.append(sql.SQL("BOOL_OR(last_temperature_stale) as last_temperature_stale"))
 
-        # Always include timestamp for ordering and grouping
         if not timestamp_included:
             select_fields.insert(0, sql.SQL("{} as timestamp").format(time_bucket))
+            
+        return select_fields
 
-        # If no metrics specified, return empty result
+    def _format_history_results(self, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        from decimal import Decimal
+        for result in results:
+            if "timestamp" in result and result["timestamp"]:
+                result["timestamp"] = result["timestamp"].isoformat()
+            for k, v in result.items():
+                if isinstance(v, Decimal):
+                    result[k] = float(v)
+        return results
+
+    def get_history(
+        self,
+        start: dt.datetime,
+        end: dt.datetime,
+        metrics: Optional[list[str]] = None,
+        granularity: str = "minute",
+        limit: int = 1000,
+    ) -> list[dict[str, Any]]:
+        if metrics is None:
+            metrics = [
+                "timestamp", "temperature", "humidity", "assumed_aircon_power",
+                "last_action", "api_requests_today", "error_count", "last_temperature_stale",
+            ]
+
+        time_bucket = self._get_time_bucket_expression(granularity)
+        select_fields = self._build_select_fields(metrics, time_bucket)
+
         if not select_fields:
-            self._logger.warning("[history] No valid metrics specified: %s", metrics)
+            self._logger.warning("[history] No valid metrics specified")
             return []
 
         query = sql.SQL("""
@@ -170,21 +174,11 @@ class HistoryService:
         try:
             with self._pool.connection() as conn:
                 with conn.cursor(row_factory=dict_row) as cur:
-                    params = [start, end, limit]
-                    cur.execute(query, params)
+                    cur.execute(query, [start, end, limit])
                     results = cur.fetchall()
-
-                    # Convert datetime objects to ISO strings and Decimals to float for JSON compatibility
-                    from decimal import Decimal
-                    for result in results:
-                        if "timestamp" in result and result["timestamp"]:
-                            result["timestamp"] = result["timestamp"].isoformat()
-                        for k, v in result.items():
-                            if isinstance(v, Decimal):
-                                result[k] = float(v)
-
-                    self._logger.debug("[history] Retrieved %d records", len(results))
-                    return results
+                    formatted_results = self._format_history_results(results)
+                    self._logger.debug("[history] Retrieved %d records", len(formatted_results))
+                    return formatted_results
 
         except Exception as exc:
             self._logger.error("[history] Failed to retrieve history (%s)", exc)

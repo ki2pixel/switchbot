@@ -4,7 +4,7 @@
   class BottomNavigation {
     constructor() {
       this.nav = document.querySelector('.sb-bottom-nav');
-      this.lastScrollY = window.scrollY;
+      this.lastScrollY = globalThis.scrollY;
       this.scrollThreshold = 100;
       this.isTicking = false;
       
@@ -21,7 +21,7 @@
     
     bindEvents() {
       let scrollTimer;
-      window.addEventListener('scroll', () => {
+      globalThis.addEventListener('scroll', () => {
         if (!scrollTimer) {
           scrollTimer = setTimeout(() => {
             this.handleScroll();
@@ -37,13 +37,13 @@
         }
       });
       
-      window.addEventListener('resize', this.debounce(() => {
+      globalThis.addEventListener('resize', this.debounce(() => {
         this.updateActiveState();
       }, 250));
     }
     
     handleScroll() {
-      const currentScrollY = window.scrollY;
+      const currentScrollY = globalThis.scrollY;
       const scrollDelta = Math.abs(currentScrollY - this.lastScrollY);
       
       if (scrollDelta > this.scrollThreshold) {
@@ -80,7 +80,7 @@
     }
     
     updateActiveState(clickedLink = null) {
-      const currentPath = window.location.pathname;
+      const currentPath = globalThis.location.pathname;
       const links = this.nav.querySelectorAll('.sb-bottom-nav-item');
       
       links.forEach(link => {
@@ -104,7 +104,7 @@
       
       this.nav.style.transform = 'translateZ(0)';
       
-      if ('IntersectionObserver' in window) {
+      if ('IntersectionObserver' in globalThis) {
         const observer = new IntersectionObserver((entries) => {
           entries.forEach(entry => {
             if (entry.isIntersecting) {

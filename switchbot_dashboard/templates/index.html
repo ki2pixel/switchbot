@@ -9,7 +9,7 @@
     <!-- Critical Theme Bootstrapping -->
     <script>
       (function() {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const prefersDark = globalThis.matchMedia('(prefers-color-scheme: dark)').matches;
         const root = document.documentElement;
         root.dataset.theme = 'dark';
         root.style.setProperty('color-scheme', prefersDark ? 'dark' : 'light');
@@ -408,7 +408,7 @@
     <!-- Critical JS for Performance -->
     <script>
       // Performance mark for critical resources start
-      if ('performance' in window && 'mark' in performance) {
+      if ('performance' in globalThis && 'mark' in performance) {
         performance.mark('critical-css-start');
       }
     </script>
@@ -587,20 +587,20 @@
     <!-- Enhanced Performance Optimization Script -->
     <script>
       // Mark critical CSS loading complete
-      if ('performance' in window && 'mark' in performance) {
+      if ('performance' in globalThis && 'mark' in performance) {
         performance.mark('critical-css-loaded');
         performance.measure('critical-css-load-time', 'critical-css-start', 'critical-css-loaded');
       }
       
       // Initialize advanced performance optimizations
-      if ('requestIdleCallback' in window) {
+      if ('requestIdleCallback' in globalThis) {
         requestIdleCallback(() => {
           console.log('🚀 Advanced Performance Optimizer initialized');
         });
       }
       
       // Ensure dark theme is maintained after load
-      window.addEventListener('load', function() {
+      globalThis.addEventListener('load', function() {
         document.body.style.backgroundColor = '#030712';
         document.body.style.color = '#f4f7ff';
       });

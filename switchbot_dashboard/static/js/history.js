@@ -8,7 +8,7 @@ class HistoryDashboard {
     constructor() {
         this.charts = {};
         this.updateInterval = null;
-        this.isSmallMobile = window.innerWidth <= 480;
+        this.isSmallMobile = globalThis.innerWidth <= 480;
         this.defaultGranularity = this.isSmallMobile ? '5min' : 'minute';
         this.currentFilters = {
             timeRange: '6h',
@@ -40,8 +40,8 @@ class HistoryDashboard {
 
     initCharts() {
         // Viewport-based responsive configuration
-        const isMobile = window.innerWidth <= 768;
-        const isSmallMobile = window.innerWidth <= 480;
+        const isMobile = globalThis.innerWidth <= 768;
+        const isSmallMobile = globalThis.innerWidth <= 480;
         
         const chartOptions = {
             responsive: true,
@@ -407,12 +407,8 @@ class HistoryDashboard {
     }
 
     updateStatusCards(aggregates) {
-        console.log('updateStatusCards called with:', aggregates);
-        
         const avgTemp = aggregates.avg_temperature ? parseFloat(aggregates.avg_temperature).toFixed(1) : '--';
         const avgHumidity = aggregates.avg_humidity ? parseFloat(aggregates.avg_humidity).toFixed(1) : '--';
-        
-        console.log('Processed values - Temp:', avgTemp, 'Humidity:', avgHumidity);
         
         const tempElement = document.getElementById('avgTemp');
         const humidityElement = document.getElementById('avgHumidity');
@@ -437,23 +433,34 @@ class HistoryDashboard {
             return;
         }
 
-        tbody.innerHTML = latestRecords.map(record => {
+        tbody.innerHTML = '';
+        latestRecords.forEach(record => {
             const timestamp = new Date(record.timestamp).toLocaleString('fr-FR');
             const temp = record.temperature ? `${record.temperature}°C` : '--';
             const humidity = record.humidity ? `${record.humidity}%` : '--';
-            const airconState = this.formatAirconState(record.assumed_aircon_power);
+            const airconStateHTML = this.formatAirconState(record.assumed_aircon_power);
             const action = record.last_action || '--';
             
-            return `
-                <tr>
-                    <td>${timestamp}</td>
-                    <td>${temp}</td>
-                    <td>${humidity}</td>
-                    <td>${airconState}</td>
-                    <td>${action}</td>
-                </tr>
-            `;
-        }).join('');
+            const tr = document.createElement('tr');
+            
+            const tdTime = document.createElement('td');
+            tdTime.textContent = timestamp;
+            
+            const tdTemp = document.createElement('td');
+            tdTemp.textContent = temp;
+            
+            const tdHum = document.createElement('td');
+            tdHum.textContent = humidity;
+            
+            const tdState = document.createElement('td');
+            tdState.innerHTML = airconStateHTML;
+            
+            const tdAction = document.createElement('td');
+            tdAction.textContent = action;
+            
+            tr.append(tdTime, tdTemp, tdHum, tdState, tdAction);
+            tbody.appendChild(tr);
+        });
     }
 
     formatAirconState(state) {
@@ -558,10 +565,10 @@ class HistoryDashboard {
 
 // Initialize dashboard safely
 const initHistoryDashboard = () => {
-    if (window.historyDashboard) {
-        window.historyDashboard.destroy();
+    if (globalThis.historyDashboard) {
+        globalThis.historyDashboard.destroy();
     }
-    window.historyDashboard = new HistoryDashboard();
+    globalThis.historyDashboard = new HistoryDashboard();
 };
 
 if (document.readyState === 'loading') {
@@ -571,9 +578,9 @@ if (document.readyState === 'loading') {
 }
 
 // Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-    if (window.historyDashboard) {
-        window.historyDashboard.destroy();
+globalThis.addEventListener('beforeunload', () => {
+    if (globalThis.historyDashboard) {
+        globalThis.historyDashboard.destroy();
     }
 });
 })();

@@ -23,36 +23,36 @@ def _parse_hhmm(value: str) -> dt.time:
     return dt.time(hour=hour, minute=minute)
 
 
+def _is_time_in_window(window: dict[str, Any], now: dt.datetime) -> bool:
+    days = window.get("days")
+    if not isinstance(days, list):
+        return False
+
+    start_raw = window.get("start")
+    end_raw = window.get("end")
+    if not isinstance(start_raw, str) or not isinstance(end_raw, str):
+        return False
+
+    try:
+        start = _parse_hhmm(start_raw)
+        end = _parse_hhmm(end_raw)
+    except ValueError:
+        return False
+        
+    now_time = now.time().replace(tzinfo=None)
+    
+    if start <= end:
+        return now.weekday() in days and start <= now_time <= end
+        
+    if now.weekday() in days and now_time >= start:
+        return True
+        
+    previous_weekday = (now - dt.timedelta(days=1)).weekday()
+    return previous_weekday in days and now_time <= end
+
+
 def _is_now_in_windows(time_windows: list[dict[str, Any]], now: dt.datetime) -> bool:
-    for window in time_windows:
-        days = window.get("days")
-        if not isinstance(days, list):
-            continue
-
-        start_raw = window.get("start")
-        end_raw = window.get("end")
-        if not isinstance(start_raw, str) or not isinstance(end_raw, str):
-            continue
-
-        try:
-            start = _parse_hhmm(start_raw)
-            end = _parse_hhmm(end_raw)
-        except ValueError:
-            continue
-        now_time = now.time().replace(tzinfo=None)
-
-        if start <= end:
-            if now.weekday() in days and start <= now_time <= end:
-                return True
-        else:
-            if now.weekday() in days and now_time >= start:
-                return True
-
-            previous_weekday = (now - dt.timedelta(days=1)).weekday()
-            if previous_weekday in days and now_time <= end:
-                return True
-
-    return False
+    return any(_is_time_in_window(w, now) for w in time_windows)
 
 
 def _utc_now_iso() -> str:
@@ -567,6 +567,73 @@ class AutomationService:
             )
             return False
 
+    def _trigger_ifttt(
+        self,
+        action_key: str,
+        webhook_url: str,
+        state_reason: str,
+        assumed_power: str,
+        trigger: str,
+    ) -> bool:
+        friendly_webhook = AIRCON_IFTTT_LABELS.get(action_key, action_key)
+        if not webhook_url:
+            self._update_state(last_error=f"Missing webhook for {friendly_webhook} in IFTTT mode")
+            self._warning("Skipping automation: no webhook configured in IFTTT mode", trigger=trigger, action_key=action_key)
+            return False
+
+        self._debug("Triggering IFTTT webhook", trigger=trigger, action_key=action_key, state_reason=state_reason)
+        try:
+            self._ifttt_client.trigger_webhook(webhook_url)
+            self._update_state(
+                assumed_aircon_power=assumed_power,
+                assumed_aircon_mode=None,
+                assumed_aircon_parameter=None,
+                last_action=f"ifttt_webhook({action_key}) ({state_reason})",
+                last_action_at=_utc_now_iso(),
+                last_error=None,
+            )
+            return True
+        except IFTTTWebhookError as exc:
+            self._error("IFTTT webhook failed", trigger=trigger, action_key=action_key, error=str(exc))
+            self._update_state(last_error=f"IFTTT webhook failed: {exc}")
+            return False
+
+    def _trigger_scene(
+        self,
+        action_key: str,
+        scene_id: str,
+        state_reason: str,
+        assumed_power: str,
+        trigger: str,
+        aircon_device_id: str,
+    ) -> bool:
+        friendly_scene = AIRCON_SCENE_LABELS.get(action_key, action_key)
+        if not scene_id:
+            self._update_state(last_error=f"Missing scene for {friendly_scene} in API Direct mode")
+            self._warning("Skipping automation: no scene configured in API Direct mode", trigger=trigger, action_key=action_key)
+            return False
+
+        self._debug("Using SwitchBot scene", trigger=trigger, action_key=action_key, scene_id=scene_id, state_reason=state_reason)
+        try:
+            self._client.run_scene(scene_id)
+            self._log_quota_snapshot(context=f"scene_{action_key}")
+            self._update_state(
+                assumed_aircon_power=assumed_power,
+                assumed_aircon_mode=None,
+                assumed_aircon_parameter=None,
+                last_action=f"scene({scene_id}) ({state_reason})",
+                last_action_at=_utc_now_iso(),
+                last_error=None,
+            )
+            return True
+        except SwitchBotApiError as exc:
+            self._error("Scene execution failed", trigger=trigger, action_key=action_key, scene_id=scene_id, error=str(exc))
+            if aircon_device_id:
+                self._warning("Falling back to direct command within direct mode", trigger=trigger, action_key=action_key)
+            else:
+                self._update_state(last_error=str(exc))
+            return False
+
     def _trigger_aircon_action(
         self,
         *,
@@ -581,99 +648,13 @@ class AutomationService:
         settings = self._settings_store.read()
         trigger_mode = settings.get("trigger_mode", "direct")
 
-        webhook_url = webhooks.get(action_key, "").strip()
-        scene_id = scenes.get(action_key, "").strip()
-        aircon_device_id = aircon_device_id.strip()
-        
-        friendly_webhook = AIRCON_IFTTT_LABELS.get(action_key, action_key)
-        friendly_scene = AIRCON_SCENE_LABELS.get(action_key, action_key)
-
         if trigger_mode == "ifttt":
-            if webhook_url:
-                self._debug(
-                    "Triggering IFTTT webhook",
-                    trigger=trigger,
-                    action_key=action_key,
-                    state_reason=state_reason,
-                )
-                try:
-                    self._ifttt_client.trigger_webhook(webhook_url)
-                    self._update_state(
-                        assumed_aircon_power=assumed_power,
-                        assumed_aircon_mode=None,
-                        assumed_aircon_parameter=None,
-                        last_action=f"ifttt_webhook({action_key}) ({state_reason})",
-                        last_action_at=_utc_now_iso(),
-                        last_error=None,
-                    )
-                    return True
-                except IFTTTWebhookError as exc:
-                    self._error(
-                        "IFTTT webhook failed",
-                        trigger=trigger,
-                        action_key=action_key,
-                        error=str(exc),
-                    )
-                    self._update_state(last_error=f"IFTTT webhook failed: {exc}")
-                    return False
-            else:
-                self._update_state(last_error=f"Missing webhook for {friendly_webhook} in IFTTT mode")
-                self._warning(
-                    "Skipping automation: no webhook configured in IFTTT mode",
-                    trigger=trigger,
-                    action_key=action_key,
-                )
-                return False
-
-        else:
-            if scene_id:
-                self._debug(
-                    "Using SwitchBot scene",
-                    trigger=trigger,
-                    action_key=action_key,
-                    scene_id=scene_id,
-                    state_reason=state_reason,
-                )
-                try:
-                    self._client.run_scene(scene_id)
-                    self._log_quota_snapshot(context=f"scene_{action_key}")
-                    self._update_state(
-                        assumed_aircon_power=assumed_power,
-                        assumed_aircon_mode=None,
-                        assumed_aircon_parameter=None,
-                        last_action=f"scene({scene_id}) ({state_reason})",
-                        last_action_at=_utc_now_iso(),
-                        last_error=None,
-                    )
-                    return True
-                except SwitchBotApiError as exc:
-                    self._error(
-                        "Scene execution failed",
-                        trigger=trigger,
-                        action_key=action_key,
-                        scene_id=scene_id,
-                        error=str(exc),
-                    )
-                    if aircon_device_id:
-                        self._warning(
-                            "Falling back to direct command within direct mode",
-                            trigger=trigger,
-                            action_key=action_key,
-                        )
-                    else:
-                        self._update_state(last_error=str(exc))
-                        return False
-
-            if not scene_id:
-                self._update_state(last_error=f"Missing scene for {friendly_scene} in API Direct mode")
-                self._warning(
-                    "Skipping automation: no scene configured in API Direct mode",
-                    trigger=trigger,
-                    action_key=action_key,
-                )
-                return False
-
-            return False
+            return self._trigger_ifttt(
+                action_key, webhooks.get(action_key, "").strip(), state_reason, assumed_power, trigger
+            )
+        return self._trigger_scene(
+            action_key, scenes.get(action_key, "").strip(), state_reason, assumed_power, trigger, aircon_device_id.strip()
+        )
 
     def run_once(self) -> None:
         if hasattr(self._state_store, "transaction"):
@@ -681,6 +662,104 @@ class AutomationService:
                 self._run_once_impl()
         else:
             self._run_once_impl()
+
+    def _handle_winter_mode(
+        self, current_temp: float, min_temp: float, max_temp: float, hysteresis: float, trigger: str, webhooks: dict[str, str], scenes: dict[str, str], aircon_id: str, trigger_mode: str, target_temp: float, ac_mode: int, fan_speed: int, now: dt.datetime
+    ) -> str:
+        if current_temp <= (min_temp - hysteresis):
+            self._debug("Winter mode: below min threshold", trigger=trigger, threshold=min_temp - hysteresis)
+            self._clear_off_repeat_task()
+            executed = self._trigger_aircon_action(action_key="winter", state_reason="automation_winter_on", assumed_power="on", trigger=trigger, webhooks=webhooks, scenes=scenes, aircon_device_id=aircon_id)
+            if not executed and aircon_id and trigger_mode == "direct":
+                self._send_aircon_setall(aircon_id, temperature=target_temp, mode=ac_mode, fan_speed=fan_speed, power_state="on", trigger=trigger, reason="automation_winter_on")
+            return "winter_on"
+        elif current_temp >= (max_temp + hysteresis):
+            self._debug("Winter mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
+            return self._handle_off_action("automation_winter_off", trigger, webhooks, scenes, aircon_id, now)
+        return "no_action"
+
+    def _handle_summer_mode(
+        self, current_temp: float, min_temp: float, max_temp: float, hysteresis: float, trigger: str, webhooks: dict[str, str], scenes: dict[str, str], aircon_id: str, trigger_mode: str, target_temp: float, ac_mode: int, fan_speed: int, now: dt.datetime
+    ) -> str:
+        if current_temp >= (max_temp + hysteresis):
+            self._debug("Summer mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
+            self._clear_off_repeat_task()
+            executed = self._trigger_aircon_action(action_key="summer", state_reason="automation_summer_on", assumed_power="on", trigger=trigger, webhooks=webhooks, scenes=scenes, aircon_device_id=aircon_id)
+            if not executed and aircon_id and trigger_mode == "direct":
+                self._send_aircon_setall(aircon_id, temperature=target_temp, mode=ac_mode, fan_speed=fan_speed, power_state="on", trigger=trigger, reason="automation_summer_on")
+            return "summer_on"
+        elif current_temp <= (min_temp - hysteresis):
+            self._debug("Summer mode: below min threshold", trigger=trigger, threshold=min_temp - hysteresis)
+            return self._handle_off_action("automation_summer_off", trigger, webhooks, scenes, aircon_id, now)
+        return "no_action"
+
+    def _handle_off_action(self, state_reason: str, trigger: str, webhooks: dict[str, str], scenes: dict[str, str], aircon_id: str, now: dt.datetime) -> str:
+        state = self._state_store.read()
+        if state.get("assumed_aircon_power") == "off":
+            self._debug(f"Skipping {state_reason}: already assumed off", trigger=trigger)
+            return "already_off"
+        if self._has_pending_off_repeat():
+            self._debug(f"Skipping {state_reason}: off repeat already pending", trigger=trigger)
+            return "off_repeat_pending"
+        turned_off = self._perform_off_action(trigger=trigger, webhooks=webhooks, scenes=scenes, aircon_device_id=aircon_id, state_reason=state_reason)
+        if turned_off:
+            self._schedule_off_repeat_task(now, state_reason=state_reason)
+            return state_reason.replace("automation_", "")
+        return "no_action"
+
+    def _evaluate_temperature(
+        self,
+        current_temp: float,
+        settings: dict[str, Any],
+        trigger: str,
+        now: dt.datetime,
+        webhooks: dict[str, str],
+        scenes: dict[str, str],
+        aircon_id: str,
+        trigger_mode: str,
+    ) -> str:
+        mode = str(settings.get("mode", "winter")).strip().lower()
+        profile = settings.get(mode, {})
+        if not isinstance(profile, dict):
+            profile = {}
+
+        hysteresis = float(settings.get("hysteresis_celsius", 0.0) or 0.0)
+
+        try:
+            min_temp = float(profile.get("min_temp"))
+            max_temp = float(profile.get("max_temp"))
+            target_temp = float(profile.get("target_temp"))
+            ac_mode = int(profile.get("ac_mode"))
+            fan_speed = int(profile.get("fan_speed"))
+        except (TypeError, ValueError):
+            self._update_state(last_error=f"Invalid profile configuration for mode: {mode}")
+            self._error("Invalid automation profile configuration", trigger=trigger, mode=mode)
+            return "invalid_profile"
+
+        if min_temp > max_temp:
+            self._update_state(last_error=f"Invalid thresholds: min_temp > max_temp ({mode})")
+            self._error("Invalid temperature thresholds", trigger=trigger, mode=mode, min_temp=min_temp, max_temp=max_temp)
+            return "invalid_thresholds"
+
+        self._debug("Temperature evaluation", trigger=trigger, mode=mode, current_temp=current_temp, min_temp=min_temp, max_temp=max_temp, hysteresis=hysteresis, target_temp=target_temp)
+
+        if self._cooldown_active(now):
+            self._debug("Cooldown active — skipping automation", trigger=trigger)
+            return "cooldown"
+
+        try:
+            if mode == "winter":
+                return self._handle_winter_mode(current_temp, min_temp, max_temp, hysteresis, trigger, webhooks, scenes, aircon_id, trigger_mode, target_temp, ac_mode, fan_speed, now)
+            elif mode == "summer":
+                return self._handle_summer_mode(current_temp, min_temp, max_temp, hysteresis, trigger, webhooks, scenes, aircon_id, trigger_mode, target_temp, ac_mode, fan_speed, now)
+            else:
+                self._update_state(last_error=f"Unknown mode: {mode}")
+                self._error("Unknown automation mode", trigger=trigger, mode=mode)
+                return "invalid_mode"
+        except SwitchBotApiError as exc:
+            self._update_state(last_error=str(exc))
+            self._error("SwitchBot API error during automation", trigger=trigger, error=str(exc))
+            return "api_error"
 
     def _run_once_impl(self) -> None:
         trigger = self._detect_trigger_source()
@@ -779,167 +858,7 @@ class AutomationService:
             self._log_tick_completion(trigger, outcome="invalid_temperature")
             return
 
-        mode = str(settings.get("mode", "winter")).strip().lower()
-        profile = settings.get(mode, {})
-        if not isinstance(profile, dict):
-            profile = {}
-
-        hysteresis = float(settings.get("hysteresis_celsius", 0.0) or 0.0)
-
-        try:
-            min_temp = float(profile.get("min_temp"))
-            max_temp = float(profile.get("max_temp"))
-            target_temp = float(profile.get("target_temp"))
-            ac_mode = int(profile.get("ac_mode"))
-            fan_speed = int(profile.get("fan_speed"))
-        except (TypeError, ValueError):
-            self._update_state(last_error=f"Invalid profile configuration for mode: {mode}")
-            self._error("Invalid automation profile configuration", trigger=trigger, mode=mode)
-            self._log_tick_completion(trigger, outcome="invalid_profile")
-            return
-
-        if min_temp > max_temp:
-            self._update_state(last_error=f"Invalid thresholds: min_temp > max_temp ({mode})")
-            self._error("Invalid temperature thresholds", trigger=trigger, mode=mode, min_temp=min_temp, max_temp=max_temp)
-            self._log_tick_completion(trigger, outcome="invalid_thresholds")
-            return
-
-        self._debug(
-            "Temperature evaluation",
-            trigger=trigger,
-            mode=mode,
-            current_temp=current_temp,
-            min_temp=min_temp,
-            max_temp=max_temp,
-            hysteresis=hysteresis,
-            target_temp=target_temp,
-        )
-
-        if self._cooldown_active(now):
-            self._debug("Cooldown active — skipping automation", trigger=trigger)
-            self._log_tick_completion(trigger, outcome="cooldown")
-            return
-
-        decision_taken = False
-
-        try:
-            if mode == "winter":
-                if current_temp <= (min_temp - hysteresis):
-                    self._debug("Winter mode: below min threshold", trigger=trigger, threshold=min_temp - hysteresis)
-                    self._clear_off_repeat_task()
-                    executed = self._trigger_aircon_action(
-                        action_key="winter",
-                        state_reason="automation_winter_on",
-                        assumed_power="on",
-                        trigger=trigger,
-                        webhooks=webhooks,
-                        scenes=scenes,
-                        aircon_device_id=aircon_id,
-                    )
-                    if not executed and aircon_id and trigger_mode == "direct":
-                        self._send_aircon_setall(
-                            aircon_id,
-                            temperature=target_temp,
-                            mode=ac_mode,
-                            fan_speed=fan_speed,
-                            power_state="on",
-                            trigger=trigger,
-                            reason="automation_winter_on",
-                        )
-                    decision_taken = True
-                    outcome = "winter_on"
-                elif current_temp >= (max_temp + hysteresis):
-                    self._debug("Winter mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
-                    state = self._state_store.read()
-                    if state.get("assumed_aircon_power") == "off":
-                        self._debug(
-                            "Skipping winter_off: already assumed off",
-                            trigger=trigger,
-                        )
-                        outcome = "already_off"
-                    elif self._has_pending_off_repeat():
-                        self._debug(
-                            "Skipping winter_off: off repeat already pending",
-                            trigger=trigger,
-                        )
-                        outcome = "off_repeat_pending"
-                    else:
-                        turned_off = self._perform_off_action(
-                            trigger=trigger,
-                            webhooks=webhooks,
-                            scenes=scenes,
-                            aircon_device_id=aircon_id,
-                            state_reason="automation_winter_off",
-                        )
-                        if turned_off:
-                            self._schedule_off_repeat_task(now, state_reason="automation_winter_off")
-                            decision_taken = True
-                            outcome = "winter_off"
-            elif mode == "summer":
-                if current_temp >= (max_temp + hysteresis):
-                    self._debug("Summer mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
-                    self._clear_off_repeat_task()
-                    executed = self._trigger_aircon_action(
-                        action_key="summer",
-                        state_reason="automation_summer_on",
-                        assumed_power="on",
-                        trigger=trigger,
-                        webhooks=webhooks,
-                        scenes=scenes,
-                        aircon_device_id=aircon_id,
-                    )
-                    if not executed and aircon_id and trigger_mode == "direct":
-                        self._send_aircon_setall(
-                            aircon_id,
-                            temperature=target_temp,
-                            mode=ac_mode,
-                            fan_speed=fan_speed,
-                            power_state="on",
-                            trigger=trigger,
-                            reason="automation_summer_on",
-                        )
-                    decision_taken = True
-                    outcome = "summer_on"
-                elif current_temp <= (min_temp - hysteresis):
-                    self._debug("Summer mode: below min threshold", trigger=trigger, threshold=min_temp - hysteresis)
-                    state = self._state_store.read()
-                    if state.get("assumed_aircon_power") == "off":
-                        self._debug(
-                            "Skipping summer_off: already assumed off",
-                            trigger=trigger,
-                        )
-                        outcome = "already_off"
-                    elif self._has_pending_off_repeat():
-                        self._debug(
-                            "Skipping summer_off: off repeat already pending",
-                            trigger=trigger,
-                        )
-                        outcome = "off_repeat_pending"
-                    else:
-                        turned_off = self._perform_off_action(
-                            trigger=trigger,
-                            webhooks=webhooks,
-                            scenes=scenes,
-                            aircon_device_id=aircon_id,
-                            state_reason="automation_summer_off",
-                        )
-                        if turned_off:
-                            self._schedule_off_repeat_task(now, state_reason="automation_summer_off")
-                            decision_taken = True
-                            outcome = "summer_off"
-            else:
-                self._update_state(last_error=f"Unknown mode: {mode}")
-                self._error("Unknown automation mode", trigger=trigger, mode=mode)
-                outcome = "invalid_mode"
-        except SwitchBotApiError as exc:
-            self._update_state(last_error=str(exc))
-            self._error("SwitchBot API error during automation", trigger=trigger, error=str(exc))
-            self._log_tick_completion(trigger, outcome="api_error")
-            return
-
-        if not decision_taken:
-            self._debug("No automation action needed — thresholds not crossed", trigger=trigger)
-            outcome = "no_action"
+        outcome = self._evaluate_temperature(current_temp, settings, trigger, now, webhooks, scenes, aircon_id, trigger_mode)
 
         self._log_tick_completion(trigger, outcome=outcome)
         

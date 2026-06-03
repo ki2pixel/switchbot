@@ -22,8 +22,8 @@ class SPARouter {
 
   init() {
     // Intercept back/forward browser navigation
-    window.addEventListener('popstate', () => {
-      this.navigate(window.location.href, null, false);
+    globalThis.addEventListener('popstate', () => {
+      this.navigate(globalThis.location.href, null, false);
     });
     console.log('🚀 SPA Light Router initialized');
   }
@@ -38,19 +38,19 @@ class SPARouter {
     if (this.isTransitioning) return;
     
     // Safety check to ensure it's a local page in same origin
-    const targetUrl = new URL(url, window.location.origin);
-    if (targetUrl.origin !== window.location.origin) {
-      window.location.href = url;
+    const targetUrl = new URL(url, globalThis.location.origin);
+    if (targetUrl.origin !== globalThis.location.origin) {
+      globalThis.location.href = url;
       return;
     }
 
     this.isTransitioning = true;
     
     // 1. Show global loader overlay (from loaders.js)
-    if (window.SwitchBotLoaders) {
-      window.SwitchBotLoaders.showGlobal();
+    if (globalThis.SwitchBotLoaders) {
+      globalThis.SwitchBotLoaders.showGlobal();
       if (linkElement) {
-        window.SwitchBotLoaders.show(linkElement);
+        globalThis.SwitchBotLoaders.show(linkElement);
       }
     }
 
@@ -72,7 +72,7 @@ class SPARouter {
       
       if (!newContent || !currentContent) {
         // Fallback to standard page load if elements are missing
-        window.location.href = url;
+        globalThis.location.href = url;
         return;
       }
       
@@ -83,10 +83,10 @@ class SPARouter {
       await new Promise(resolve => setTimeout(resolve, 150));
       
       // Clean up previous page specific components
-      if (window.historyDashboard && typeof window.historyDashboard.destroy === 'function') {
+      if (globalThis.historyDashboard && typeof globalThis.historyDashboard.destroy === 'function') {
         try {
-          window.historyDashboard.destroy();
-          window.historyDashboard = null;
+          globalThis.historyDashboard.destroy();
+          globalThis.historyDashboard = null;
         } catch (e) {
           console.error('[SPARouter] Error cleaning up history dashboard:', e);
         }
@@ -112,13 +112,13 @@ class SPARouter {
     } catch (error) {
       console.error('[SPARouter] Navigation error:', error);
       // Fallback on failure
-      window.location.href = url;
+      globalThis.location.href = url;
     } finally {
       // 9. Hide global loaders
-      if (window.SwitchBotLoaders) {
-        window.SwitchBotLoaders.hideGlobal();
+      if (globalThis.SwitchBotLoaders) {
+        globalThis.SwitchBotLoaders.hideGlobal();
         if (linkElement) {
-          window.SwitchBotLoaders.hide(linkElement);
+          globalThis.SwitchBotLoaders.hide(linkElement);
         }
       }
       this.isTransitioning = false;
@@ -134,13 +134,13 @@ class SPARouter {
     if (!footer) return;
     
     const links = footer.querySelectorAll('a[data-loader]');
-    const parsedTarget = new URL(targetUrl, window.location.origin);
+    const parsedTarget = new URL(targetUrl, globalThis.location.origin);
     
     links.forEach(link => {
       const href = link.getAttribute('href');
       if (!href) return;
       
-      const linkUrl = new URL(href, window.location.origin);
+      const linkUrl = new URL(href, globalThis.location.origin);
       const isActive = linkUrl.pathname === parsedTarget.pathname;
       
       if (isActive) {
@@ -164,7 +164,7 @@ class SPARouter {
       const src = script.getAttribute('src');
       
       if (src) {
-        // Skip global scripts that are already running on the window level
+        // Skip global scripts that are already running on the globalThis level
         const isGlobal = this.globalScripts.some(globalScript => src.endsWith(globalScript));
         if (isGlobal) {
           return;
@@ -211,5 +211,5 @@ class SPARouter {
 
 // Instantiate router globally
 document.addEventListener('DOMContentLoaded', () => {
-  window.SwitchBotRouter = new SPARouter();
+  globalThis.SwitchBotRouter = new SPARouter();
 });

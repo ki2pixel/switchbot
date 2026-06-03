@@ -55,7 +55,6 @@ body.sb-dark {
 /* Footer Navigation Links */
 #footer-bar a {
   color: var(--sb-text);
-  padding-top: 12px;
   position: relative;
   flex: 1 1 auto;
   text-decoration: none;
@@ -66,7 +65,7 @@ body.sb-dark {
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
-  padding: 0.5rem;
+  padding: 12px 0.5rem 0.5rem;
 }
 
 #footer-bar a:hover {

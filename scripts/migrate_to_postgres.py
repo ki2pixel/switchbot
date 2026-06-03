@@ -54,7 +54,7 @@ def read_redis_data(redis_url: str, kind: str, logger: logging.Logger) -> dict[s
         return data
 
     except (RedisError, json.JSONDecodeError) as exc:
-        logger.error(f"Failed to read {kind} from Redis: {exc}")
+        logger.exception(f"Failed to read {kind} from Redis")
         return None
 
 
@@ -72,7 +72,7 @@ def read_json_data(file_path: str, logger: logging.Logger) -> dict[str, Any]:
             return data
 
     except (json.JSONDecodeError, OSError) as exc:
-        logger.error(f"Failed to read {file_path}: {exc}")
+        logger.exception(f"Failed to read {file_path}")
         return {}
 
 
@@ -98,6 +98,24 @@ def validate_data(data: dict[str, Any], kind: str, logger: logging.Logger) -> bo
     return True
 
 
+def _read_and_validate_data(kind: str, redis_url: str | None, json_path: str, logger: logging.Logger) -> dict[str, Any] | None:
+    data = None
+    if redis_url:
+        data = read_redis_data(redis_url, kind, logger)
+    if not data:
+        data = read_json_data(json_path, logger)
+        
+    if not data and kind == "settings":
+        logger.error(f"No {kind} data found to migrate")
+        return None
+    elif not data and kind == "state":
+        logger.warning(f"No {kind} data found, will create empty state")
+        
+    if data and not validate_data(data, kind, logger):
+        return None
+        
+    return data if data else ({} if kind == "state" else None)
+
 def migrate_to_postgres(
     postgres_url: str,
     redis_url: str | None,
@@ -121,80 +139,37 @@ def migrate_to_postgres(
         True if migration successful, False otherwise
     """
     try:
-        # Initialize PostgreSQL store
         if not dry_run:
             postgres_store = PostgresStore(
                 connection_string=postgres_url,
-                kind="temp",  # Temporary kind for health check
+                kind="temp",
                 logger=logger,
             )
-            
             if not postgres_store.health_check():
                 logger.error("PostgreSQL health check failed")
                 return False
-            
             logger.info("PostgreSQL connection established successfully")
 
-        # Read settings data
         logger.info("=== Migrating settings ===")
-        settings_data = None
-
-        # Try Redis first if available
-        if redis_url:
-            settings_data = read_redis_data(redis_url, "settings", logger)
-
-        # Fallback to JSON file
-        if not settings_data:
-            settings_data = read_json_data(settings_path, logger)
-
-        if not settings_data:
-            logger.error("No settings data found to migrate")
+        settings_data = _read_and_validate_data("settings", redis_url, settings_path, logger)
+        if settings_data is None:
             return False
 
-        if not validate_data(settings_data, "settings", logger):
-            return False
-
-        # Read state data
         logger.info("=== Migrating state ===")
-        state_data = None
-
-        # Try Redis first if available
-        if redis_url:
-            state_data = read_redis_data(redis_url, "state", logger)
-
-        # Fallback to JSON file
-        if not state_data:
-            state_data = read_json_data(state_path, logger)
-
-        if not state_data:
-            logger.warning("No state data found, will create empty state")
-
-        if state_data and not validate_data(state_data, "state", logger):
+        state_data = _read_and_validate_data("state", redis_url, state_path, logger)
+        if state_data is None:
             return False
 
-        # Write to PostgreSQL if not dry run
         if not dry_run:
             logger.info("=== Writing to PostgreSQL ===")
-            
-            # Migrate settings
-            settings_store = PostgresStore(
-                connection_string=postgres_url,
-                kind="settings",
-                logger=logger,
-            )
+            settings_store = PostgresStore(connection_string=postgres_url, kind="settings", logger=logger)
             settings_store.write(settings_data)
             logger.info("Settings migrated successfully")
 
-            # Migrate state
-            state_store = PostgresStore(
-                connection_string=postgres_url,
-                kind="state",
-                logger=logger,
-            )
-            state_store.write(state_data or {})
+            state_store = PostgresStore(connection_string=postgres_url, kind="state", logger=logger)
+            state_store.write(state_data)
             logger.info("State migrated successfully")
 
-            # Cleanup
             settings_store.close()
             state_store.close()
         else:
@@ -202,8 +177,8 @@ def migrate_to_postgres(
 
         return True
 
-    except (PostgresStoreError, Exception) as exc:
-        logger.error(f"Migration failed: {exc}")
+    except Exception as exc:
+        logger.exception("Migration failed")
         return False
 
 

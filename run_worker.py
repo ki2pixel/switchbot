@@ -23,3 +23,4 @@ if __name__ == "__main__":
             time.sleep(1)
     except (KeyboardInterrupt, SystemExit):
         app.logger.info("[worker] Standalone background worker stopping")
+        raise

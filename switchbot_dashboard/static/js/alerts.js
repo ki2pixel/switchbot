@@ -15,7 +15,7 @@
     };
 
     alertElement.addEventListener("transitionend", removeAfterTransition);
-    window.setTimeout(removeAfterTransition, 600);
+    globalThis.setTimeout(removeAfterTransition, 600);
   };
 
   const initAlerts = () => {
@@ -25,7 +25,7 @@
         return;
       }
 
-      window.setTimeout(() => dismissAlert(alertElement), timeout);
+      globalThis.setTimeout(() => dismissAlert(alertElement), timeout);
     });
   };
 

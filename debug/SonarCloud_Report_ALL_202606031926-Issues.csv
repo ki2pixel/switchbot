@@ -1,0 +1,135 @@
+File,Line,Severity,Type,Message,Rule,Creation Date
+ki2pixel_switchbot:switchbot_dashboard/automation.py,570,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 20 to the 15 allowed.,python:S3776,2026-05-28T11:13:25+0000
+ki2pixel_switchbot:switchbot_dashboard/automation.py,685,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 71 to the 15 allowed.,python:S3776,2026-05-28T11:13:25+0000
+ki2pixel_switchbot:switchbot_dashboard/routes.py,417,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 38 to the 15 allowed.,python:S3776,2026-05-28T11:13:25+0000
+ki2pixel_switchbot:switchbot_dashboard/routes.py,595,CRITICAL,CODE_SMELL,"Define a constant instead of duplicating this literal ""dashboard.index"" 12 times.",python:S1192,2026-05-28T11:13:25+0000
+ki2pixel_switchbot:switchbot_dashboard/routes.py,625,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 30 to the 15 allowed.,python:S3776,2026-05-28T11:13:25+0000
+ki2pixel_switchbot:switchbot_dashboard/routes.py,771,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 39 to the 15 allowed.,python:S3776,2026-05-28T11:13:25+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/devices.js,1,MINOR,CODE_SMELL,Block is redundant.,javascript:S1199,2026-05-28T09:45:03+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/devices.js,2,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:45:03+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/devices.js,3,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:45:03+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,37,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 16 to the 15 allowed.,javascript:S3776,2026-05-28T09:45:03+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,86,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:45:03+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,86,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:45:03+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,88,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:45:03+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,89,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:45:03+0000
+ki2pixel_switchbot:run_worker.py,24,CRITICAL,CODE_SMELL,Reraise this exception to stop the application as the user expects,python:S5754,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/__init__.py,111,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 37 to the 15 allowed.,python:S3776,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/__init__.py,161,MAJOR,CODE_SMELL,"Use ""logging.exception()"" instead.",python:S8572,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/history_service.py,103,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 22 to the 15 allowed.,python:S3776,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/routes.py,857,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 23 to the 15 allowed.,python:S3776,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/routes.py,862,CRITICAL,CODE_SMELL,"Define a constant instead of duplicating this literal ""Service Historique indisponible. La base de données PostgreSQL est déconnectée."" 3 times.",python:S1192,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,561,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,562,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,6,MINOR,CODE_SMELL,"`csrfMethods` should be a `Set`, and use `csrfMethods.has()` to check existence or non-existence.",javascript:S7776,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,9,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,10,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,10,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 23 to the 15 allowed.,javascript:S3776,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,16,MAJOR,CODE_SMELL,"Prefer using an optional chain expression instead, as it's more concise and easier to read.",javascript:S6582,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,28,MAJOR,CODE_SMELL,'If' statement should not be the only statement in 'else' block,javascript:S6660,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,49,MAJOR,CODE_SMELL,"Prefer using an optional chain expression instead, as it's more concise and easier to read.",javascript:S6582,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,99,MAJOR,CODE_SMELL,Prefer `.dataset` over `getAttribute(…)`.,javascript:S7761,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,208,MAJOR,CODE_SMELL,Prefer `.dataset` over `getAttribute(…)`.,javascript:S7761,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,208,MAJOR,CODE_SMELL,Prefer `.dataset` over `getAttribute(…)`.,javascript:S7761,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,244,MAJOR,CODE_SMELL,Prefer `.dataset` over `getAttribute(…)`.,javascript:S7761,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,288,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,288,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,289,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/perf-worker.js,12,MINOR,CODE_SMELL,Prefer `globalThis` over `self`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/perf-worker.js,12,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 23 to the 15 allowed.,javascript:S3776,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,11,MINOR,CODE_SMELL,Prefer class field declaration over `this` assignment in constructor for static values.,javascript:S7757,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,25,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,26,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,41,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,42,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,43,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,50,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,51,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,53,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,75,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,115,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,118,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,119,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,121,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,137,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,143,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/spa-router.js,214,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-05-28T09:34:28+0000
+ki2pixel_switchbot:switchbot_dashboard/scheduler.py,77,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 19 to the 15 allowed.,python:S3776,2026-01-28T09:32:25+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/settings.html,133,MAJOR,CODE_SMELL,"The attribute ""aria-checked"" is required by the role ""switch"".",Web:S6807,2026-01-28T09:32:25+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,86,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-01-23T20:23:55+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,216,CRITICAL,CODE_SMELL,Refactor this code to not nest functions more than 4 levels deep.,javascript:S2004,2026-01-23T20:23:55+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,222,CRITICAL,CODE_SMELL,Refactor this code to not nest functions more than 4 levels deep.,javascript:S2004,2026-01-23T20:23:55+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,248,CRITICAL,CODE_SMELL,Refactor this code to not nest functions more than 4 levels deep.,javascript:S2004,2026-01-23T20:23:55+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,253,CRITICAL,CODE_SMELL,Refactor this code to not nest functions more than 4 levels deep.,javascript:S2004,2026-01-23T20:23:55+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,258,CRITICAL,CODE_SMELL,Refactor this code to not nest functions more than 4 levels deep.,javascript:S2004,2026-01-23T20:23:55+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,282,CRITICAL,CODE_SMELL,Refactor this code to not nest functions more than 4 levels deep.,javascript:S2004,2026-01-23T20:23:55+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/index.html,454,MAJOR,CODE_SMELL,Use <output> instead of the status role to ensure accessibility across all devices.,Web:S6819,2026-01-23T20:23:55+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/index.html,431,MAJOR,CODE_SMELL,The element section has an implicit role of region. Defining this explicitly is redundant and should be avoided.,Web:S6822,2026-01-18T15:02:48+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/index.html,12,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-01-18T14:38:33+0000
+ki2pixel_switchbot:switchbot_dashboard/static/css/sticky-footer.css,69,CRITICAL,BUG,"Overridden property ""padding-top"" by shorthand ""padding""",css:S4657,2026-01-18T13:27:16+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/index.html,384,MAJOR,CODE_SMELL,"Duplicate selector "".btn"", first used at line 153",css:S4666,2026-01-18T13:27:16+0000
+ki2pixel_switchbot:switchbot_dashboard/static/css/critical.css,310,MAJOR,CODE_SMELL,"Duplicate selector ""body"", first used at line 16",css:S4666,2026-01-18T13:03:30+0000
+ki2pixel_switchbot:switchbot_dashboard/static/css/index.css,274,MAJOR,CODE_SMELL,"Duplicate selector "".status-value.sb-data-update"", first used at line 231",css:S4666,2026-01-18T13:03:30+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/_footer_nav.html,2,MAJOR,CODE_SMELL,Use <nav> instead of the navigation role to ensure accessibility across all devices.,Web:S6819,2026-01-18T13:03:30+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/index.html,22,MAJOR,BUG,Add a <title> tag to this page.,Web:PageWithoutTitleCheck,2026-01-18T13:03:30+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/index.html,411,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-01-18T13:03:30+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/index.html,590,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-01-18T13:03:30+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/index.html,596,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-01-18T13:03:30+0000
+ki2pixel_switchbot:switchbot_dashboard/static/css/theme.css,671,MAJOR,CODE_SMELL,"Duplicate selector ""body.sb-dark"", first used at line 68",css:S4666,2026-01-18T03:09:42+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/bottom-nav.js,83,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-01-18T03:09:42+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/bottom-nav.js,107,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-01-18T03:09:42+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/bottom-nav.js,135,MAJOR,BUG,"Either remove this useless object instantiation of ""BottomNavigation"" or use it.",javascript:S1848,2026-01-18T03:09:42+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/bottom-nav.js,138,MAJOR,BUG,"Either remove this useless object instantiation of ""BottomNavigation"" or use it.",javascript:S1848,2026-01-18T03:09:42+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/devices.js,43,MINOR,CODE_SMELL,"The signature '(commandId: string, showUI?: boolean, value?: string): boolean' of 'document.execCommand' is deprecated.",javascript:S1874,2026-01-18T03:09:42+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/devices.js,44,MAJOR,CODE_SMELL,Prefer `childNode.remove()` over `parentNode.removeChild(childNode)`.,javascript:S7762,2026-01-18T03:09:42+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,41,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 25 to the 15 allowed.,javascript:S3776,2026-01-18T03:09:42+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,62,MAJOR,CODE_SMELL,Extract this nested ternary operation into an independent statement.,javascript:S3358,2026-01-18T03:09:42+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,410,MINOR,VULNERABILITY,Change this code to not log user-controlled data.,jssecurity:S5145,2026-01-15T10:45:00+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,412,MINOR,CODE_SMELL,Prefer `Number.parseFloat` over `parseFloat`.,javascript:S7773,2026-01-15T10:45:00+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,413,MINOR,CODE_SMELL,Prefer `Number.parseFloat` over `parseFloat`.,javascript:S7773,2026-01-15T10:45:00+0000
+ki2pixel_switchbot:switchbot_dashboard/history_service.py,155,MINOR,VULNERABILITY,Change this code to not log user-controlled data.,pythonsecurity:S5145,2026-01-15T10:13:35+0000
+ki2pixel_switchbot:switchbot_dashboard/routes.py,936,CRITICAL,CODE_SMELL,"Define a constant instead of duplicating this literal ""No historical data available yet"" 3 times.",python:S1192,2026-01-14T15:45:43+0000
+ki2pixel_switchbot:switchbot_dashboard/routes.py,960,CRITICAL,CODE_SMELL,"Define a constant instead of duplicating this literal ""Error retrieving data"" 3 times.",python:S1192,2026-01-14T15:45:43+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,293,MAJOR,CODE_SMELL,"Prefer using an optional chain expression instead, as it's more concise and easier to read.",javascript:S6582,2026-01-14T15:30:12+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,294,MAJOR,CODE_SMELL,"Prefer using an optional chain expression instead, as it's more concise and easier to read.",javascript:S6582,2026-01-14T15:30:12+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,295,MAJOR,CODE_SMELL,"Prefer using an optional chain expression instead, as it's more concise and easier to read.",javascript:S6582,2026-01-14T15:30:12+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,440,BLOCKER,VULNERABILITY,Change this code to prevent execution of arbitrary client-side code.,jssecurity:S5696,2026-01-14T15:30:12+0000
+ki2pixel_switchbot:switchbot_dashboard/__init__.py,235,MAJOR,CODE_SMELL,"Use ""logging.exception()"" instead.",python:S8572,2026-01-14T15:27:24+0000
+ki2pixel_switchbot:switchbot_dashboard/__init__.py,237,MAJOR,CODE_SMELL,"Use ""logging.exception()"" instead.",python:S8572,2026-01-14T15:27:24+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/alerts.js,13,MAJOR,CODE_SMELL,Prefer `childNode.remove()` over `parentNode.removeChild(childNode)`.,javascript:S7762,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/alerts.js,18,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/alerts.js,28,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/devices.js,11,MAJOR,CODE_SMELL,Prefer `.dataset` over `getAttribute(…)`.,javascript:S7761,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,480,MAJOR,CODE_SMELL,Unexpected lexical declaration in case block.,javascript:S6836,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,564,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,575,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/history.js,576,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,60,MINOR,CODE_SMELL,Remove the declaration of the unused 'LOADER_CLASS' variable.,javascript:S1481,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,60,MAJOR,CODE_SMELL,"Remove this useless assignment to variable ""LOADER_CLASS"".",javascript:S1854,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,177,MAJOR,CODE_SMELL,"Prefer using an optional chain expression instead, as it's more concise and easier to read.",javascript:S6582,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,191,MAJOR,CODE_SMELL,Prefer `childNode.remove()` over `parentNode.removeChild(childNode)`.,javascript:S7762,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,212,CRITICAL,CODE_SMELL,Refactor this code to not nest functions more than 4 levels deep.,javascript:S2004,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,287,CRITICAL,CODE_SMELL,Refactor this code to not nest functions more than 4 levels deep.,javascript:S2004,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,291,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/static/js/loaders.js,305,MINOR,CODE_SMELL,Prefer `globalThis` over `window`.,javascript:S7764,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/history.html,59,MAJOR,CODE_SMELL,A form label must be associated with a control and have accessible text.,Web:S6853,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/history.html,177,MAJOR,CODE_SMELL,Use <output> instead of the status role to ensure accessibility across all devices.,Web:S6819,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/quota.html,100,MAJOR,CODE_SMELL,Use <output> instead of the status role to ensure accessibility across all devices.,Web:S6819,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/settings.html,54,MAJOR,CODE_SMELL,"The attribute ""aria-checked"" is required by the role ""switch"".",Web:S6807,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/settings.html,272,MAJOR,CODE_SMELL,A form label must be associated with a control and have accessible text.,Web:S6853,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/templates/settings.html,279,MAJOR,CODE_SMELL,A form label must be associated with a control and have accessible text.,Web:S6853,2026-01-14T15:23:45+0000
+ki2pixel_switchbot:switchbot_dashboard/routes.py,107,CRITICAL,CODE_SMELL,"Define a constant instead of duplicating this literal ""+00:00"" 3 times.",python:S1192,2026-01-14T15:06:16+0000
+ki2pixel_switchbot:switchbot_dashboard/routes.py,951,MAJOR,CODE_SMELL,"Use ""logging.exception()"" instead.",python:S8572,2026-01-14T15:06:16+0000
+ki2pixel_switchbot:switchbot_dashboard/routes.py,1029,MAJOR,CODE_SMELL,"Use ""logging.exception()"" instead.",python:S8572,2026-01-14T15:06:16+0000
+ki2pixel_switchbot:switchbot_dashboard/routes.py,1107,MAJOR,CODE_SMELL,"Use ""logging.exception()"" instead.",python:S8572,2026-01-14T15:06:16+0000
+ki2pixel_switchbot:scripts/migrate_to_postgres.py,57,MAJOR,CODE_SMELL,"Use ""logging.exception()"" instead.",python:S8572,2026-01-14T12:10:47+0000
+ki2pixel_switchbot:scripts/migrate_to_postgres.py,75,MAJOR,CODE_SMELL,"Use ""logging.exception()"" instead.",python:S8572,2026-01-14T12:10:47+0000
+ki2pixel_switchbot:scripts/migrate_to_postgres.py,95,MAJOR,CODE_SMELL,Add replacement fields or use a normal string instead of an f-string.,python:S3457,2026-01-14T12:10:47+0000
+ki2pixel_switchbot:scripts/migrate_to_postgres.py,101,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 16 to the 15 allowed.,python:S3776,2026-01-14T12:10:47+0000
+ki2pixel_switchbot:scripts/migrate_to_postgres.py,205,MINOR,CODE_SMELL,Remove this redundant Exception class; it derives from another which is already caught.,python:S5713,2026-01-14T12:10:47+0000
+ki2pixel_switchbot:scripts/migrate_to_postgres.py,206,MAJOR,CODE_SMELL,"Use ""logging.exception()"" instead.",python:S8572,2026-01-14T12:10:47+0000
+ki2pixel_switchbot:switchbot_dashboard/__init__.py,76,MAJOR,CODE_SMELL,"Use ""logging.exception()"" instead.",python:S8572,2026-01-14T12:10:47+0000
+ki2pixel_switchbot:switchbot_dashboard/switchbot_api.py,78,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 37 to the 15 allowed.,python:S3776,2026-01-10T18:28:33+0000
+ki2pixel_switchbot:switchbot_dashboard/routes.py,364,CRITICAL,CODE_SMELL,"Define a constant instead of duplicating this literal ""application/json"" 4 times.",python:S1192,2026-01-10T16:25:40+0000
+ki2pixel_switchbot:switchbot_dashboard/routes.py,384,MAJOR,CODE_SMELL,"Use ""logging.exception()"" instead.",python:S8572,2026-01-10T16:25:40+0000
+ki2pixel_switchbot:switchbot_dashboard/automation.py,26,CRITICAL,CODE_SMELL,Refactor this function to reduce its Cognitive Complexity from 23 to the 15 allowed.,python:S3776,2026-01-09T21:31:40+0000

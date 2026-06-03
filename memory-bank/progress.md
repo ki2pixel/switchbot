@@ -1,4 +1,10 @@
 ## Terminé
+[2026-06-03 21:55:00] - Résolution du rapport d'audit SonarCloud complet (Phase 1, 2, 3)
+- **Phase 1 (Sécurité & UI Quick Wins)** : Correction de la vulnérabilité XSS critique (S5696) dans `history.js` en utilisant `textContent`. Standardisation des formats de logs dans `history_service.py` et `routes.py`. Révision des variables CSS et des styles inlines redondants.
+- **Phase 2 (Complexité Cognitive)** : Refactorisation massive pour réduire la complexité cognitive (`S3776` < 15) dans `history_service.py` (extraction `_build_history_query`), `perf-worker.js` (extraction `checkMemory`/`checkFps`), `scheduler.py` (extraction `_get_window_candidates`), `migrate_to_postgres.py` et `switchbot_api.py`.
+- **Phase 3 (Clean Code & Best Practices)** : Remplacement de `window`/`self` par `globalThis` (`S7764`) dans tous les fichiers JavaScript et templates HTML. Utilisation de `logger.exception()` au lieu de `logger.error()` (`S8572`) dans les blocs `except`. Ajout de `raise` dans le worker d'arrière-plan (`S5754`) et suppression des exceptions redondantes.
+- **Validation** : Suite complète de 159 tests unitaires exécutée et validée à 100%. Code assaini selon les standards stricts sans régression fonctionnelle.
+
 [2026-05-31 02:18:00] - Audit et mise à jour de codingstandards.md (SPA Router, CSRF, PostgreSQL pool, Sécurité)
 - **Backend Patterns** : Ajout de directives strictes pour la gestion du pool `psycopg_pool` (context managers sécurisés) et protections SSRF/Timing Attacks.
 - **Frontend & UX** : Formalisation de l'intégration obligatoire avec `spa-router.js` (cycle de vie asynchrone) et utilisation des intercepteurs globaux CSRF (Fetch/XHR).

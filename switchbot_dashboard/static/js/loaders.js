@@ -6,8 +6,8 @@
         const csrfMethods = ['POST', 'PUT', 'DELETE', 'PATCH'];
         
         // 1. Fetch API Interceptor
-        const originalFetch = window.fetch;
-        window.fetch = function(input, init) {
+        const originalFetch = globalThis.fetch;
+        globalThis.fetch = function(input, init) {
             init = init || {};
             const method = init.method ? init.method.toUpperCase() : 'GET';
             
@@ -83,7 +83,7 @@
             return;
         }
         clearLoaderFailsafe(element);
-        const timerId = window.setTimeout(() => {
+        const timerId = globalThis.setTimeout(() => {
             loaderFailsafes.delete(element);
             cleanupCallback();
         }, FAILSAFE_TIMEOUT_MS);
@@ -194,104 +194,108 @@
         }
     };
     
+    const handleFormSubmit = (event, form) => {
+        const submitButton = form.querySelector('button[type="submit"], input[type="submit"]');
+        if (!submitButton || submitButton.disabled) return;
+        
+        event.preventDefault();
+        showGlobalLoader();
+        showLoader(submitButton);
+        
+        const originalText = submitButton.textContent;
+        const loaderText = submitButton.getAttribute('data-loader-text') || form.getAttribute('data-loader-text') || 'Chargement...';
+        submitButton.textContent = loaderText;
+        submitButton.disabled = true;
+        
+        setTimeout(() => {
+            form.submit();
+        }, 1000);
+
+        const finalizeSubmission = () => {
+            hideGlobalLoader();
+            hideLoader(submitButton);
+            resetButtonState(submitButton, originalText);
+        };
+
+        setTimeout(() => {
+            finalizeSubmission();
+            clearLoaderFailsafe(submitButton);
+        }, 10000);
+
+        scheduleLoaderFailsafe(submitButton, finalizeSubmission);
+    };
+
     const setupFormLoaders = () => {
         const forms = document.querySelectorAll('form[data-loader]');
-        forms.forEach((form) => {
-            form.addEventListener('submit', (event) => {
-                const submitButton = form.querySelector('button[type="submit"], input[type="submit"]');
-                if (submitButton && !submitButton.disabled) {
-                    event.preventDefault();
-                    showGlobalLoader();
-                    showLoader(submitButton);
-                    
-                    const originalText = submitButton.textContent;
-                    const loaderText = submitButton.getAttribute('data-loader-text') || form.getAttribute('data-loader-text') || 'Chargement...';
-                    submitButton.textContent = loaderText;
-                    submitButton.disabled = true;
-                    
-                    setTimeout(() => {
-                        form.submit();
-                    }, 1000);
-
-                    const finalizeSubmission = () => {
-                        hideGlobalLoader();
-                        hideLoader(submitButton);
-                        resetButtonState(submitButton, originalText);
-                    };
-
-                    setTimeout(() => {
-                        finalizeSubmission();
-                        clearLoaderFailsafe(submitButton);
-                    }, 10000);
-
-                    scheduleLoaderFailsafe(submitButton, finalizeSubmission);
-                }
-            });
-        });
+        forms.forEach(form => form.addEventListener('submit', event => handleFormSubmit(event, form)));
     };
     
+    const handleButtonClick = (event, button) => {
+        if (button.disabled) {
+            event.preventDefault();
+            return;
+        }
+        
+        showLoader(button);
+        
+        const originalText = button.textContent;
+        const loaderText = button.getAttribute('data-loader-text') || 'Chargement...';
+        button.textContent = loaderText;
+        button.disabled = true;
+
+        const finalizeAction = () => {
+            hideLoader(button);
+            resetButtonState(button, originalText);
+        };
+        
+        setTimeout(() => {
+            finalizeAction();
+            clearLoaderFailsafe(button);
+        }, 3000);
+
+        scheduleLoaderFailsafe(button, () => {
+            hideGlobalLoader();
+            finalizeAction();
+        });
+    };
+
     const setupButtonLoaders = () => {
         document.querySelectorAll('button[data-loader]').forEach(button => {
-            button.addEventListener('click', (event) => {
-                if (button.disabled) {
-                    event.preventDefault();
-                    return;
-                }
-                
-                showLoader(button);
-                
-                const originalText = button.textContent;
-                const loaderText = button.getAttribute('data-loader-text') || 'Chargement...';
-                button.textContent = loaderText;
-                button.disabled = true;
-
-                const finalizeAction = () => {
-                    hideLoader(button);
-                    resetButtonState(button, originalText);
-                };
-                
-                setTimeout(() => {
-                    finalizeAction();
-                    clearLoaderFailsafe(button);
-                }, 3000);
-
-                scheduleLoaderFailsafe(button, () => {
-                    hideGlobalLoader();
-                    finalizeAction();
-                });
-            });
+            button.addEventListener('click', event => handleButtonClick(event, button));
         });
     };
     
+    const handleNavigationClick = (event, link) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+            return;
+        }
+
+        const href = link.getAttribute('href') || '';
+        if (!href || href.startsWith('#') || href.startsWith('javascript:')) {
+            return;
+        }
+
+        event.preventDefault();
+        showGlobalLoader();
+        showLoader(link);
+
+        scheduleLoaderFailsafe(link, () => {
+            hideGlobalLoader();
+            hideLoader(link);
+        });
+
+        setTimeout(() => {
+            if (globalThis.SwitchBotRouter && typeof globalThis.SwitchBotRouter.navigate === 'function') {
+                globalThis.SwitchBotRouter.navigate(href, link);
+            } else {
+                globalThis.location.href = href;
+            }
+        }, 150);
+    };
+
     const setupNavigationLoaders = () => {
-        document.querySelectorAll('a[data-loader]').forEach((link) => {
-            link.addEventListener('click', (event) => {
-                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
-                    return;
-                }
-
-                const href = link.getAttribute('href') || '';
-                if (!href || href.startsWith('#') || href.startsWith('javascript:')) {
-                    return;
-                }
-
-                event.preventDefault();
-                showGlobalLoader();
-                showLoader(link);
-
-                scheduleLoaderFailsafe(link, () => {
-                    hideGlobalLoader();
-                    hideLoader(link);
-                });
-
-                setTimeout(() => {
-                    if (window.SwitchBotRouter && typeof window.SwitchBotRouter.navigate === 'function') {
-                        window.SwitchBotRouter.navigate(href, link);
-                    } else {
-                        window.location.href = href;
-                    }
-                }, 150);
-            });
+        document.querySelectorAll('a[data-loader]').forEach(link => {
+            link.addEventListener('click', event => handleNavigationClick(event, link));
         });
     };
     
@@ -302,7 +306,7 @@
         setupButtonLoaders();
         setupNavigationLoaders();
         
-        window.SwitchBotLoaders = {
+        globalThis.SwitchBotLoaders = {
             show: showLoader,
             hide: hideLoader,
             showGlobal: showGlobalLoader,

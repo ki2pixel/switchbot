@@ -333,11 +333,6 @@
     initializeNonCriticalJS() {
       // Initialize modules that are not critical for first paint
       setTimeout(() => {
-        // Initialize bottom navigation
-        if (window.BottomNavigation) {
-          new BottomNavigation();
-        }
-        
         // Initialize micro-interactions
         if (window.MicroInteractions) {
           new MicroInteractions();

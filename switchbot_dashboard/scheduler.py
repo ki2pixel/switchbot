@@ -74,6 +74,29 @@ class SchedulerService:
         except ZoneInfoNotFoundError:
             return dt.timezone.utc
 
+    def _get_window_candidates(self, window: dict[str, Any], now: dt.datetime, base_date: dt.date, base_weekday: int, tzinfo: dt.tzinfo) -> list[dt.datetime]:
+        days = window.get("days")
+        if not isinstance(days, list):
+            return []
+        start_raw = window.get("start")
+        if not isinstance(start_raw, str):
+            return []
+
+        try:
+            start_time = _parse_hhmm(start_raw)
+        except ValueError:
+            return []
+
+        candidates = []
+        for day_offset in range(0, 8):
+            candidate_weekday = (base_weekday + day_offset) % 7
+            if candidate_weekday in days:
+                candidate_date = base_date + dt.timedelta(days=day_offset)
+                candidate_start = dt.datetime.combine(candidate_date, start_time, tzinfo=tzinfo)
+                if candidate_start > now:
+                    candidates.append(candidate_start)
+        return candidates
+
     def _next_window_start(self, time_windows: list[dict[str, Any]], now: dt.datetime) -> dt.datetime | None:
         if not time_windows:
             return None
@@ -84,31 +107,9 @@ class SchedulerService:
         base_weekday = now.weekday()
 
         for window in time_windows:
-            days = window.get("days")
-            if not isinstance(days, list):
-                continue
-            start_raw = window.get("start")
-            end_raw = window.get("end")
-            if not isinstance(start_raw, str) or not isinstance(end_raw, str):
-                continue
+            candidates.extend(self._get_window_candidates(window, now, base_date, base_weekday, tzinfo))
 
-            try:
-                start_time = _parse_hhmm(start_raw)
-            except ValueError:
-                continue
-
-            for day_offset in range(0, 8):
-                candidate_weekday = (base_weekday + day_offset) % 7
-                if candidate_weekday not in days:
-                    continue
-                candidate_date = base_date + dt.timedelta(days=day_offset)
-                candidate_start = dt.datetime.combine(candidate_date, start_time, tzinfo=tzinfo)
-                if candidate_start > now:
-                    candidates.append(candidate_start)
-
-        if not candidates:
-            return None
-        return min(candidates)
+        return min(candidates) if candidates else None
 
     def _get_effective_interval_seconds(self, *, now_utc: dt.datetime | None = None) -> tuple[int, str]:
         settings = self._settings_store.read()

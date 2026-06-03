@@ -1,6 +1,6 @@
 {
-  if (!window.SwitchBotDevicesInitialized) {
-    window.SwitchBotDevicesInitialized = true;
+  if (!globalThis.SwitchBotDevicesInitialized) {
+    globalThis.SwitchBotDevicesInitialized = true;
     
     document.addEventListener("click", async (event) => {
       const button = event.target.closest(".btn-copy");

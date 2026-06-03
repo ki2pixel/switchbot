@@ -75,6 +75,44 @@ class SwitchBotClient:
             "nonce": nonce,
         }
 
+    def _process_response(self, response: Response, path: str, tracker_updated: bool) -> tuple[bool, Any]:
+        """Returns (retry_needed, data)."""
+        if response.status_code >= 400:
+            try:
+                data = response.json()
+            except ValueError as exc:
+                raise SwitchBotApiError(
+                    f"SwitchBot HTTP {response.status_code}: invalid JSON error payload."
+                ) from exc
+            raise SwitchBotApiError(f"SwitchBot HTTP {response.status_code}: {data!r}")
+
+        try:
+            data = response.json()
+        except ValueError as exc:
+            raise SwitchBotApiError(
+                f"Invalid JSON response from SwitchBot ({response.status_code})."
+            ) from exc
+
+        if not isinstance(data, dict) or "statusCode" not in data:
+            raise SwitchBotApiError(f"Unexpected SwitchBot response: {data!r}")
+
+        status_code = data.get("statusCode")
+        logger.debug(
+            "SwitchBot API payload parsed: statusCode=%s message=%s path=%s",
+            status_code,
+            data.get("message"),
+            path,
+        )
+        if status_code == 100:
+            if self._quota_tracker and not tracker_updated:
+                self._quota_tracker.record_call()
+            return False, data
+
+        if status_code == 190:
+            return True, None
+
+        raise SwitchBotApiError(f"SwitchBot API error: {data!r}")
+
     def _request(self, method: str, path: str, json_body: dict[str, Any] | None = None) -> Any:
         url = f"{self._base_url}{path}"
         last_error: Exception | None = None
@@ -113,43 +151,14 @@ class SwitchBotClient:
 
             tracker_updated = self._capture_quota_metadata(response)
 
-            if response.status_code >= 400:
-                try:
-                    data = response.json()
-                except ValueError as exc:
-                    raise SwitchBotApiError(
-                        f"SwitchBot HTTP {response.status_code}: invalid JSON error payload."
-                    ) from exc
-                raise SwitchBotApiError(f"SwitchBot HTTP {response.status_code}: {data!r}")
-
-            try:
-                data = response.json()
-            except ValueError as exc:
-                raise SwitchBotApiError(
-                    f"Invalid JSON response from SwitchBot ({response.status_code})."
-                ) from exc
-
-            if not isinstance(data, dict) or "statusCode" not in data:
-                raise SwitchBotApiError(f"Unexpected SwitchBot response: {data!r}")
-
-            status_code = data.get("statusCode")
-            logger.debug(
-                "SwitchBot API payload parsed: statusCode=%s message=%s path=%s",
-                status_code,
-                data.get("message"),
-                path,
-            )
-            if status_code == 100:
-                if self._quota_tracker and not tracker_updated:
-                    self._quota_tracker.record_call()
-                return data
-
-            if status_code == 190 and attempt_index < (self._retry_attempts - 1):
+            retry_needed, data = self._process_response(response, path, tracker_updated)
+            if retry_needed and attempt_index < (self._retry_attempts - 1):
                 if self._retry_delay_seconds > 0:
                     time.sleep(self._retry_delay_seconds)
                 continue
-
-            raise SwitchBotApiError(f"SwitchBot API error: {data!r}")
+                
+            if not retry_needed:
+                return data
 
         if last_error is not None:
             raise SwitchBotApiError(f"SwitchBot request failed: {last_error}") from last_error

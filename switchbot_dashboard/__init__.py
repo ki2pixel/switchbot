@@ -73,10 +73,9 @@ def _build_store(
                 return _make_json_store()
                 
         except PostgresStoreError as exc:
-            app.logger.error(
-                "[store] PostgreSQL backend unavailable for %s store (%s). Falling back to filesystem.",
+            app.logger.exception(
+                "[store] PostgreSQL backend unavailable for %s store. Falling back to filesystem.",
                 kind,
-                exc,
             )
             return _make_json_store()
 
@@ -158,7 +157,7 @@ def create_app() -> Flask:
                     except Exception as exc:
                         logging.getLogger().warning("[postgres] Error closing shared connection pool via atexit (%s)", exc)
             except Exception as exc:
-                app.logger.error("[postgres] Failed to initialize shared connection pool (%s)", exc)
+                app.logger.exception("[postgres] Failed to initialize shared connection pool")
 
     project_root = Path(__file__).resolve().parents[1]
     default_settings_path = str(project_root / "config" / "settings.json")
@@ -232,9 +231,7 @@ def create_app() -> Flask:
             )
             app.logger.info("[history] HistoryService initialized with PostgreSQL backend")
         except Exception as exc:
-            app.logger.error("[history] Failed to initialize HistoryService: %s", exc)
-            import traceback
-            app.logger.error(f"[history] Traceback: {traceback.format_exc()}")
+            app.logger.exception("[history] Failed to initialize HistoryService")
     else:
         app.logger.warning("[history] HistoryService disabled: PostgreSQL backend not available")
 

@@ -25,6 +25,7 @@ from .switchbot_api import SwitchBotApiError
 from .extensions import limiter
 
 dashboard_bp = Blueprint("dashboard", __name__)
+ROUTE_INDEX = "dashboard.index"
 
 
 DAY_CHOICES: list[dict[str, Any]] = [
@@ -381,7 +382,7 @@ def healthz() -> Any:
         automation_enabled = bool(settings.get("automation_enabled", False))
         last_tick = state.get("last_tick")
     except StoreError as exc:
-        app.logger.error("[health] store error: %s", exc)
+        app.logger.exception("[health] store error")
         payload = {
             "status": "error",
             "details": "store_unavailable",
@@ -411,6 +412,71 @@ def healthz() -> Any:
     return app.response_class(
         json.dumps(payload) + "\n", mimetype="application/json", status=200
     )
+
+
+def _update_timezone(request_form: Any, settings: dict[str, Any]) -> None:
+    timezone_raw = request_form.get("timezone")
+    if timezone_raw is None:
+        settings.setdefault("timezone", DEFAULT_TIMEZONE)
+        return
+        
+    requested_timezone = str(timezone_raw).strip() or DEFAULT_TIMEZONE
+    try:
+        ZoneInfo(requested_timezone)
+        settings["timezone"] = requested_timezone
+    except ZoneInfoNotFoundError:
+        flash(
+            "Fuseau horaire invalide : utilisez un identifiant IANA (ex: Europe/Paris, UTC).",
+            "error",
+        )
+
+def _update_time_windows(request_form: Any, settings: dict[str, Any]) -> None:
+    time_window_days_raw = request_form.getlist("time_window_days")
+    time_window_start = request_form.get("time_window_start", "").strip()
+    time_window_end = request_form.get("time_window_end", "").strip()
+
+    if not (time_window_days_raw or time_window_start or time_window_end):
+        settings["time_windows"] = []
+        return
+
+    try:
+        parsed_days = [
+            int(token.strip())
+            for token in time_window_days_raw
+            if token.strip() != ""
+        ]
+    except ValueError:
+        parsed_days = []
+
+    parsed_days = sorted({day for day in parsed_days if 0 <= day <= 6})
+
+    if parsed_days and time_window_start and time_window_end:
+        settings["time_windows"] = [
+            {
+                "days": parsed_days,
+                "start": time_window_start,
+                "end": time_window_end,
+            }
+        ]
+    else:
+        flash(
+            "Fenêtre horaire invalide : les jours doivent être compris entre 0 et 6 et les heures de début/fin sont obligatoires.",
+            "error",
+        )
+
+def _update_profiles(request_form: Any, settings: dict[str, Any]) -> None:
+    for key in ("winter", "summer"):
+        profile = settings.get(key, {})
+        if not isinstance(profile, dict):
+            profile = {}
+
+        profile["min_temp"] = _as_float(request_form.get(f"{key}_min_temp"), default=float(profile.get("min_temp", 0.0) or 0.0))
+        profile["max_temp"] = _as_float(request_form.get(f"{key}_max_temp"), default=float(profile.get("max_temp", 0.0) or 0.0))
+        profile["target_temp"] = _as_float(request_form.get(f"{key}_target_temp"), default=float(profile.get("target_temp", 0.0) or 0.0))
+        profile["fan_speed"] = _as_int(request_form.get(f"{key}_fan_speed"), default=int(profile.get("fan_speed", 3) or 3), minimum=1, maximum=4)
+        profile["ac_mode"] = _as_int(request_form.get(f"{key}_ac_mode"), default=int(profile.get("ac_mode", 5 if key == "winter" else 2) or 0), minimum=0, maximum=5)
+
+        settings[key] = profile
 
 
 @dashboard_bp.post("/settings")
@@ -501,20 +567,7 @@ def update_settings() -> Any:
 
     settings["turn_off_outside_windows"] = _as_bool(request.form.get("turn_off_outside_windows"))
 
-    timezone_raw = request.form.get("timezone")
-    if timezone_raw is None:
-        settings.setdefault("timezone", DEFAULT_TIMEZONE)
-    else:
-        requested_timezone = str(timezone_raw).strip() or DEFAULT_TIMEZONE
-        try:
-            ZoneInfo(requested_timezone)
-        except ZoneInfoNotFoundError:
-            flash(
-                "Fuseau horaire invalide : utilisez un identifiant IANA (ex: Europe/Paris, UTC).",
-                "error",
-            )
-        else:
-            settings["timezone"] = requested_timezone
+    _update_timezone(request.form, settings)
 
     settings["api_quota_warning_threshold"] = _as_int(
         request.form.get("api_quota_warning_threshold"),
@@ -526,50 +579,8 @@ def update_settings() -> Any:
     settings["meter_device_id"] = str(request.form.get("meter_device_id", "")).strip()
     settings["aircon_device_id"] = str(request.form.get("aircon_device_id", "")).strip()
 
-    time_window_days_raw = request.form.getlist("time_window_days")
-    time_window_start = request.form.get("time_window_start", "").strip()
-    time_window_end = request.form.get("time_window_end", "").strip()
-
-    if time_window_days_raw or time_window_start or time_window_end:
-        try:
-            parsed_days = [
-                int(token.strip())
-                for token in time_window_days_raw
-                if token.strip() != ""
-            ]
-        except ValueError:
-            parsed_days = []
-
-        parsed_days = sorted({day for day in parsed_days if 0 <= day <= 6})
-
-        if parsed_days and time_window_start and time_window_end:
-            settings["time_windows"] = [
-                {
-                    "days": parsed_days,
-                    "start": time_window_start,
-                    "end": time_window_end,
-                }
-            ]
-        else:
-            flash(
-                "Fenêtre horaire invalide : les jours doivent être compris entre 0 et 6 et les heures de début/fin sont obligatoires.",
-                "error",
-            )
-    else:
-        settings["time_windows"] = []
-
-    for key in ("winter", "summer"):
-        profile = settings.get(key, {})
-        if not isinstance(profile, dict):
-            profile = {}
-
-        profile["min_temp"] = _as_float(request.form.get(f"{key}_min_temp"), default=float(profile.get("min_temp", 0.0) or 0.0))
-        profile["max_temp"] = _as_float(request.form.get(f"{key}_max_temp"), default=float(profile.get("max_temp", 0.0) or 0.0))
-        profile["target_temp"] = _as_float(request.form.get(f"{key}_target_temp"), default=float(profile.get("target_temp", 0.0) or 0.0))
-        profile["fan_speed"] = _as_int(request.form.get(f"{key}_fan_speed"), default=int(profile.get("fan_speed", 3) or 3), minimum=1, maximum=4)
-        profile["ac_mode"] = _as_int(request.form.get(f"{key}_ac_mode"), default=int(profile.get("ac_mode", 5 if key == "winter" else 2) or 0), minimum=0, maximum=5)
-
-        settings[key] = profile
+    _update_time_windows(request.form, settings)
+    _update_profiles(request.form, settings)
 
     updated_aircon_scenes: dict[str, str] = {}
     for key in AIRCON_SCENE_KEYS:
@@ -592,7 +603,7 @@ def update_settings() -> Any:
     scheduler_service.reschedule()
 
     flash("Paramètres enregistrés.")
-    return redirect(url_for("dashboard.index"))
+    return redirect(url_for(ROUTE_INDEX))
 
 
 @dashboard_bp.post("/actions/run_once")
@@ -609,7 +620,7 @@ def run_once() -> Any:
 
     automation_service.run_once()
     flash("Cycle d'automatisation exécuté.")
-    return redirect(url_for("dashboard.index"))
+    return redirect(url_for(ROUTE_INDEX))
 
 
 @dashboard_bp.post("/actions/aircon_off")
@@ -622,6 +633,89 @@ def aircon_off() -> Any:
     )
 
 
+def _update_state_on_success(state_store: Any, assumed_power: str, action_desc: str) -> None:
+    state = state_store.read()
+    state.update({
+        "assumed_aircon_power": assumed_power,
+        "assumed_aircon_mode": None,
+        "assumed_aircon_parameter": None,
+        "last_action": action_desc,
+        "last_action_at": _utc_now_iso(),
+        "last_error": None
+    })
+    state_store.write(state)
+
+
+def _update_state_on_error(state_store: Any, error_msg: str) -> None:
+    state = state_store.read()
+    state["last_error"] = error_msg
+    state_store.write(state)
+
+
+def _handle_ifttt_action(
+    action_key: str, webhook_url: str, state_reason: str, flash_label: str, assumed_power: str
+) -> Any:
+    ifttt_client = current_app.extensions["ifttt_client"]
+    state_store = current_app.extensions["state_store"]
+    
+    if not webhook_url:
+        action_label = AIRCON_SCENE_LABELS.get(action_key, action_key)
+        flash(f"Aucun webhook configuré pour {action_label} en mode IFTTT.", "error")
+        return redirect(url_for(ROUTE_INDEX))
+        
+    try:
+        ifttt_client.trigger_webhook(webhook_url)
+        _update_state_on_success(state_store, assumed_power, f"ifttt_webhook({action_key}) ({state_reason})")
+        flash(flash_label)
+    except IFTTTWebhookError as exc:
+        error_msg = f"IFTTT webhook failed: {exc}"
+        _update_state_on_error(state_store, error_msg)
+        flash(f"IFTTT webhook failed for {action_key}: {exc}", "error")
+        
+    return redirect(url_for(ROUTE_INDEX))
+
+
+def _handle_direct_action(
+    action_key: str, scene_id: str, aircon_id: str, state_reason: str, flash_label: str, assumed_power: str
+) -> Any:
+    client = current_app.extensions["switchbot_client"]
+    state_store = current_app.extensions["state_store"]
+
+    if scene_id:
+        try:
+            client.run_scene(scene_id)
+            _update_state_on_success(state_store, assumed_power, f"scene({scene_id}) ({state_reason})")
+            flash(flash_label)
+            return redirect(url_for(ROUTE_INDEX))
+        except SwitchBotApiError as exc:
+            if not aircon_id:
+                _update_state_on_error(state_store, str(exc))
+                flash(str(exc), "error")
+                return redirect(url_for(ROUTE_INDEX))
+            current_app.logger.warning(f"Scene execution failed for {action_key}: {exc}. Falling back to direct command.")
+
+    if action_key == "off":
+        if not aircon_id:
+            flash("aircon_device_id manquant pour commande directe", "error")
+            return redirect(url_for(ROUTE_INDEX))
+        try:
+            client.send_command(aircon_id, command="turnOff", parameter="default", command_type="command")
+            _update_state_on_success(state_store, "off", f"turnOff ({state_reason})")
+            flash(flash_label)
+        except SwitchBotApiError as exc:
+            _update_state_on_error(state_store, str(exc))
+            flash(str(exc), "error")
+        return redirect(url_for(ROUTE_INDEX))
+
+    if not scene_id:
+        action_label = AIRCON_SCENE_LABELS.get(action_key, action_key)
+        flash(f"Aucune scène configurée pour {action_label} en mode API Direct.", "error")
+    else:
+        flash(f"Impossible d'exécuter l'action {action_key} : scène échouée et pas de commande directe supportée", "error")
+        
+    return redirect(url_for(ROUTE_INDEX))
+
+
 def _execute_aircon_action(
     action_key: str,
     *,
@@ -630,97 +724,16 @@ def _execute_aircon_action(
     assumed_power: str = "unknown",
 ) -> Any:
     settings_store = current_app.extensions["settings_store"]
-    state_store = current_app.extensions["state_store"]
-    client = current_app.extensions["switchbot_client"]
-    ifttt_client = current_app.extensions["ifttt_client"]
-
     settings = settings_store.read()
     trigger_mode = settings.get("trigger_mode", "direct")
-    webhooks = _extract_ifttt_webhooks(settings)
-    scenes = _extract_aircon_scenes(settings)
-    aircon_id = str(settings.get("aircon_device_id", "")).strip()
-
-    webhook_url = webhooks.get(action_key, "").strip()
-    scene_id = scenes.get(action_key, "").strip()
-
+    
     if trigger_mode == "ifttt":
-        if webhook_url:
-            try:
-                ifttt_client.trigger_webhook(webhook_url)
-                state = state_store.read()
-                state["assumed_aircon_power"] = assumed_power
-                state["assumed_aircon_mode"] = None
-                state["assumed_aircon_parameter"] = None
-                state["last_action"] = f"ifttt_webhook({action_key}) ({state_reason})"
-                state["last_action_at"] = _utc_now_iso()
-                state["last_error"] = None
-                state_store.write(state)
-                flash(flash_label)
-                return redirect(url_for("dashboard.index"))
-            except IFTTTWebhookError as exc:
-                state = state_store.read()
-                state["last_error"] = f"IFTTT webhook failed: {exc}"
-                state_store.write(state)
-                flash(f"IFTTT webhook failed for {action_key}: {exc}", "error")
-                return redirect(url_for("dashboard.index"))
-        else:
-            action_label = AIRCON_SCENE_LABELS.get(action_key, action_key)
-            flash(f"Aucun webhook configuré pour {action_label} en mode IFTTT.", "error")
-            return redirect(url_for("dashboard.index"))
-
+        webhook_url = _extract_ifttt_webhooks(settings).get(action_key, "").strip()
+        return _handle_ifttt_action(action_key, webhook_url, state_reason, flash_label, assumed_power)
     else:
-        if scene_id:
-            try:
-                client.run_scene(scene_id)
-                state = state_store.read()
-                state["assumed_aircon_power"] = assumed_power
-                state["assumed_aircon_mode"] = None
-                state["assumed_aircon_parameter"] = None
-                state["last_action"] = f"scene({scene_id}) ({state_reason})"
-                state["last_action_at"] = _utc_now_iso()
-                state["last_error"] = None
-                state_store.write(state)
-                flash(flash_label)
-                return redirect(url_for("dashboard.index"))
-            except SwitchBotApiError as exc:
-                if not aircon_id:
-                    state = state_store.read()
-                    state["last_error"] = str(exc)
-                    state_store.write(state)
-                    flash(str(exc), "error")
-                    return redirect(url_for("dashboard.index"))
-                current_app.logger.warning(f"Scene execution failed for {action_key}: {exc}. Falling back to direct command.")
-
-        if action_key == "off":
-            if not aircon_id:
-                flash("aircon_device_id manquant pour commande directe", "error")
-                return redirect(url_for("dashboard.index"))
-            try:
-                client.send_command(aircon_id, command="turnOff", parameter="default", command_type="command")
-                state = state_store.read()
-                state["assumed_aircon_power"] = "off"
-                state["assumed_aircon_mode"] = None
-                state["assumed_aircon_parameter"] = None
-                state["last_action"] = f"turnOff ({state_reason})"
-                state["last_action_at"] = _utc_now_iso()
-                state["last_error"] = None
-                state_store.write(state)
-                flash(flash_label)
-                return redirect(url_for("dashboard.index"))
-            except SwitchBotApiError as exc:
-                state = state_store.read()
-                state["last_error"] = str(exc)
-                state_store.write(state)
-                flash(str(exc), "error")
-                return redirect(url_for("dashboard.index"))
-        else:
-            if not scene_id:
-                action_label = AIRCON_SCENE_LABELS.get(action_key, action_key)
-                flash(f"Aucune scène configurée pour {action_label} en mode API Direct.", "error")
-                return redirect(url_for("dashboard.index"))
-            else:
-                flash(f"Impossible d'exécuter l'action {action_key} : scène échouée et pas de commande directe supportée", "error")
-                return redirect(url_for("dashboard.index"))
+        scene_id = _extract_aircon_scenes(settings).get(action_key, "").strip()
+        aircon_id = str(settings.get("aircon_device_id", "")).strip()
+        return _handle_direct_action(action_key, scene_id, aircon_id, state_reason, flash_label, assumed_power)
 
 
 @dashboard_bp.post("/actions/aircon_on")
@@ -767,10 +780,26 @@ def aircon_on_fan() -> Any:
     )
 
 
+def _enrich_device_status(client: Any, device: dict[str, Any]) -> None:
+    device_id = device.get("deviceId")
+    if not device_id:
+        return
+    try:
+        status_data = client.get_device_status(device_id)
+        status_body = status_data.get("body", {}) if isinstance(status_data, dict) else {}
+        if status_body:
+            for key in ["onlineStatus", "battery", "version", "firmwareVersion"]:
+                if key in status_body:
+                    device[key] = status_body[key]
+                    if key == "version":
+                        device["firmwareVersion"] = status_body[key]
+    except SwitchBotApiError as status_exc:
+        current_app.logger.warning(f"Failed to fetch status for {device_id}: {status_exc}")
+
+
 @dashboard_bp.get("/devices")
 def devices() -> str:
     client = current_app.extensions["switchbot_client"]
-
     data = None
     error = None
 
@@ -781,20 +810,7 @@ def devices() -> str:
         
         if device_list:
             for device in device_list:
-                device_id = device.get("deviceId")
-                if device_id:
-                    try:
-                        status_data = client.get_device_status(device_id)
-                        status_body = status_data.get("body", {}) if isinstance(status_data, dict) else {}
-                        if status_body:
-                            # Add missing fields from status_body to the device dictionary
-                            for key in ["onlineStatus", "battery", "version", "firmwareVersion"]:
-                                if key in status_body:
-                                    device[key] = status_body[key]
-                                    if key == "version":
-                                        device["firmwareVersion"] = status_body[key]
-                    except SwitchBotApiError as status_exc:
-                        current_app.logger.warning(f"Failed to fetch status for {device_id}: {status_exc}")
+                _enrich_device_status(client, device)
     except SwitchBotApiError as exc:
         error = str(exc)
 
@@ -852,6 +868,50 @@ def actions_page() -> str:
     )
 
 
+def _generate_mock_history_data(start: dt.datetime, end: dt.datetime) -> list[dict[str, Any]]:
+    import random
+    mock_data = []
+    current = start
+    while current <= end:
+        mock_data.append({
+            "timestamp": current.isoformat() + "Z",
+            "temperature": round(20 + random.random() * 10, 1),
+            "humidity": round(40 + random.random() * 20, 1),
+            "assumed_aircon_power": random.choice(["on", "off", "unknown"]),
+            "last_action": random.choice(["automation_winter_on", "automation_summer_on", "automation_winter_off", None]),
+            "api_requests_today": random.randint(100, 200),
+            "error_count": random.randint(0, 2)
+        })
+        current += dt.timedelta(minutes=5)
+    return mock_data
+
+def _parse_history_query_params(request_args: Any) -> tuple[dt.datetime, dt.datetime, list[str], str, int]:
+    start_str = request_args.get("start")
+    end_str = request_args.get("end")
+    metrics_param = request_args.get("metrics")
+    granularity = request_args.get("granularity", "minute")
+    limit = int(request_args.get("limit", 1000))
+
+    metrics = []
+    if metrics_param:
+        if isinstance(metrics_param, str):
+            metrics = [m.strip() for m in metrics_param.split(",") if m.strip()]
+        else:
+            metrics = metrics_param
+
+    if not start_str or not end_str:
+        end = dt.datetime.now(dt.timezone.utc)
+        start = end - dt.timedelta(hours=6)
+    else:
+        start = dt.datetime.fromisoformat(start_str.replace("Z", "+00:00"))
+        end = dt.datetime.fromisoformat(end_str.replace("Z", "+00:00"))
+
+    valid_granularities = ["minute", "5min", "15min", "hour"]
+    if granularity not in valid_granularities:
+        granularity = "minute"
+
+    return start, end, metrics, granularity, limit
+
 @dashboard_bp.get("/history/api/data")
 @limiter.limit("30 per minute")
 def history_api_data() -> Any:
@@ -862,25 +922,9 @@ def history_api_data() -> Any:
                 "error": "Service Historique indisponible. La base de données PostgreSQL est déconnectée."
             }, 503
         
-        # Return mock data when service is not available
-        import random
-        
         end = dt.datetime.now(dt.timezone.utc)
         start = end - dt.timedelta(hours=6)
-        mock_data = []
-        
-        current = start
-        while current <= end:
-            mock_data.append({
-                "timestamp": current.isoformat() + "Z",
-                "temperature": round(20 + random.random() * 10, 1),
-                "humidity": round(40 + random.random() * 20, 1),
-                "assumed_aircon_power": random.choice(["on", "off", "unknown"]),
-                "last_action": random.choice(["automation_winter_on", "automation_summer_on", "automation_winter_off", None]),
-                "api_requests_today": random.randint(100, 200),
-                "error_count": random.randint(0, 2)
-            })
-            current += dt.timedelta(minutes=5)
+        mock_data = _generate_mock_history_data(start, end)
         
         return {
             "data": mock_data,
@@ -893,33 +937,7 @@ def history_api_data() -> Any:
         }
 
     try:
-        # Parse query parameters
-        start_str = request.args.get("start")
-        end_str = request.args.get("end")
-        metrics_param = request.args.get("metrics")
-        granularity = request.args.get("granularity", "minute")
-        limit = int(request.args.get("limit", 1000))
-
-        # Parse metrics parameter (can be comma-separated string or list)
-        metrics = []
-        if metrics_param:
-            if isinstance(metrics_param, str):
-                metrics = [m.strip() for m in metrics_param.split(",") if m.strip()]
-            else:
-                metrics = metrics_param
-
-        # Default to last 6 hours if no time range specified
-        if not start_str or not end_str:
-            end = dt.datetime.now(dt.timezone.utc)
-            start = end - dt.timedelta(hours=6)
-        else:
-            start = dt.datetime.fromisoformat(start_str.replace("Z", "+00:00"))
-            end = dt.datetime.fromisoformat(end_str.replace("Z", "+00:00"))
-
-        # Validate granularity
-        valid_granularities = ["minute", "5min", "15min", "hour"]
-        if granularity not in valid_granularities:
-            granularity = "minute"
+        start, end, metrics, granularity, limit = _parse_history_query_params(request.args)
 
         # Get historical data
         data = history_service.get_history(start, end, metrics, granularity, limit)
@@ -948,7 +966,7 @@ def history_api_data() -> Any:
     except ValueError as exc:
         return {"error": f"Invalid parameters: {exc}"}, 400
     except Exception as exc:
-        current_app.logger.error(f"[history] API error: {exc}")
+        current_app.logger.exception("[history] API error")
         # Return empty data structure on error to avoid breaking the frontend
         return {
             "data": [],
@@ -1026,7 +1044,7 @@ def history_api_aggregates() -> Any:
         }
 
     except Exception as exc:
-        current_app.logger.error(f"[history] Aggregates API error: {exc}")
+        current_app.logger.exception("[history] Aggregates API error")
         # Return empty aggregates on error to avoid breaking the frontend
         return {
             "period_hours": 1,
@@ -1104,7 +1122,7 @@ def history_api_latest() -> Any:
         }
 
     except Exception as exc:
-        current_app.logger.error(f"[history] Latest API error: {exc}")
+        current_app.logger.exception("[history] Latest API error")
         # Return empty latest on error to avoid breaking the frontend
         return {
             "latest": [],
