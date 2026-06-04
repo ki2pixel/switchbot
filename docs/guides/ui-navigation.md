@@ -232,6 +232,35 @@ class ApiQuotaTracker:
               alert_level)
 ```
 
+### SPA Router et Cycle de vie des Pages
+
+Le Dashboard fonctionne comme une SPA (Single Page Application) légère grâce à `spa-router.js`. Il intercepte les clics de navigation pour charger le contenu dynamiquement sans rafraîchir la page entière, ce qui garantit une fluidité mobile-first parfaite.
+
+```javascript
+// Encapsulation asynchrone des fonctions d'initialisation de page
+window.initSettings = async () => {
+    // Initialisation exécutée dynamiquement après chaque transition vers /reglages
+    bindEvents();
+    loadData();
+};
+```
+
+**Règles du Router** :
+1. **Éviter `window.location.reload()`** : Utilisez l'architecture SPA pour garantir la fluidité. Ne forcez jamais le rechargement brutal.
+2. **Nettoyage Asynchrone** : Détruisez les instances précédentes (ex: graphiques Chart.js via `historyDashboard.destroy()`) avant l'initialisation de la nouvelle page pour éviter les fuites mémoire.
+3. **Re-liaison d'écouteurs** : Les événements du DOM liés au contenu de la page doivent être explicitement ré-attachés lors des transitions de page.
+
+### Sécurité Globale CSRF
+
+La protection CSRF est gérée automatiquement et globalement par `loaders.js`. Des intercepteurs mondiaux (Global Interceptors) sont placés sur `fetch` et `XMLHttpRequest`.
+
+```javascript
+// Les intercepteurs globaux injectent automatiquement le token CSRF
+// sur chaque requête Fetch ou XHR mutante (POST, PUT, DELETE, PATCH).
+```
+
+**Règle absolue** : Il est formellement interdit d'omettre les en-têtes CSRF lors de requêtes asynchrones personnalisées. Ne contournez jamais les intercepteurs globaux.
+
 ### Optimisations mobile - CSS responsive
 
 ```css

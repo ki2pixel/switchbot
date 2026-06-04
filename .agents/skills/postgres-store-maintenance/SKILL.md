@@ -23,6 +23,7 @@ Utiliser ce skill pour toute opération sur le stockage Postgres (Neon) et son f
    data = store.read()
    store.write(data)
    ```
+4. **Gestion du Pool** : Manipuler explicitement les contextes de transaction du `psycopg_pool`. Garantir la libération des connexions via `with self.pool.connection() as conn:` ou via contexte manager.
 
 ## 3. Gestion incidents
 - Si `psycopg_pool` KO :

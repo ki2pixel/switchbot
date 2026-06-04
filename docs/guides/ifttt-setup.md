@@ -196,10 +196,13 @@ Ces données enrichissent vos applets IFTTT pour des notifications personnalisé
 - Stockez-la dans `.env` si possible
 - Régénérez-la si compromise
 
-🛡️ **Validation HTTPS stricte** :
-- Toutes les URLs sont validées via regex
-- HTTP est automatiquement rejeté
-- Logs tronqués pour éviter les fuites
+🛡️ **Défense Anti-SSRF et Validation Stricte** :
+- Toutes les URLs doivent obligatoirement utiliser le protocole HTTPS.
+- L'application implémente une défense SSRF forte : la résolution d'adresses IP privées ou locales est bloquée, et le domaine est strictement verrouillé sur `maker.ifttt.com` via la fonction de validation.
+
+⏱️ **Protection contre les Timing Attacks** :
+- La validation des signatures et tokens d'action utilise une comparaison à temps constant (`hmac.compare_digest`). Cela empêche les attaquants de deviner les secrets en mesurant le temps de traitement des requêtes HTTP.
+- Logs tronqués pour éviter les fuites de secrets.
 
 📊 **Monitoring** :
 - Surveillez `[ifttt]` et `[automation]` dans les logs

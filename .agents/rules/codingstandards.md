@@ -13,10 +13,10 @@ alwaysApply: true
 # SwitchBot Dashboard v2 – AI Coding Standards
 
 ## Tech Stack
-- **Backend** : Flask 2.x + APScheduler, services injectés (`AutomationService`, `SchedulerService`, `ApiQuotaTracker`, `HistoryService`).
+- **Backend** : Flask 2.x/3.x + APScheduler, services injectés (`AutomationService`, `SchedulerService`, `ApiQuotaTracker`, `HistoryService`). Sécurisé via `Flask-WTF` (CSRF) et `Flask-Limiter` (Rate Limiting).
 - **Stockage** : `PostgresStore` (prioritaire) via psycopg_pool, fallback `JsonStore`. Redis conservé uniquement en compat.
 - **Frontend** : Templates Jinja, assets offline-first depuis `static/vendor`, Chart.js avec décimation LTTB, loaders obligatoires.
-- **Tests** : `/mnt/venv_ext4/venv_switchbot/bin/python -m pytest`, objectif 85 %+ avec focus automation/IFTTT/history/quota (`docs/ops/testing-strategy.md`).
+- **Tests** : `source /mnt/venv_ext4/venv_switchbot/bin/activate && python -m pytest`, objectif 85 %+ (actuellement ~76%) avec focus automation/IFTTT/history/quota (`docs/ops/testing-strategy.md`).
 
 ## AI Skill Usage
 - **Skills locaux en premier** (`.agents/skills` ou `.agents/skills`) :
@@ -109,7 +109,7 @@ alwaysApply: true
   - ✅ Encapsulation asynchrone des fonctions d'initialisation de page (ex: `window.initSettings = async () => {...}`) pour ré-exécution dynamique.
   - ✅ Re-liaison explicite des écouteurs d'événements lors des transitions de page.
 - **Protection CSRF** :
-  - ✅ Exploitation des intercepteurs globaux Fetch/XHR pour injecter automatiquement le token CSRF sur toute modification d'état.
+  - ✅ Exploitation des intercepteurs globaux Fetch/XHR pour injecter automatiquement le token CSRF sur toute modification d'état, adossé à `Flask-WTF` (`CSRFProtect`).
 - Graphiques : Chart.js + décimation LTTB, hauteur mobile ≈180 px, resize géré via `static/js/history.js` (observer + decimation).
 - Bottom navigation sticky, icônes seules sur mobile, page `actions.html` pour regrouper les triggers.
 - Toute nouvelle page importe `_footer_nav.html` + `static/js/loaders.js`, fournit labels ARIA, et respecte les tokens glassmorphism (`theme.css`).

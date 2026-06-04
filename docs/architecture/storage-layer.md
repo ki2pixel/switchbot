@@ -155,15 +155,22 @@ store = get_store()  # PostgresStore ou JsonStore selon santé
 
 ## Performance et Monitoring
 
-### Connection Pooling
+### Connection Pooling et Transactions
+
+La gestion du pool (`psycopg_pool.ConnectionPool`) repose sur des contextes de transaction stricts pour éviter les fuites de connexion et les conditions de concurrence :
 
 ```python
-# PostgresStore gère automatiquement le pooling
-# 1-10 connections par défaut pour :
-# - Gérer les cold starts (Neon sleep après 5min inactivité)
-# - Requêtes concurrentes
-# - Réutilisation des connections
+# Gestion explicite des transactions avec row-level locking
+def transaction(self):
+    # Récupération sécurisée d'une connexion via context manager
+    with self.pool.connection() as conn:
+        with conn.cursor() as cur:
+            # Verrou de ligne pour éviter les accès concurrents
+            cur.execute("SELECT data FROM json_store WHERE kind = %s FOR UPDATE", (self._kind,))
+            # ...
 ```
+
+**Règle absolue** : Vous devez toujours libérer les connexions au pool. L'application utilise `PostgresStoreTransactionContext` qui encapsule le cycle de vie de la connexion et garantit le commit ou le rollback automatique en toute sécurité.
 
 ### Monitoring de santé
 

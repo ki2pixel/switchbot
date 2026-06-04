@@ -23,9 +23,11 @@ Ce workflow assure la cohérence entre le backend Flask, le stockage PostgreSQL 
 - Validation obligatoire avec helpers `_as_bool`, `_as_int`, `_as_float`
 - Retourner `render_template` ou JSON (pour AJAX)
 
-### 3. Frontend (Template)
+### 3. Frontend (Template & SPA Router)
 - Créer/Modifier le fichier `.html` dans `templates/`
 - Étendre le layout de base ou inclure `_footer_nav.html`
+- **SPA Router** : Encapsuler l'initialisation de page (ex: `window.initMaFonction = async () => {...}`) pour ré-exécution dynamique via `spa-router.js`. Éviter `window.location.reload()`.
+- **CSRF** : L'injection de token CSRF est gérée par les intercepteurs globaux Fetch/XHR. Ne jamais les omettre sur des appels asynchrones.
 - Utiliser les classes CSS existantes (`sb-card`, `btn-primary`, `status-value`)
 - **Thème sombre obligatoire** : utiliser les variables CSS (`var(--sb-bg)`, etc.)
 

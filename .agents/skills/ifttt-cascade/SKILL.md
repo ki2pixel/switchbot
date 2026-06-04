@@ -13,8 +13,9 @@ Déclencher ce skill pour configurer ou étendre les actions climatisation.
 - UI : section webhooks & scènes dans `templates/index.html` et `settings.html`.
 
 ## 2. Workflow
-1. **Validation entrées** :
-   - URLs : `validate_webhook_url` (HTTPS uniquement).
+1. **Validation entrées & Sécurité** :
+   - URLs : `validate_webhook_url` (HTTPS obligatoire, blocage IP privées et boucle locale contre SSRF).
+   - Signatures : Validation stricte via `hmac.compare_digest` (protection Timing Attacks).
    - IDs scènes : non vides, alignés sur l’app SwitchBot.
 2. **Implémentation** :
    - Priorité webhooks (client `IFTTTWebhookClient`).

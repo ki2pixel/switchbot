@@ -33,7 +33,7 @@ Au fond, c'est une application Flask qui :
 2. **Prend des décisions intelligentes** sur chauffage/climatisation avec hystérésis, fenêtres horaires et logique timezone-aware
 3. **Exécute les actions via une cascade à trois niveaux** : webhooks IFTTT → scènes SwitchBot → commandes directes
 4. **Stocke tout dans PostgreSQL** avec fallback automatique vers des fichiers JSON
-5. **Suivi les quotas API** localement puisque SwitchBot ne fournit pas d'en-têtes de quota
+5. **Suit les quotas API** via une approche hybride (comptage local + synchronisation des en-têtes SwitchBot `X-RateLimit`)
 6. **Surveille l'historique** avec des dashboards Chart.js et rétention de 6 heures
 
 La magie est dans les détails : le polling adaptatif réduit la charge base de données pendant les périodes d'inactivité, le scheduler survit aux redémarrages Gunicorn, et chaque appel API est enveloppé dans une logique de retry avec rate limiting propre.
@@ -81,7 +81,7 @@ Le `SchedulerService` ne pollue pas toutes les 15 secondes. Il calcule les inter
 - Devrions-nous idle à 600 secondes pour réduire la charge base de données ?
 
 ### Gestion des Quotas
-L'API SwitchBot ne retourne pas d'en-têtes de quota, donc nous suivons l'usage localement dans `state.json`. Le `ApiQuotaTracker` se réinitialise quotidiennement et affiche des avertissements quand vous êtes bas.
+Le suivi du quota API utilise une architecture "Double Track". L'application compte d'abord chaque appel localement pour une réactivité immédiate, puis extrait les en-têtes `X-RateLimit-Limit` et `X-RateLimit-Remaining` renvoyés par l'API v1.1 pour resynchroniser son état dans `state.json`. Ce mécanisme hybride vous protège de tout dépassement silencieux des 10 000 requêtes journalières. Le `ApiQuotaTracker` assure la réinitialisation automatique à minuit UTC et gère les alertes préventives.
 
 ## Pièges Courants Que Nous Avons Déjà Résolus
 
