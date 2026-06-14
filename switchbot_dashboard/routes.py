@@ -566,6 +566,7 @@ def update_settings() -> Any:
     )
 
     settings["turn_off_outside_windows"] = _as_bool(request.form.get("turn_off_outside_windows"))
+    settings["fan_mode_during_window"] = _as_bool(request.form.get("fan_mode_during_window"))
 
     _update_timezone(request.form, settings)
 

@@ -475,6 +475,12 @@ class AutomationService:
             remaining_before=remaining,
         )
 
+        settings = self._settings_store.read()
+        time_windows = settings.get("time_windows", [])
+        if not isinstance(time_windows, list):
+            time_windows = []
+        in_window = _is_now_in_windows(time_windows, now_utc)
+
         success = self._perform_off_action(
             trigger=trigger,
             webhooks=webhooks,
@@ -482,6 +488,7 @@ class AutomationService:
             aircon_device_id=aircon_device_id,
             state_reason=state_reason,
             force_direct=True,
+            inside_window=in_window,
         )
 
         if not success:
@@ -519,7 +526,60 @@ class AutomationService:
         aircon_device_id: str,
         state_reason: str,
         force_direct: bool = False,
+        inside_window: bool = False,
     ) -> bool:
+        settings = self._settings_store.read()
+        fan_mode_during_window = bool(settings.get("fan_mode_during_window", False))
+        
+        if fan_mode_during_window and inside_window:
+            state = self._state_store.read()
+            assumed_power = state.get("assumed_aircon_power", "")
+            assumed_mode = state.get("assumed_aircon_mode")
+            last_action = state.get("last_action", "")
+            
+            is_in_fan_mode = assumed_power == "on" and (assumed_mode == 4 or "fan" in str(last_action).lower())
+            if not force_direct and is_in_fan_mode:
+                self._debug("Skipping off/fan action: already assumed in fan mode", trigger=trigger, state_reason=state_reason)
+                return False
+                
+            handled = self._trigger_aircon_action(
+                action_key="fan",
+                state_reason=state_reason,
+                assumed_power="on",
+                trigger=trigger,
+                webhooks=webhooks,
+                scenes=scenes,
+                aircon_device_id=aircon_device_id,
+            )
+            if handled:
+                self._update_state(assumed_aircon_mode=4)
+                return True
+                
+            trigger_mode = settings.get("trigger_mode", "direct")
+            if trigger_mode == "direct" and aircon_device_id:
+                mode = str(settings.get("mode", "winter")).strip().lower()
+                profile = settings.get(mode, {})
+                if not isinstance(profile, dict):
+                    profile = {}
+                target_temp = float(profile.get("target_temp", 22.0) or 22.0)
+                fan_speed = int(profile.get("fan_speed", 3) or 3)
+                
+                try:
+                    self._send_aircon_setall(
+                        aircon_device_id,
+                        temperature=target_temp,
+                        mode=4,
+                        fan_speed=fan_speed,
+                        power_state="on",
+                        trigger=trigger,
+                        reason=state_reason,
+                    )
+                    return True
+                except SwitchBotApiError as exc:
+                    self._update_state(last_error=str(exc))
+                    self._error("SwitchBot API error during direct fan mode fallback", trigger=trigger, error=str(exc), state_reason=state_reason)
+                    return False
+
         if not force_direct:
             state = self._state_store.read()
             if state.get("assumed_aircon_power") == "off":
@@ -701,7 +761,7 @@ class AutomationService:
         if self._has_pending_off_repeat():
             self._debug(f"Skipping {state_reason}: off repeat already pending", trigger=trigger)
             return "off_repeat_pending"
-        turned_off = self._perform_off_action(trigger=trigger, webhooks=webhooks, scenes=scenes, aircon_device_id=aircon_id, state_reason=state_reason)
+        turned_off = self._perform_off_action(trigger=trigger, webhooks=webhooks, scenes=scenes, aircon_device_id=aircon_id, state_reason=state_reason, inside_window=True)
         if turned_off:
             self._schedule_off_repeat_task(now, state_reason=state_reason)
             return state_reason.replace("automation_", "")
@@ -749,13 +809,27 @@ class AutomationService:
 
         try:
             if mode == "winter":
-                return self._handle_winter_mode(current_temp, min_temp, max_temp, hysteresis, trigger, webhooks, scenes, aircon_id, trigger_mode, target_temp, ac_mode, fan_speed, now)
+                result = self._handle_winter_mode(current_temp, min_temp, max_temp, hysteresis, trigger, webhooks, scenes, aircon_id, trigger_mode, target_temp, ac_mode, fan_speed, now)
             elif mode == "summer":
-                return self._handle_summer_mode(current_temp, min_temp, max_temp, hysteresis, trigger, webhooks, scenes, aircon_id, trigger_mode, target_temp, ac_mode, fan_speed, now)
+                result = self._handle_summer_mode(current_temp, min_temp, max_temp, hysteresis, trigger, webhooks, scenes, aircon_id, trigger_mode, target_temp, ac_mode, fan_speed, now)
             else:
                 self._update_state(last_error=f"Unknown mode: {mode}")
                 self._error("Unknown automation mode", trigger=trigger, mode=mode)
                 return "invalid_mode"
+            
+            if result == "no_action" and bool(settings.get("fan_mode_during_window", False)):
+                state = self._state_store.read()
+                if state.get("assumed_aircon_power") == "off":
+                    self._perform_off_action(
+                        trigger=trigger,
+                        webhooks=webhooks,
+                        scenes=scenes,
+                        aircon_device_id=aircon_id,
+                        state_reason="automation_fan_neutral_zone",
+                        inside_window=True,
+                    )
+                    return "fan_neutral_zone"
+            return result
         except SwitchBotApiError as exc:
             self._update_state(last_error=str(exc))
             self._error("SwitchBot API error during automation", trigger=trigger, error=str(exc))
@@ -835,6 +909,7 @@ class AutomationService:
                         scenes=scenes,
                         aircon_device_id=aircon_id,
                         state_reason="automation_off_outside_window",
+                        inside_window=False,
                     )
                     if handled:
                         self._schedule_off_repeat_task(now, state_reason="automation_off_outside_window")

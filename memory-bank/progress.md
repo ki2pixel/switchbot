@@ -1,4 +1,9 @@
 ## Terminé
+[2026-06-15 01:50:34] - Implémentation du Aircon Fan Mode durant les fenêtres horaires
+- **Frontend** : Ajout de la case à cocher `fan_mode_during_window` dans les réglages et persistance via UI.
+- **Backend (AutomationService)** : Interception intelligente des commandes OFF durant les fenêtres actives pour déclencher la scène `fan` ou le fallback API directe (`setAll` mode 4). Force `assumed_aircon_mode=4` pour une gestion d'idempotence correcte évitant les cycles répétitifs abusifs.
+- **Validation** : Ajout de 4 nouveaux tests unitaires exhaustifs simulant les états d'activation, de dépassement de seuil, de cycle répétitif d'arrêt et de hors-créneau. Suite `pytest` complète validée à 100%.
+
 [2026-06-04 13:48:00] - Audit d'alignement des Skills IA avec la base de code
 - **Identification des anomalies** : Inspection des 19 skills documentés dans `.agents/skills/`. Détection de décalages architecturaux concernant le routeur SPA (`spa-router.js`), la protection CSRF globale, la gestion de transaction `psycopg_pool` et les vulnérabilités SSRF/Timing Attacks pour IFTTT.
 - **Mises à jour chirurgicales** :

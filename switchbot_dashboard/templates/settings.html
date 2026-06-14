@@ -254,6 +254,19 @@
                     </div>
                   </div>
 
+                  <div class="col-12">
+                    <div class="form-check mb-2">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="fan_mode_during_window"
+                        name="fan_mode_during_window"
+                        {% if settings.get('fan_mode_during_window') %}checked{% endif %}
+                      />
+                      <label class="form-check-label" for="fan_mode_during_window">Activer la ventilation (Fan) au lieu de l'arrêt (OFF) pendant la fenêtre horaire</label>
+                    </div>
+                  </div>
+
                   <div class="col-12 col-md-6">
                     <label class="form-label" for="meter_device_id">ID du capteur Meter</label>
                     <input class="form-control" id="meter_device_id" name="meter_device_id" value="{{ settings.get('meter_device_id') }}" />

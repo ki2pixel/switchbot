@@ -442,3 +442,97 @@ def test_time_window_evaluation_respects_timezone() -> None:
 
     assert _is_now_in_windows(time_windows, now_utc) is True
     assert _is_now_in_windows(time_windows, now_paris) is False
+
+
+def test_fan_mode_neutral_zone_auto_start() -> None:
+    """Test qu'en entrant dans la fenêtre horaire avec fan_mode_during_window=True, le climatiseur s'allume en mode ventilation si la température est neutre."""
+    settings = _default_settings()
+    settings["fan_mode_during_window"] = True
+    settings["winter"]["min_temp"] = 18.0
+    settings["winter"]["max_temp"] = 24.0
+    
+    service, client, _, state_store = _build_service(
+        settings=settings,
+        temperature=21.0,  # Neutral zone
+        initial_state={"assumed_aircon_power": "off"}
+    )
+
+    service.run_once()
+
+    assert client.run_scene_calls == ["scene-f"]
+    state = state_store.read()
+    assert state["assumed_aircon_power"] == "on"
+    assert "scene" in state["last_action"]
+
+
+def test_fan_mode_over_max_temp_switches_to_fan() -> None:
+    """Test qu'au sein de la fenêtre horaire, un dépassement de seuil thermique provoquant d'ordinaire un arrêt bascule bien en ventilation."""
+    settings = _default_settings()
+    settings["fan_mode_during_window"] = True
+    settings["winter"]["min_temp"] = 18.0
+    settings["winter"]["max_temp"] = 24.0
+    settings["hysteresis_celsius"] = 0.5
+    
+    service, client, _, state_store = _build_service(
+        settings=settings,
+        temperature=25.0,  # > max_temp + hysteresis -> trigger winter_off -> substituted by fan
+        initial_state={"assumed_aircon_power": "on", "assumed_aircon_mode": 5}
+    )
+
+    service.run_once()
+
+    assert client.run_scene_calls == ["scene-f"]
+    state = state_store.read()
+    assert state["assumed_aircon_power"] == "on"
+    assert "scene" in state.get("last_action", "")
+
+
+def test_fan_mode_off_repeat_repeats_fan() -> None:
+    """Test que le cycle répétitif d'arrêt répète bien la commande de ventilation."""
+    settings = _default_settings()
+    settings["fan_mode_during_window"] = True
+    settings["off_repeat_count"] = 2
+    settings["off_repeat_interval_seconds"] = 10
+    settings["winter"]["max_temp"] = 24.0
+    
+    service, client, _, state_store = _build_service(
+        settings=settings,
+        temperature=25.0,
+        initial_state={"assumed_aircon_power": "on", "last_action": "manual_on"}
+    )
+    
+    service.run_once()
+    assert client.run_scene_calls == ["scene-f"]
+    
+    state = state_store.read()
+    assert "pending_off_repeat" in state
+    
+    # Make the next run in the past to trigger immediately
+    state["pending_off_repeat"]["next_run_at"] = "2000-01-01T00:00:00+00:00"
+    state["last_action_at"] = "2000-01-01T00:00:00+00:00"
+    state_store.write(state)
+    client.run_scene_calls.clear()
+    
+    service.run_once()
+
+    assert client.run_scene_calls == ["scene-f"]
+
+
+def test_fan_mode_turn_off_outside_window() -> None:
+    """Test qu'en sortant de la fenêtre horaire, le climatiseur s'éteint complètement."""
+    settings = _default_settings()
+    settings["fan_mode_during_window"] = True
+    settings["turn_off_outside_windows"] = True
+    settings["time_windows"] = []
+    
+    service, client, _, state_store = _build_service(
+        settings=settings,
+        temperature=21.0,
+        initial_state={"assumed_aircon_power": "on", "last_action": "manual_on"}
+    )
+
+    service.run_once()
+
+    assert client.run_scene_calls == ["scene-off"]
+    state = state_store.read()
+    assert state["assumed_aircon_power"] == "off"
