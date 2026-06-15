@@ -532,7 +532,12 @@
                 <div class="status-label">Climatisation supposée</div>
                 <div class="status-value">
                   {% if state.get('assumed_aircon_power') == 'on' %}
-                    <span class="text-success">ON</span>
+                    <span class="text-success">
+                      ON
+                      {% if state.get('assumed_aircon_mode') == 4 or 'fan' in (state.get('last_action') or '')|lower %}
+                        - FAN
+                      {% endif %}
+                    </span>
                   {% else %}
                     <span class="text-secondary">OFF</span>
                   {% endif %}

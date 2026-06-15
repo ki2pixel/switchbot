@@ -634,11 +634,13 @@ def aircon_off() -> Any:
     )
 
 
-def _update_state_on_success(state_store: Any, assumed_power: str, action_desc: str) -> None:
+def _update_state_on_success(
+    state_store: Any, assumed_power: str, action_desc: str, assumed_mode: Optional[int] = None
+) -> None:
     state = state_store.read()
     state.update({
         "assumed_aircon_power": assumed_power,
-        "assumed_aircon_mode": None,
+        "assumed_aircon_mode": assumed_mode,
         "assumed_aircon_parameter": None,
         "last_action": action_desc,
         "last_action_at": _utc_now_iso(),
@@ -666,7 +668,19 @@ def _handle_ifttt_action(
         
     try:
         ifttt_client.trigger_webhook(webhook_url)
-        _update_state_on_success(state_store, assumed_power, f"ifttt_webhook({action_key}) ({state_reason})")
+        assumed_mode = None
+        if action_key == "fan":
+            assumed_mode = 4
+        elif action_key == "winter":
+            assumed_mode = 5
+        elif action_key == "summer":
+            assumed_mode = 2
+        _update_state_on_success(
+            state_store,
+            assumed_power,
+            f"ifttt_webhook({action_key}) ({state_reason})",
+            assumed_mode=assumed_mode,
+        )
         flash(flash_label)
     except IFTTTWebhookError as exc:
         error_msg = f"IFTTT webhook failed: {exc}"
@@ -682,10 +696,23 @@ def _handle_direct_action(
     client = current_app.extensions["switchbot_client"]
     state_store = current_app.extensions["state_store"]
 
+    assumed_mode = None
+    if action_key == "fan":
+        assumed_mode = 4
+    elif action_key == "winter":
+        assumed_mode = 5
+    elif action_key == "summer":
+        assumed_mode = 2
+
     if scene_id:
         try:
             client.run_scene(scene_id)
-            _update_state_on_success(state_store, assumed_power, f"scene({scene_id}) ({state_reason})")
+            _update_state_on_success(
+                state_store,
+                assumed_power,
+                f"scene({scene_id}) ({state_reason})",
+                assumed_mode=assumed_mode,
+            )
             flash(flash_label)
             return redirect(url_for(ROUTE_INDEX))
         except SwitchBotApiError as exc:

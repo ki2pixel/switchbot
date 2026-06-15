@@ -869,3 +869,28 @@ def test_devices_page_enriches_device_status() -> None:
     
     html = response.data.decode("utf-8")
     assert "V3.9-2.4" in html
+
+
+def test_aircon_on_fan_runs_scene_and_updates_state_with_mode() -> None:
+    settings = {
+        "mode": "summer",
+        "aircon_device_id": "aircon",
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "scene-fan", "off": ""},
+    }
+    dummy_client = DummyClient()
+    app, settings_store, state_store, _scheduler, _tracker = _build_app(
+        settings,
+        initial_state={"assumed_aircon_power": "off"},
+        client=dummy_client,
+    )
+
+    with app.test_client() as client:
+        response = client.post("/actions/aircon_on_fan", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert dummy_client.scene_calls == ["scene-fan"]
+    state = state_store.read()
+    assert state["assumed_aircon_power"] == "on"
+    assert state["assumed_aircon_mode"] == 4
+    assert state["last_action"].startswith("scene(scene-fan)")
+
