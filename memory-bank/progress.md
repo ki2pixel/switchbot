@@ -1,4 +1,8 @@
 ## Terminé
+[2026-06-15 12:59:00] - Correction de la pollution d'état en mode API Direct (fallback)
+- **Backend (`automation.py`)** : Ajustement de `_trigger_scene` pour ignorer l'absence de `scene_id` sans lever de warning ni enregistrer d'erreur dans le `state_store` si un `aircon_device_id` est configuré (repli direct attendu). Log désormais en `DEBUG`.
+- **Validation** : Ajout du test unitaire `test_trigger_scene_no_scene_with_device_id_no_error` dans `tests/test_automation_service.py`. Exécution de la suite pytest à 100% (165 tests).
+
 [2026-06-15 01:50:34] - Implémentation du Aircon Fan Mode durant les fenêtres horaires
 - **Frontend** : Ajout de la case à cocher `fan_mode_during_window` dans les réglages et persistance via UI.
 - **Backend (AutomationService)** : Interception intelligente des commandes OFF durant les fenêtres actives pour déclencher la scène `fan` ou le fallback API directe (`setAll` mode 4). Force `assumed_aircon_mode=4` pour une gestion d'idempotence correcte évitant les cycles répétitifs abusifs.

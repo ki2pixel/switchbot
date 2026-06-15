@@ -669,6 +669,10 @@ class AutomationService:
     ) -> bool:
         friendly_scene = AIRCON_SCENE_LABELS.get(action_key, action_key)
         if not scene_id:
+            if aircon_device_id:
+                self._debug(f"No scene override configured for {friendly_scene}, will use direct API commands", trigger=trigger, action_key=action_key)
+                return False
+
             self._update_state(last_error=f"Missing scene for {friendly_scene} in API Direct mode")
             self._warning("Skipping automation: no scene configured in API Direct mode", trigger=trigger, action_key=action_key)
             return False

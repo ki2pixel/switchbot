@@ -2,6 +2,7 @@
 
 ## Objectifs
 - Aucune tâche active.
+- [x] Correction de la pollution d'état (`last_error`) dans `automation.py` lors d'un fallback direct sans scène configurée.
 - [x] Campagne d'archivage de la Memory Bank effectuée : Les entrées antérieures au 2026-04-05 de `decisionLog.md` et `progress.md` ont été déplacées vers `archives/decisionLog_2026Q1.md` et `archives/progress_2026Q1.md`.
 - [x] Audit d'alignement des Skills IA avec la base de code (post-SonarCloud et migrations BDD) réalisé et validé.
 - [x] Alignement de la documentation technique (v2) avec le code réel, via le workflow `/docs-updater`.

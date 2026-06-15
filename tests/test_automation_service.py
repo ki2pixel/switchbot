@@ -536,3 +536,32 @@ def test_fan_mode_turn_off_outside_window() -> None:
     assert client.run_scene_calls == ["scene-off"]
     state = state_store.read()
     assert state["assumed_aircon_power"] == "off"
+
+
+def test_trigger_scene_no_scene_with_device_id_no_error(caplog: Any) -> None:
+    """Test qu'en mode direct, si la scène est manquante mais l'ID de l'appareil est présent, aucune erreur n'est remontée car le repli direct prendra le relais."""
+    settings = _default_settings()
+    settings["aircon_scenes"]["winter"] = ""
+    settings["aircon_device_id"] = "device-123"
+    
+    service, _, _, state_store = _build_service(
+        settings=settings, temperature=17.0
+    )
+    
+    caplog.set_level(logging.DEBUG, logger="switchbot_dashboard.automation")
+    
+    result = service._trigger_scene(
+        action_key="winter",
+        scene_id="",
+        state_reason="test",
+        assumed_power="on",
+        trigger="test",
+        aircon_device_id="device-123"
+    )
+    
+    assert result is False
+    state = state_store.read()
+    assert state.get("last_error") is None
+    
+    messages = [record.message for record in caplog.records if record.name == "switchbot_dashboard.automation"]
+    assert any("will use direct API commands" in message for message in messages)
