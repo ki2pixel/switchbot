@@ -479,7 +479,7 @@ class AutomationService:
         time_windows = settings.get("time_windows", [])
         if not isinstance(time_windows, list):
             time_windows = []
-        in_window = _is_now_in_windows(time_windows, now_utc)
+        in_window = _is_now_in_windows(time_windows, now)
 
         success = self._perform_off_action(
             trigger=trigger,
