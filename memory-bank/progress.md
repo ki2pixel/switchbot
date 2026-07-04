@@ -134,7 +134,7 @@
 - **Phase C (Performance/Observabilité)** : Mesure des latences de ticks d'automation (moyenne mobile en mémoire), suivi d'horodatage précis du planificateur APScheduler, buffer de rétention résilient (amortissement) en cas de déconnexion PostgreSQL pour l'historique, et enrichissement de la route `/healthz` avec indicateurs Postgres, Scheduler et latence.
 
 [2026-07-04 15:20:00] - Correction de l'affichage des courbes de l'Historique (Rendu/Timestamp)
-- **Frontend** : Clonage et inversion du tableau de données (`ASC`) dans `updateCharts` et pré-parsing des timestamps en objets `Date` JavaScript pour garantir le bon rendu de la time scale Chart.js avec `parsing: false` et `normalized: true`.
+- **Frontend** : Clonage et inversion du tableau de données (`ASC`) dans `updateCharts` et pré-parsing des timestamps en objets `Date` JavaScript pour garantir le bon rendu de la time scale Chart.js avec `parsing: false` et `normalized: true`. Sécurisation du bouton "Réinitialiser zoom" en le masquant et en désactivant son handler si le plugin de zoom Chart.js n'est pas enregistré.
 - **Backend** : Génération d'un timestamp UTC au moment de l'enregistrement de l'état (tuple étendu à 10 éléments) et déclaration explicite de la colonne `timestamp` dans la requête d'insertion par lot pour éviter l'alignement artificiel via `DEFAULT NOW()`.
 - **Tests** : Mise à jour de la suite de tests unitaires (`test_history_service.py`), validation de la suite complète de 176 tests à 100%.
 

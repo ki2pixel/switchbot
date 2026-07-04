@@ -10,6 +10,7 @@
 
 ## Décisions Clés
 - Utilisation systématique d'objets `Date` JavaScript et tri croissant (ASC) côté frontend pour le rendu correct de Chart.js en mode `parsing: false`.
+- Masquage et désactivation du bouton "Réinitialiser zoom" si le plugin de zoom Chart.js n'est pas chargé (résolution d'un TypeError).
 - Déclaration explicite de la colonne `timestamp` lors des insertions groupées dans `state_history` pour éviter l'alignement artificiel des timestamps d'un même batch via `DEFAULT NOW()`.
 - Déplacement des secrets (webhooks IFTTT) hors de `settings.json` vers l'environnement (.env).
 - Mise en œuvre de protections SSRF strictes au niveau DNS pour les appels de webhooks externes.
