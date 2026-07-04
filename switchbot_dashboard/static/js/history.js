@@ -251,9 +251,22 @@ class HistoryDashboard {
         });
 
         // Reset zoom button
-        document.getElementById('resetZoomTemp').addEventListener('click', () => {
-            this.charts.tempHumidity.resetZoom();
-        });
+        const resetZoomBtn = document.getElementById('resetZoomTemp');
+        if (resetZoomBtn) {
+            const isZoomPluginRegistered = typeof Chart !== 'undefined' && 
+                                           Chart.registry && 
+                                           Chart.registry.plugins && 
+                                           Chart.registry.plugins.get('zoom');
+            if (!isZoomPluginRegistered) {
+                resetZoomBtn.style.display = 'none';
+            } else {
+                resetZoomBtn.addEventListener('click', () => {
+                    if (typeof this.charts.tempHumidity.resetZoom === 'function') {
+                        this.charts.tempHumidity.resetZoom();
+                    }
+                });
+            }
+        }
 
         // Refresh latest records
         document.getElementById('refreshLatest').addEventListener('click', () => {
