@@ -2,13 +2,18 @@
 
 ## Objectifs
 - Aucune tâche active.
+- [x] Implémentation complète de l'Audit Backend (Sécurité, Stabilisation Store, Observabilité/Healthz, et Amortissement historique).
 - [x] Correction de la pollution d'état (`last_error`) dans `automation.py` lors d'un fallback direct sans scène configurée.
-- [x] Campagne d'archivage de la Memory Bank effectuée : Les entrées antérieures au 2026-04-05 de `decisionLog.md` et `progress.md` ont été déplacées vers `archives/decisionLog_2026Q1.md` et `archives/progress_2026Q1.md`.
-- [x] Audit d'alignement des Skills IA avec la base de code (post-SonarCloud et migrations BDD) réalisé et validé.
+- [x] Campagne d'archivage de la Memory Bank effectuée.
+- [x] Audit d'alignement des Skills IA avec la base de code réalisé et validé.
 - [x] Alignement de la documentation technique (v2) avec le code réel, via le workflow `/docs-updater`.
 
 ## Décisions Clés
-- Mise en place d'une politique d'archivage trimestriel pour réduire la taille des fichiers de la Memory Bank et optimiser l'usage des tokens via le `fast-filesystem`.
+- Déplacement des secrets (webhooks IFTTT) hors de `settings.json` vers l'environnement (.env).
+- Mise en œuvre de protections SSRF strictes au niveau DNS pour les appels de webhooks externes.
+- Amortissement résilient des écritures d'historique en mémoire tampon si PostgreSQL est hors-ligne.
+- Utilisation systématique de la property `pool` de `PostgresStore` pour forcer les vérifications d'initialisation de connexion.
+- Blocage strict du démarrage Flask en production si `FLASK_SECRET_KEY` est vulnérable ou manquante.
 
 ## Modifications Skills Effectuées
 - Mise à jour de `add-feature/SKILL.md` (SPA Router, CSRF).

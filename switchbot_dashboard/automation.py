@@ -129,8 +129,9 @@ class AutomationService:
         self._ifttt_client = ifttt_client
         self._history_service = history_service
         self._logger = logger or logging.getLogger(__name__)
-        self._cached_timezone_key: str | None = None
-        self._cached_timezone_value: tuple[dt.tzinfo, str] | None = None
+        self._cached_timezone_key = None
+        self._cached_timezone_value = None
+        self._tick_durations: list[float] = []
 
     def _update_state(self, **updates: Any) -> None:
         state = self._state_store.read()
@@ -721,11 +722,25 @@ class AutomationService:
         )
 
     def run_once(self) -> None:
-        if hasattr(self._state_store, "transaction"):
-            with self._state_store.transaction():
+        import time
+        start_time = time.perf_counter()
+        try:
+            if hasattr(self._state_store, "transaction"):
+                with self._state_store.transaction():
+                    self._run_once_impl()
+            else:
                 self._run_once_impl()
-        else:
-            self._run_once_impl()
+        finally:
+            duration = time.perf_counter() - start_time
+            self._tick_durations.append(duration)
+            if len(self._tick_durations) > 10:
+                self._tick_durations.pop(0)
+
+    @property
+    def average_tick_duration(self) -> float:
+        if not self._tick_durations:
+            return 0.0
+        return sum(self._tick_durations) / len(self._tick_durations)
 
     def _handle_winter_mode(
         self, current_temp: float, min_temp: float, max_temp: float, hysteresis: float, trigger: str, webhooks: dict[str, str], scenes: dict[str, str], aircon_id: str, trigger_mode: str, target_temp: float, ac_mode: int, fan_speed: int, now: dt.datetime

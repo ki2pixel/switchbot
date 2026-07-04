@@ -128,6 +128,11 @@
 - **Mise à jour de `docs/guides/ui-navigation.md`** : Ajout des explications sur le routeur SPA asynchrone (`spa-router.js`) et l'application globale de la protection CSRF via `loaders.js`.
 - **Validation** : Suite complète de 159 tests unitaires exécutée et validée à 100% avec succès après modifications.
 
+[2026-07-04 15:05:00] - Implémentation de l'Audit Backend (Phases A, B et C)
+- **Phase A (Sécurité/Conformité)** : Isolation des webhooks IFTTT dans l'environnement, exclusion de `settings.json` de Git, durcissement du démarrage Flask (blocage en production sur les clés secrètes non sécurisées) et protection SSRF renforcée (HTTPS strict, restriction à `maker.ifttt.com` et vérification DNS/IP locales).
+- **Phase B (Stabilisation/Qualité)** : Refactoring transactionnel et du pool de connexions dans `PostgresStore` (libération stricte des curseurs) et ajout d'une suite exhaustive de tests unitaires/intégration `test_backend_hardening.py` portant le total à 176 tests validés à 100%.
+- **Phase C (Performance/Observabilité)** : Mesure des latences de ticks d'automation (moyenne mobile en mémoire), suivi d'horodatage précis du planificateur APScheduler, buffer de rétention résilient (amortissement) en cas de déconnexion PostgreSQL pour l'historique, et enrichissement de la route `/healthz` avec indicateurs Postgres, Scheduler et latence.
+
 ## En cours
 - Aucune tâche active.
 

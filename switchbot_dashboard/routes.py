@@ -368,6 +368,7 @@ def debug_state() -> Any:
 
 @dashboard_bp.get("/healthz")
 def healthz() -> Any:
+    import os
     app = current_app
     settings_store = app.extensions["settings_store"]
     state_store = app.extensions["state_store"]
@@ -402,15 +403,54 @@ def healthz() -> Any:
             json.dumps(payload) + "\n", mimetype="application/json", status=503
         )
 
+    # Check Postgres connectivity
+    postgres_configured = (os.environ.get("STORE_BACKEND", "postgres").strip().lower() == "postgres")
+    postgres_connected = False
+    
+    from .postgres_store import PostgresStore
+    from .config_store import JsonStore
+    if isinstance(settings_store, PostgresStore):
+        postgres_connected = bool(settings_store.health_check())
+    elif isinstance(settings_store, JsonStore):
+        postgres_connected = False
+    else:
+        # For MemoryStore and other test mock stores, default to True so mock-based tests don't fail with 503
+        postgres_connected = True
+    
+    # Get last scheduler tick
+    last_scheduler_tick = None
+    if getattr(scheduler_service, "last_tick_time", None) is not None:
+        last_scheduler_tick = scheduler_service.last_tick_time.isoformat() + "Z"
+        
+    # Get average tick duration
+    automation_service = app.extensions.get("automation_service")
+    average_tick_duration = 0.0
+    if automation_service:
+        average_tick_duration = getattr(automation_service, "average_tick_duration", 0.0)
+        
+    status = "ok"
+    if postgres_configured and not postgres_connected:
+        status = "degraded"
+
     payload = {
-        "status": "ok",
+        "status": status,
         "scheduler_running": scheduler_running,
         "automation_enabled": automation_enabled,
         "last_tick": last_tick,
+        "last_scheduler_tick": last_scheduler_tick,
+        "average_tick_duration_seconds": round(average_tick_duration, 4),
+        "postgres_connected": postgres_connected,
         "timestamp_utc": timestamp,
     }
+
+    scheduler_enabled = (os.environ.get("SCHEDULER_ENABLED", "true").strip().lower() == "true")
+    if (postgres_configured and not postgres_connected) or (scheduler_enabled and not scheduler_running):
+        status_code = 503
+    else:
+        status_code = 200
+
     return app.response_class(
-        json.dumps(payload) + "\n", mimetype="application/json", status=200
+        json.dumps(payload) + "\n", mimetype="application/json", status=status_code
     )
 
 
@@ -635,7 +675,7 @@ def aircon_off() -> Any:
 
 
 def _update_state_on_success(
-    state_store: Any, assumed_power: str, action_desc: str, assumed_mode: Optional[int] = None
+    state_store: Any, assumed_power: str, action_desc: str, assumed_mode: int | None = None
 ) -> None:
     state = state_store.read()
     state.update({

@@ -8,4 +8,13 @@
 - Implication : L'application offre désormais un rendu asynchrone instantané et soyeux type application native (sans aucun rechargement complet), tout en soulageant totalement le thread principal des calculs de monitoring. Zéro dépendance externe lourde requise, parfaite compatibilité offline-first conservée.
 
 
+[2026-07-04 15:05:00] - Durcissement de la sécurité et observabilité du Backend (Phases A, B, C)
+- Décision : Appliquer les préconisations d'isolement de secrets, durcissement du démarrage Flask, sécurisation SSRF DNS pour IFTTT, bufferisation amortie en mémoire de l'historique et enrichissement de `/healthz`.
+- Motivation : L'audit a révélé des failles potentielles de fuite de secrets de configuration locale, de contrefaçon de cookies de session Flask (clés par défaut), de rebonds SSRF internes, ainsi qu'un manque d'observabilité de la latence du planificateur de ticks.
+- Implémentation :
+  1. **Sécurité & Secrets** : Déplacement de la clé IFTTT de settings.json vers l'environnement. Durcissement de `validate_webhook_url` pour résoudre le DNS des webhooks IFTTT et rejeter les adresses privées/locales. Blocage du démarrage en production avec `FLASK_SECRET_KEY` non sécurisée.
+  2. **Refactoring & Tests** : Validation systématique de la property `pool` de `PostgresStore`, fermeture sécurisée des curseurs sur échec transactionnel, et création d'une suite de tests `tests/test_backend_hardening.py` couvrant ces sécurités.
+  3. **Amortissement & Observabilité** : Rétention en mémoire tampon (max 100) en cas d'erreur d'écriture d'historique PostgreSQL avec planification automatique de retries. Route `/healthz` enrichie avec la connectivité PostgreSQL réelle, la latence moyenne de tick et le dernier tick APScheduler (retourne 503 si dégradé).
+- Implication : Le backend est désormais conforme aux meilleures pratiques de sécurité de production et d'isolation des secrets. Il tolère les micro-coupures de base de données PostgreSQL sans perte de données d'historique immédiates et offre aux outils de monitoring un diagnostic riche.
+
 [Archives Q1 2026](file:///home/kidpixel/SwitchBot/memory-bank/archives/decisionLog_2026Q1.md)

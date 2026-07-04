@@ -29,9 +29,11 @@ class SchedulerService:
         self._lock = threading.Lock()
         self._logger = logger or logging.getLogger(__name__)
         self._current_interval_seconds: int | None = None
+        self._last_tick_time: dt.datetime | None = None
 
     def _run_tick_safe(self) -> None:
         """Execute tick callable while guarding against uncaught exceptions."""
+        self._last_tick_time = dt.datetime.now(dt.timezone.utc)
         try:
             self._tick_callable()
         except Exception as exc:  # pragma: no cover - exercised via tests
@@ -42,6 +44,10 @@ class SchedulerService:
             )
         finally:
             self._maybe_reschedule_after_tick()
+
+    @property
+    def last_tick_time(self) -> dt.datetime | None:
+        return self._last_tick_time
 
     @staticmethod
     def _as_int(value: Any, *, default: int, minimum: int | None = None, maximum: int | None = None) -> int:

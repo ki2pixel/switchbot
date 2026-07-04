@@ -325,7 +325,6 @@ class HistoryService:
             return 0
 
         records = list(self._pending_records)
-        self._pending_records.clear()
         self._cancel_flush_timer_locked()
 
         column_count = len(records[0])
@@ -352,8 +351,22 @@ class HistoryService:
                     self._logger.debug(
                         "[history] Flushed %d buffered records", len(records)
                     )
+            # Remove only the successfully written records
+            self._pending_records = self._pending_records[len(records):]
         except Exception as exc:
             self._logger.error("[history] Failed to flush records (%s)", exc)
+            # Keep records in self._pending_records to retry next time, but cap them to prevent memory growth
+            max_cache = 100
+            if len(self._pending_records) > max_cache:
+                self._logger.warning(
+                    "[history] Buffer limit exceeded (%d > %d), discarding oldest records",
+                    len(self._pending_records),
+                    max_cache,
+                )
+                self._pending_records = self._pending_records[-max_cache:]
+            
+            # Reschedule the timer to retry later
+            self._schedule_flush_timer_locked()
             raise HistoryServiceError("Failed to flush buffered records") from exc
 
         return len(records)

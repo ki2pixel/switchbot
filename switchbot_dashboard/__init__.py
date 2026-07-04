@@ -110,11 +110,14 @@ def _mark_temperature_stale(app: Flask, state_store: BaseStore, *, reason: str) 
 def create_app() -> Flask:
     app = Flask(__name__)
     flask_secret = os.environ.get("FLASK_SECRET_KEY")
-    if not flask_secret and not app.debug and not app.testing:
+    insecure_keys = {"dev-local-only", "change-me", "default", "secret", "password", "key", "admin"}
+    is_insecure = not flask_secret or str(flask_secret).strip().lower() in insecure_keys
+
+    if is_insecure and not app.debug and not app.testing:
         import sys
         is_pytest = "pytest" in sys.modules or any("pytest" in arg for arg in sys.argv)
         if not is_pytest:
-            raise RuntimeError("Security Violation: FLASK_SECRET_KEY must be set in production environments")
+            raise RuntimeError("Security Violation: FLASK_SECRET_KEY must be set in production (secure value required)")
     app.secret_key = flask_secret or "dev-local-only"
     app.config["STATE_DEBUG_TOKEN"] = os.environ.get("STATE_DEBUG_TOKEN", "").strip()
 

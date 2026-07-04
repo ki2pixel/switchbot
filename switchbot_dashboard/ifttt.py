@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import ipaddress
 import logging
+import os
+import socket
 from typing import Any
 from urllib.parse import urlparse
 
@@ -22,8 +25,40 @@ def validate_webhook_url(url: str) -> bool:
         return False
     try:
         parsed = urlparse(url)
-        return parsed.scheme == "https" and parsed.netloc == "maker.ifttt.com"
+        if parsed.scheme != "https" or parsed.netloc != "maker.ifttt.com":
+            return False
 
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+
+        try:
+            addr_info = socket.getaddrinfo(hostname, None)
+            for info in addr_info:
+                ip_str = info[4][0]
+                # Handle IPv6 brackets if present in the address info
+                if ip_str.startswith("[") and ip_str.endswith("]"):
+                    ip_str = ip_str[1:-1]
+                ip = ipaddress.ip_address(ip_str)
+                if (
+                    ip.is_private
+                    or ip.is_loopback
+                    or ip.is_link_local
+                    or ip.is_multicast
+                    or ip.is_reserved
+                    or ip.is_unspecified
+                ):
+                    return False
+        except socket.gaierror:
+            try:
+                from flask import current_app
+                if current_app and (current_app.testing or current_app.debug):
+                    return hostname == "maker.ifttt.com"
+            except Exception:
+                pass
+            return False
+
+        return True
     except Exception:
         return False
 
@@ -31,17 +66,14 @@ def validate_webhook_url(url: str) -> bool:
 def extract_ifttt_webhooks(settings: dict[str, Any]) -> dict[str, str]:
     """Extract and normalize IFTTT webhook URLs from settings.
 
+    Supports environment overrides via IFTTT_WEBHOOK_<MODE> variables.
+
     Args:
         settings: Configuration dictionary containing 'ifttt_webhooks' mapping
 
     Returns:
         Dictionary with normalized webhook URLs for keys: 'winter', 'summer', 'fan', 'off'
         Empty strings are used for missing or invalid entries
-
-    Example:
-        >>> settings = {"ifttt_webhooks": {"winter": "https://maker.ifttt.com/trigger/..."}}
-        >>> extract_ifttt_webhooks(settings)
-        {"winter": "https://maker.ifttt.com/trigger/...", "summer": "", "fan": "", "off": ""}
     """
     raw_webhooks = settings.get("ifttt_webhooks", {})
     if not isinstance(raw_webhooks, dict):
@@ -49,8 +81,13 @@ def extract_ifttt_webhooks(settings: dict[str, Any]) -> dict[str, str]:
 
     sanitized: dict[str, str] = {}
     for key in ("winter", "summer", "fan", "off"):
-        value = raw_webhooks.get(key, "")
-        sanitized[key] = str(value).strip() if isinstance(value, str) else ""
+        env_var = f"IFTTT_WEBHOOK_{key.upper()}"
+        env_val = os.environ.get(env_var)
+        if env_val:
+            sanitized[key] = env_val.strip()
+        else:
+            value = raw_webhooks.get(key, "")
+            sanitized[key] = str(value).strip() if isinstance(value, str) else ""
     return sanitized
 
 

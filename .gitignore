@@ -22,7 +22,7 @@ venv/
 !.env.example
 
 # Local config/state artifacts
-# config/settings.json
+config/settings.json
 config/state.json
 # memory-bank/
 

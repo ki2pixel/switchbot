@@ -52,6 +52,11 @@ class PostgresStoreTransactionContext:
                     self._cached_data = {}
         except Exception as exc:
             self._store._local.active_transaction = self._previous_transaction
+            if self._cur:
+                try:
+                    self._cur.close()
+                except Exception:
+                    pass
             if self._conn_ctx:
                 try:
                     self._conn_ctx.__exit__(type(exc), exc, exc.__traceback__)
@@ -180,7 +185,7 @@ class PostgresStore:
         """)
 
         try:
-            with self._pool.connection() as conn:
+            with self.pool.connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute(create_table_query)
                     conn.commit()
@@ -207,7 +212,7 @@ class PostgresStore:
         query = sql.SQL("SELECT data FROM json_store WHERE kind = %s")
 
         try:
-            with self._pool.connection() as conn:
+            with self.pool.connection() as conn:
                 with conn.cursor(row_factory=dict_row) as cur:
                     cur.execute(query, (self._kind,))
                     result = cur.fetchone()
@@ -254,7 +259,7 @@ class PostgresStore:
         """)
 
         try:
-            with self._pool.connection() as conn:
+            with self.pool.connection() as conn:
                 with conn.cursor() as cur:
                     # Convert data to JSONB
                     jsonb_data = Jsonb(data)
@@ -297,11 +302,13 @@ class PostgresStore:
             self._pool = None
 
     def health_check(self) -> bool:
-        if not self._pool:
+        try:
+            pool = self.pool
+        except RuntimeError:
             return False
 
         try:
-            with self._pool.connection() as conn:
+            with pool.connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute("SELECT 1")
                     cur.fetchone()
