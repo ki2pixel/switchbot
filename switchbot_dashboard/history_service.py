@@ -261,6 +261,7 @@ class HistoryService:
         state_data: dict[str, Any],
         timezone: str,
     ) -> tuple[Any, ...]:
+        timestamp = dt.datetime.now(dt.timezone.utc)
         temperature = state_data.get("last_temperature")
         humidity = state_data.get("last_humidity")
         aircon_power = state_data.get("assumed_aircon_power", "unknown")
@@ -277,6 +278,7 @@ class HistoryService:
         }
 
         return (
+            timestamp,
             temperature,
             humidity,
             aircon_power,
@@ -333,7 +335,7 @@ class HistoryService:
         insert_query = sql.SQL(
             """
             INSERT INTO state_history (
-                temperature, humidity, assumed_aircon_power, last_action,
+                timestamp, temperature, humidity, assumed_aircon_power, last_action,
                 api_requests_today, error_count, last_temperature_stale,
                 timezone, metadata
             ) VALUES {}

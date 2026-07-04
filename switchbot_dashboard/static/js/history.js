@@ -376,15 +376,18 @@ class HistoryDashboard {
     updateCharts(historyData) {
         if (!historyData || historyData.length === 0) return;
 
+        // Clone and reverse the data array for chronological order (ASC)
+        const sortedData = [...historyData].reverse();
+
         // Update temperature & humidity chart
-        const tempData = historyData.map(d => ({
-            x: d.timestamp,
-            y: d.temperature
+        const tempData = sortedData.map(d => ({
+            x: new Date(d.timestamp),
+            y: d.temperature !== null && d.temperature !== undefined ? parseFloat(d.temperature) : null
         })).filter(d => d.y !== null);
 
-        const humidityData = historyData.map(d => ({
-            x: d.timestamp,
-            y: d.humidity
+        const humidityData = sortedData.map(d => ({
+            x: new Date(d.timestamp),
+            y: d.humidity !== null && d.humidity !== undefined ? parseFloat(d.humidity) : null
         })).filter(d => d.y !== null);
 
         this.charts.tempHumidity.data.datasets[0].data = tempData;

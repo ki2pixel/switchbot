@@ -116,10 +116,12 @@ class TestRecordState:
         mock_cursor.execute.assert_called_once()
         query, params = mock_cursor.execute.call_args[0]
         assert "INSERT INTO state_history" in str(query)
-        assert len(params) == 9
-        assert params[0] == 23.5  # temperature
-        assert params[1] == 45.0  # humidity
-        assert params[2] == "on"
+        assert len(params) == 10
+        assert isinstance(params[0], dt.datetime)
+        assert params[0].tzinfo == dt.timezone.utc
+        assert params[1] == 23.5  # temperature
+        assert params[2] == 45.0  # humidity
+        assert params[3] == "on"
         mock_conn.commit.assert_called_once()
 
     def test_record_state_with_missing_fields(self, history_service):
@@ -135,9 +137,12 @@ class TestRecordState:
 
         mock_cursor.execute.assert_called_once()
         params = mock_cursor.execute.call_args[0][1]
-        assert params[0] == 20.0  # temperature
-        assert params[1] is None  # humidity
-        assert params[2] == "off"  # aircon_power
+        assert len(params) == 10
+        assert isinstance(params[0], dt.datetime)
+        assert params[0].tzinfo == dt.timezone.utc
+        assert params[1] == 20.0  # temperature
+        assert params[2] is None  # humidity
+        assert params[3] == "off"  # aircon_power
 
     def test_record_state_database_error(self, history_service, sample_state_data):
         """Test handling of database errors during recording."""
@@ -172,7 +177,7 @@ class TestRecordState:
         service.record_state(sample_state_data)
         mock_cursor.execute.assert_called_once()
         params = mock_cursor.execute.call_args[0][1]
-        assert len(params) == 18  # 2 records * 9 fields
+        assert len(params) == 20  # 2 records * 10 fields
 
     def test_flush_pending_records_force(
         self,

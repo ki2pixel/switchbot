@@ -1,7 +1,7 @@
 # Contexte Actif
 
 ## Objectifs
-- Aucune tâche active.
+- [x] Correction du rendu de la time scale Chart.js côté frontend et alignement des timestamps lors des écritures groupées (batch flushes) côté backend.
 - [x] Implémentation complète de l'Audit Backend (Sécurité, Stabilisation Store, Observabilité/Healthz, et Amortissement historique).
 - [x] Correction de la pollution d'état (`last_error`) dans `automation.py` lors d'un fallback direct sans scène configurée.
 - [x] Campagne d'archivage de la Memory Bank effectuée.
@@ -9,6 +9,8 @@
 - [x] Alignement de la documentation technique (v2) avec le code réel, via le workflow `/docs-updater`.
 
 ## Décisions Clés
+- Utilisation systématique d'objets `Date` JavaScript et tri croissant (ASC) côté frontend pour le rendu correct de Chart.js en mode `parsing: false`.
+- Déclaration explicite de la colonne `timestamp` lors des insertions groupées dans `state_history` pour éviter l'alignement artificiel des timestamps d'un même batch via `DEFAULT NOW()`.
 - Déplacement des secrets (webhooks IFTTT) hors de `settings.json` vers l'environnement (.env).
 - Mise en œuvre de protections SSRF strictes au niveau DNS pour les appels de webhooks externes.
 - Amortissement résilient des écritures d'historique en mémoire tampon si PostgreSQL est hors-ligne.
