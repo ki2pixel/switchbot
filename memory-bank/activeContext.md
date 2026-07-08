@@ -7,8 +7,11 @@
 - [x] Campagne d'archivage de la Memory Bank effectuée.
 - [x] Audit d'alignement des Skills IA avec la base de code réalisé et validé.
 - [x] Alignement de la documentation technique (v2) avec le code réel, via le workflow `/docs-updater`.
+- [x] Polling temps réel du statut AC (Air Conditioner) depuis l'API SwitchBot pour corriger l'incohérence d'état de l'automatisation en mode direct.
 
 ## Décisions Clés
+- Synchronisation de l'état supposé de l'AC avec le statut physique via `poll_aircon_status()` avant l'évaluation de température dans `_run_once_impl`, conditionné au mode `direct` et à la fenêtre horaire active.
+- DummyClient des tests enrichi pour simuler l'état physique de l'AC et ses transitions lors de l'exécution de scènes/commandes.
 - Utilisation systématique d'objets `Date` JavaScript et tri croissant (ASC) côté frontend pour le rendu correct de Chart.js en mode `parsing: false`.
 - Masquage et désactivation du bouton "Réinitialiser zoom" si le plugin de zoom Chart.js n'est pas chargé (résolution d'un TypeError).
 - Déclaration explicite de la colonne `timestamp` lors des insertions groupées dans `state_history` pour éviter l'alignement artificiel des timestamps d'un même batch via `DEFAULT NOW()`.

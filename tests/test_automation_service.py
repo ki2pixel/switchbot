@@ -24,12 +24,24 @@ class MemoryStore:
 
 
 class DummyClient:
-    def __init__(self, temperature: float, quota_tracker: ApiQuotaTracker | None = None) -> None:
+    def __init__(
+        self,
+        temperature: float,
+        quota_tracker: ApiQuotaTracker | None = None,
+        aircon_power: str = "off",
+        aircon_mode: int = 4,
+        aircon_temp: float = 22.0,
+        aircon_fan_speed: int = 3,
+    ) -> None:
         self.temperature = temperature
         self.run_scene_calls: list[str] = []
         self.send_command_calls: list[dict[str, Any]] = []
         self.last_quota_snapshot: dict[str, int] | None = None
         self._quota_tracker = quota_tracker
+        self.aircon_power = aircon_power
+        self.aircon_mode = aircon_mode
+        self.aircon_temp = aircon_temp
+        self.aircon_fan_speed = aircon_fan_speed
 
     def _record_quota(self) -> None:
         if self._quota_tracker:
@@ -37,11 +49,34 @@ class DummyClient:
 
     def get_device_status(self, device_id: str) -> dict[str, Any]:
         self._record_quota()
-        return {"body": {"temperature": self.temperature, "humidity": 50}}
+        if "meter" in device_id:
+            return {"body": {"temperature": self.temperature, "humidity": 50}}
+        else:
+            return {
+                "body": {
+                    "deviceId": device_id,
+                    "deviceType": "Air Conditioner",
+                    "power": self.aircon_power,
+                    "mode": self.aircon_mode,
+                    "temperature": self.aircon_temp,
+                    "fanSpeed": self.aircon_fan_speed,
+                }
+            }
 
     def run_scene(self, scene_id: str) -> None:
         self._record_quota()
         self.run_scene_calls.append(scene_id)
+        if "off" in scene_id:
+            self.aircon_power = "off"
+        elif "-f" in scene_id or "fan" in scene_id:
+            self.aircon_power = "on"
+            self.aircon_mode = 4
+        elif "-w" in scene_id:
+            self.aircon_power = "on"
+            self.aircon_mode = 5
+        elif "-s" in scene_id:
+            self.aircon_power = "on"
+            self.aircon_mode = 2
 
     def send_command(
         self,
@@ -60,6 +95,18 @@ class DummyClient:
                 "command_type": command_type,
             }
         )
+        if command == "turnOff":
+            self.aircon_power = "off"
+        elif command == "setAll":
+            parts = parameter.split(",")
+            if len(parts) == 4:
+                try:
+                    self.aircon_temp = float(parts[0])
+                    self.aircon_mode = int(parts[1])
+                    self.aircon_fan_speed = int(parts[2])
+                    self.aircon_power = parts[3]
+                except ValueError:
+                    pass
 
     def get_last_quota_snapshot(self) -> dict[str, int] | None:
         return self.last_quota_snapshot
@@ -119,7 +166,15 @@ def _build_service(
     settings_store = MemoryStore(settings)
     state_store = MemoryStore(initial_state or {})
     quota_tracker = ApiQuotaTracker(state_store)
-    client = DummyClient(temperature=temperature, quota_tracker=quota_tracker)
+    
+    # Propagate initial assumed state to dummy client status to maintain consistency in tests
+    kwargs = {}
+    if initial_state and "assumed_aircon_power" in initial_state:
+        kwargs["aircon_power"] = initial_state["assumed_aircon_power"]
+    if initial_state and "assumed_aircon_mode" in initial_state:
+        kwargs["aircon_mode"] = initial_state["assumed_aircon_mode"]
+
+    client = DummyClient(temperature=temperature, quota_tracker=quota_tracker, **kwargs)
     ifttt_client = DummyIFTTTClient()
     service = AutomationService(settings_store, state_store, client, ifttt_client)
     return service, client, settings_store, state_store
@@ -326,6 +381,7 @@ def test_winter_mode_above_max_temp_triggers_off_action() -> None:
     service, client, _settings_store, state_store = _build_service(
         settings=settings,
         temperature=28.1,  # Dépasse max_temp (27.0) + hysteresis (0.3) = 27.3
+        initial_state={"assumed_aircon_power": "on"},
     )
 
     service.run_once()
@@ -373,6 +429,7 @@ def test_winter_off_skipped_when_repeat_pending() -> None:
     service, client, _settings_store, state_store = _build_service(
         settings=settings,
         temperature=27.5,  # > max_temp + hysteresis (27.3)
+        initial_state={"assumed_aircon_power": "on"},
     )
 
     # Premier tick : déclenche winter_off et planifie une répétition
@@ -498,7 +555,7 @@ def test_fan_mode_off_repeat_repeats_fan() -> None:
     service, client, _, state_store = _build_service(
         settings=settings,
         temperature=25.0,
-        initial_state={"assumed_aircon_power": "on", "last_action": "manual_on"}
+        initial_state={"assumed_aircon_power": "on", "assumed_aircon_mode": 5, "last_action": "manual_on"}
     )
     
     service.run_once()
@@ -565,3 +622,65 @@ def test_trigger_scene_no_scene_with_device_id_no_error(caplog: Any) -> None:
     
     messages = [record.message for record in caplog.records if record.name == "switchbot_dashboard.automation"]
     assert any("will use direct API commands" in message for message in messages)
+
+
+def test_automation_syncs_divergent_aircon_state() -> None:
+    """Test that the automation service queries real-time status of AC,
+    corrects the stored assumed state, and re-emits commands bypassing
+    idempotency checks when they are divergent.
+    """
+    settings = _default_settings()
+    settings["mode"] = "summer"
+    settings["fan_mode_during_window"] = True
+    settings["aircon_scenes"]["summer"] = ""  # No scene, force direct commands
+    
+    # Configure summer profile
+    settings["summer"] = {
+        "min_temp": 22.0,
+        "max_temp": 25.0,
+        "target_temp": 22.5,
+        "ac_mode": 2,  # COOL
+        "fan_speed": 4,
+    }
+    settings["hysteresis_celsius"] = 0.5
+
+    # 1. State store initially assumes the AC is already set to COOL (mode=2, temp=22.5, speed=4, power=on).
+    # If the service didn't poll, it would skip sending commands due to idempotency.
+    initial_state = {
+        "assumed_aircon_power": "on",
+        "assumed_aircon_mode": 2,
+        "assumed_aircon_parameter": "22.5,2,4,on",
+    }
+
+    # 2. Build the service with a temperature that triggers summer cooling (26.3 > 25.5)
+    service, client, _, state_store = _build_service(
+        settings=settings,
+        temperature=26.3,
+        initial_state=initial_state,
+    )
+
+    # 3. Simulate divergent AC physical status returned by the API:
+    # The physical unit is actually in FAN mode (mode=4, temp=22.0, speed=3, power=on).
+    client.aircon_power = "on"
+    client.aircon_mode = 4
+    client.aircon_temp = 22.0
+    client.aircon_fan_speed = 3
+
+    # 4. Execute the automation tick
+    service.run_once()
+
+    # 5. Assertions:
+    # The service must have queried the real AC status and updated the state store to the physical values.
+    # Then, it detected divergence (mode 4 physical vs mode 2 desired) and bypassed the idempotency skip.
+    assert len(client.send_command_calls) == 1
+    call = client.send_command_calls[0]
+    assert call["device_id"] == "aircon-1"
+    assert call["command"] == "setAll"
+    assert call["parameter"] == "22.5,2,4,on"
+
+    # Finally, the state store must be updated to the new targeted state
+    final_state = state_store.read()
+    assert final_state["assumed_aircon_power"] == "on"
+    assert final_state["assumed_aircon_mode"] == 2
+    assert final_state["assumed_aircon_parameter"] == "22.5,2,4,on"
+

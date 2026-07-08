@@ -1,4 +1,9 @@
 ## Terminé
+[2026-07-08 14:58:00] - Polling temps réel du statut AC pour corriger l'incohérence d'état en mode direct
+- **Backend (`automation.py`)** : Ajout de la méthode `poll_aircon_status(aircon_device_id)` qui interroge l'API SwitchBot pour récupérer le statut physique réel de l'Air Conditioner (power, mode, temperature, fanSpeed). Intégration dans `_run_once_impl` conditionnée au mode `direct` et à la fenêtre horaire active. Synchronisation différentielle du state store uniquement si des écarts sont détectés, avec logging `[automation]` à chaque correction.
+- **Tests (`test_automation_service.py`)** : Enrichissement du `DummyClient` avec gestion du statut AC (init, dispatch par device_id, transitions d'état sur `run_scene`/`send_command`). Propagation automatique de l'état initial dans `_build_service`. Ajout du test `test_automation_syncs_divergent_aircon_state` validant le scénario complet de désynchronisation (mode FAN physique vs COOL supposé) avec bypass d'idempotence et réémission de commande.
+- **Validation** : Suite complète pytest 177 tests passés, 1 skipped, 0 échecs. Aucune régression.
+
 [2026-06-15 12:59:00] - Correction de la pollution d'état en mode API Direct (fallback)
 - **Backend (`automation.py`)** : Ajustement de `_trigger_scene` pour ignorer l'absence de `scene_id` sans lever de warning ni enregistrer d'erreur dans le `state_store` si un `aircon_device_id` est configuré (repli direct attendu). Log désormais en `DEBUG`.
 - **Validation** : Ajout du test unitaire `test_trigger_scene_no_scene_with_device_id_no_error` dans `tests/test_automation_service.py`. Exécution de la suite pytest à 100% (165 tests).

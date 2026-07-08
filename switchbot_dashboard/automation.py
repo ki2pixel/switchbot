@@ -257,6 +257,83 @@ class AutomationService:
         )
         return {"temperature": temperature, "humidity": humidity}
 
+    def poll_aircon_status(self, aircon_device_id: str) -> dict[str, Any] | None:
+        """Poll the real-time status of the virtual Air Conditioner from SwitchBot API.
+
+        Updates the state store with the actual physical state of the AC if any changes
+        are detected, to avoid incorrect idempotency bypasses.
+
+        Args:
+            aircon_device_id: The SwitchBot device ID of the Air Conditioner.
+
+        Returns:
+            The parsed status dictionary, or None if the request failed.
+        """
+        aircon_device_id = aircon_device_id.strip()
+        trigger = self._detect_trigger_source()
+        if not aircon_device_id:
+            self._warning(
+                "Aircon polling skipped: missing aircon_device_id",
+                trigger=trigger,
+            )
+            return None
+
+        self._debug("Polling SwitchBot aircon status", trigger=trigger, aircon_device_id=aircon_device_id)
+
+        try:
+            response = self._client.get_device_status(aircon_device_id)
+        except SwitchBotApiError as exc:
+            self._error(
+                "Aircon polling failed",
+                trigger=trigger,
+                aircon_device_id=aircon_device_id,
+                error=str(exc),
+            )
+            self._log_quota_snapshot(context="aircon_status_error")
+            return None
+
+        self._log_quota_snapshot(context="aircon_status")
+
+        body = response.get("body", {})
+        power = body.get("power")
+        mode = body.get("mode")
+        temperature = body.get("temperature")
+        fan_speed = body.get("fanSpeed")
+
+        updates: dict[str, Any] = {}
+        if power is not None:
+            updates["assumed_aircon_power"] = power
+        if mode is not None:
+            updates["assumed_aircon_mode"] = mode
+        if (
+            power is not None
+            and mode is not None
+            and temperature is not None
+            and fan_speed is not None
+        ):
+            updates["assumed_aircon_parameter"] = f"{temperature},{mode},{fan_speed},{power}"
+
+        if updates:
+            current_state = self._state_store.read()
+            changes = {}
+            for k, v in updates.items():
+                if current_state.get(k) != v:
+                    changes[k] = v
+            if changes:
+                self._update_state(**changes)
+                self._info(
+                    "Aircon state synchronized from API status",
+                    trigger=trigger,
+                    **changes
+                )
+
+        return {
+            "power": power,
+            "mode": mode,
+            "temperature": temperature,
+            "fanSpeed": fan_speed,
+        }
+
     def _cooldown_active(self, now: dt.datetime) -> bool:
         state = self._state_store.read()
         settings = self._settings_store.read()
@@ -939,6 +1016,9 @@ class AutomationService:
             return
 
         reading = self.poll_meter()
+        if aircon_id and trigger_mode == "direct":
+            self.poll_aircon_status(aircon_id)
+
         if not reading or reading.get("temperature") is None:
             self._debug("Meter reading unavailable; aborting automation tick", trigger=trigger)
             self._log_tick_completion(trigger, outcome="missing_meter")
