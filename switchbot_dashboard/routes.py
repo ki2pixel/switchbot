@@ -566,6 +566,12 @@ def update_settings() -> Any:
         minimum=0,
         maximum=24 * 60,
     )
+    settings["aircon_poll_cooldown_minutes"] = _as_int(
+        request.form.get("aircon_poll_cooldown_minutes"),
+        default=int(settings.get("aircon_poll_cooldown_minutes", 15) or 15),
+        minimum=1,
+        maximum=24 * 60,
+    )
 
     settings["hysteresis_celsius"] = _as_float(
         request.form.get("hysteresis_celsius"),

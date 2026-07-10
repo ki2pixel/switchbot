@@ -208,6 +208,7 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "scene_off_id": "scene-off",
         "timezone": "Europe/Paris",
         "api_quota_warning_threshold": "250",
+        "aircon_poll_cooldown_minutes": "10",
     }
 
     with app.test_client() as client:
@@ -225,6 +226,7 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
     assert persisted["adaptive_polling_enabled"] is True
     assert persisted["idle_poll_interval_seconds"] == 900
     assert persisted["poll_warmup_minutes"] == 20
+    assert persisted["aircon_poll_cooldown_minutes"] == 10
     assert persisted["timezone"] == "Europe/Paris"
     assert persisted["api_quota_warning_threshold"] == 250
     assert persisted["command_cooldown_seconds"] == 200

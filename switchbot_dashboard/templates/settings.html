@@ -144,7 +144,7 @@
                     <div class="form-text">Réduit la fréquence hors fenêtres horaires et relance avant les créneaux actifs.</div>
                   </div>
 
-                  <div class="col-12 col-md-6">
+                  <div class="col-12 col-md-4">
                     <label class="form-label" for="idle_poll_interval_seconds">Intervalle hors fenêtre (s)</label>
                     <input
                       class="form-control"
@@ -155,10 +155,10 @@
                       min="300"
                       max="86400"
                     />
-                    <div class="form-text">Recommandé : 600 s (10 min) lorsque l'automatisation est inactive.</div>
+                    <div class="form-text">Recommandé : 600 s (10 min) hors fenêtres.</div>
                   </div>
 
-                  <div class="col-12 col-md-6">
+                  <div class="col-12 col-md-4">
                     <label class="form-label" for="poll_warmup_minutes">Warmup avant fenêtre (min)</label>
                     <input
                       class="form-control"
@@ -169,7 +169,21 @@
                       min="0"
                       max="1440"
                     />
-                    <div class="form-text">Repasse à l'intervalle normal N minutes avant la prochaine fenêtre.</div>
+                    <div class="form-text">Réactivation N minutes avant la prochaine fenêtre.</div>
+                  </div>
+
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="aircon_poll_cooldown_minutes">Cache statut AC (min)</label>
+                    <input
+                      class="form-control"
+                      id="aircon_poll_cooldown_minutes"
+                      name="aircon_poll_cooldown_minutes"
+                      value="{{ settings.get('aircon_poll_cooldown_minutes', 15) }}"
+                      inputmode="numeric"
+                      min="1"
+                      max="1440"
+                    />
+                    <div class="form-text">Temps de garde du cache avant rafraîchissement physique de l'AC.</div>
                   </div>
                 </div>
 
