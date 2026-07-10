@@ -87,6 +87,7 @@
                       name="poll_interval_seconds"
                       value="{{ settings.get('poll_interval_seconds') }}"
                       inputmode="numeric"
+                      min="60"
                     />
                   </div>
 
@@ -151,7 +152,7 @@
                       name="idle_poll_interval_seconds"
                       value="{{ settings.get('idle_poll_interval_seconds', 600) }}"
                       inputmode="numeric"
-                      min="15"
+                      min="300"
                       max="86400"
                     />
                     <div class="form-text">Recommandé : 600 s (10 min) lorsque l'automatisation est inactive.</div>

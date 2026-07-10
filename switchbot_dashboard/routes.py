@@ -547,7 +547,7 @@ def update_settings() -> Any:
     settings["poll_interval_seconds"] = _as_int(
         request.form.get("poll_interval_seconds"),
         default=int(settings.get("poll_interval_seconds", 120) or 120),
-        minimum=15,
+        minimum=60,
         maximum=3600,
     )
 
@@ -557,7 +557,7 @@ def update_settings() -> Any:
     settings["idle_poll_interval_seconds"] = _as_int(
         request.form.get("idle_poll_interval_seconds"),
         default=int(settings.get("idle_poll_interval_seconds", 600) or 600),
-        minimum=15,
+        minimum=300,
         maximum=86_400,
     )
     settings["poll_warmup_minutes"] = _as_int(

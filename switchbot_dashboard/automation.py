@@ -257,14 +257,15 @@ class AutomationService:
         )
         return {"temperature": temperature, "humidity": humidity}
 
-    def poll_aircon_status(self, aircon_device_id: str) -> dict[str, Any] | None:
+    def poll_aircon_status(self, aircon_device_id: str, *, force: bool = False) -> dict[str, Any] | None:
         """Poll the real-time status of the virtual Air Conditioner from SwitchBot API.
 
         Updates the state store with the actual physical state of the AC if any changes
-        are detected, to avoid incorrect idempotency bypasses.
+        are detected, to avoid incorrect idempotency bypasses. Supports temporal cooldown caching.
 
         Args:
             aircon_device_id: The SwitchBot device ID of the Air Conditioner.
+            force: If True, bypass the polling cooldown and query the API.
 
         Returns:
             The parsed status dictionary, or None if the request failed.
@@ -278,7 +279,58 @@ class AutomationService:
             )
             return None
 
-        self._debug("Polling SwitchBot aircon status", trigger=trigger, aircon_device_id=aircon_device_id)
+        # Check cooldown
+        now = dt.datetime.now(dt.timezone.utc)
+        settings = self._settings_store.read()
+        poll_cooldown_minutes = int(settings.get("aircon_poll_cooldown_minutes", 15) or 15)
+
+        state = self._state_store.read()
+        last_aircon_poll_at = state.get("last_aircon_poll_at")
+        has_cached_status = state.get("assumed_aircon_power") is not None
+
+        is_cooldown_active = False
+        if not force and last_aircon_poll_at and has_cached_status:
+            try:
+                last_poll = dt.datetime.fromisoformat(last_aircon_poll_at.replace("Z", "+00:00"))
+                last_poll = _ensure_utc(last_poll)
+                if now - last_poll < dt.timedelta(minutes=poll_cooldown_minutes):
+                    is_cooldown_active = True
+            except ValueError:
+                pass
+
+        if is_cooldown_active:
+            self._debug(
+                "Aircon polling bypassed (cooldown active)",
+                trigger=trigger,
+                aircon_device_id=aircon_device_id,
+                last_aircon_poll_at=last_aircon_poll_at,
+            )
+            # Reconstruct status from state cache
+            power = state.get("assumed_aircon_power")
+            mode = state.get("assumed_aircon_mode")
+            temperature = None
+            fan_speed = None
+
+            param = state.get("assumed_aircon_parameter")
+            if param and isinstance(param, str):
+                parts = param.split(",")
+                if len(parts) >= 4:
+                    try:
+                        temperature = float(parts[0]) if '.' in parts[0] else int(parts[0])
+                        if mode is None:
+                            mode = int(parts[1])
+                        fan_speed = int(parts[2])
+                    except (ValueError, IndexError):
+                        pass
+
+            return {
+                "power": power,
+                "mode": mode,
+                "temperature": temperature,
+                "fanSpeed": fan_speed,
+            }
+
+        self._debug("Polling SwitchBot aircon status", trigger=trigger, aircon_device_id=aircon_device_id, force=force)
 
         try:
             response = self._client.get_device_status(aircon_device_id)
@@ -300,7 +352,9 @@ class AutomationService:
         temperature = body.get("temperature")
         fan_speed = body.get("fanSpeed")
 
-        updates: dict[str, Any] = {}
+        updates: dict[str, Any] = {
+            "last_aircon_poll_at": _utc_now_iso()
+        }
         if power is not None:
             updates["assumed_aircon_power"] = power
         if mode is not None:
@@ -824,6 +878,8 @@ class AutomationService:
     ) -> str:
         if current_temp <= (min_temp - hysteresis):
             self._debug("Winter mode: below min threshold", trigger=trigger, threshold=min_temp - hysteresis)
+            if aircon_id and trigger_mode == "direct":
+                self.poll_aircon_status(aircon_id, force=True)
             self._clear_off_repeat_task()
             executed = self._trigger_aircon_action(action_key="winter", state_reason="automation_winter_on", assumed_power="on", trigger=trigger, webhooks=webhooks, scenes=scenes, aircon_device_id=aircon_id)
             if not executed and aircon_id and trigger_mode == "direct":
@@ -831,6 +887,8 @@ class AutomationService:
             return "winter_on"
         elif current_temp >= (max_temp + hysteresis):
             self._debug("Winter mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
+            if aircon_id and trigger_mode == "direct":
+                self.poll_aircon_status(aircon_id, force=True)
             return self._handle_off_action("automation_winter_off", trigger, webhooks, scenes, aircon_id, now)
         return "no_action"
 
@@ -839,6 +897,8 @@ class AutomationService:
     ) -> str:
         if current_temp >= (max_temp + hysteresis):
             self._debug("Summer mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
+            if aircon_id and trigger_mode == "direct":
+                self.poll_aircon_status(aircon_id, force=True)
             self._clear_off_repeat_task()
             executed = self._trigger_aircon_action(action_key="summer", state_reason="automation_summer_on", assumed_power="on", trigger=trigger, webhooks=webhooks, scenes=scenes, aircon_device_id=aircon_id)
             if not executed and aircon_id and trigger_mode == "direct":
@@ -846,6 +906,8 @@ class AutomationService:
             return "summer_on"
         elif current_temp <= (min_temp - hysteresis):
             self._debug("Summer mode: below min threshold", trigger=trigger, threshold=min_temp - hysteresis)
+            if aircon_id and trigger_mode == "direct":
+                self.poll_aircon_status(aircon_id, force=True)
             return self._handle_off_action("automation_summer_off", trigger, webhooks, scenes, aircon_id, now)
         return "no_action"
 
@@ -916,6 +978,8 @@ class AutomationService:
             if result == "no_action" and bool(settings.get("fan_mode_during_window", False)):
                 state = self._state_store.read()
                 if state.get("assumed_aircon_power") == "off":
+                    if aircon_id and trigger_mode == "direct":
+                        self.poll_aircon_status(aircon_id, force=True)
                     self._perform_off_action(
                         trigger=trigger,
                         webhooks=webhooks,
@@ -999,6 +1063,8 @@ class AutomationService:
                 elif self._cooldown_active(now):
                     self._debug("Cooldown active, skipping off automation outside window", trigger=trigger)
                 else:
+                    if aircon_id and trigger_mode == "direct":
+                        self.poll_aircon_status(aircon_id, force=True)
                     handled = self._perform_off_action(
                         trigger=trigger,
                         webhooks=webhooks,

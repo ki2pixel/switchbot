@@ -1,6 +1,7 @@
 # Contexte Actif
 
 ## Objectifs
+- [x] Optimisation de l'usage du quota SwitchBot par l'introduction d'un cache cooldown sur le sondage AC et renforcement des validations d'intervalles.
 - [x] Correction du rendu de la time scale Chart.js côté frontend et alignement des timestamps lors des écritures groupées (batch flushes) côté backend.
 - [x] Implémentation complète de l'Audit Backend (Sécurité, Stabilisation Store, Observabilité/Healthz, et Amortissement historique).
 - [x] Correction de la pollution d'état (`last_error`) dans `automation.py` lors d'un fallback direct sans scène configurée.
@@ -10,6 +11,8 @@
 - [x] Polling temps réel du statut AC (Air Conditioner) depuis l'API SwitchBot pour corriger l'incohérence d'état de l'automatisation en mode direct.
 
 ## Décisions Clés
+- Cache/cooldown de 15 minutes sur `poll_aircon_status` pour limiter drastiquement les requêtes SwitchBot API, avec option `force=True` uniquement lors de décisions critiques de commande climatiseur.
+- Augmentation de la validation minimale des intervalles de polling (60s pour `poll_interval_seconds`, 300s pour `idle_poll_interval_seconds`) sur le backend et le frontend.
 - Synchronisation de l'état supposé de l'AC avec le statut physique via `poll_aircon_status()` avant l'évaluation de température dans `_run_once_impl`, conditionné au mode `direct` et à la fenêtre horaire active.
 - DummyClient des tests enrichi pour simuler l'état physique de l'AC et ses transitions lors de l'exécution de scènes/commandes.
 - Utilisation systématique d'objets `Date` JavaScript et tri croissant (ASC) côté frontend pour le rendu correct de Chart.js en mode `parsing: false`.

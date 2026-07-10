@@ -313,7 +313,7 @@ def test_turn_off_outside_window_prefers_off_scene() -> None:
     settings["time_windows"] = []
     settings["turn_off_outside_windows"] = True
     service, client, _settings_store, state_store = _build_service(
-        settings=settings, temperature=23.0
+        settings=settings, temperature=23.0, initial_state={"assumed_aircon_power": "on"}
     )
 
     service.run_once()
@@ -330,7 +330,7 @@ def test_turn_off_falls_back_to_turnoff_command_when_scene_missing() -> None:
     settings["turn_off_outside_windows"] = True
     settings["aircon_scenes"]["off"] = ""
     service, client, _settings_store, state_store = _build_service(
-        settings=settings, temperature=23.0
+        settings=settings, temperature=23.0, initial_state={"assumed_aircon_power": "on"}
     )
 
     service.run_once()
@@ -683,4 +683,130 @@ def test_automation_syncs_divergent_aircon_state() -> None:
     assert final_state["assumed_aircon_power"] == "on"
     assert final_state["assumed_aircon_mode"] == 2
     assert final_state["assumed_aircon_parameter"] == "22.5,2,4,on"
+
+
+def test_poll_aircon_status_cooldown() -> None:
+    """Test that when poll cooldown is active, poll_aircon_status does not query the API and returns cached status."""
+    settings = _default_settings()
+    settings["aircon_poll_cooldown_minutes"] = 15
+
+    # Set up active cache state with a recent poll timestamp
+    now = dt.datetime.now(dt.timezone.utc)
+    recent_timestamp = now.isoformat()
+    initial_state = {
+        "assumed_aircon_power": "on",
+        "assumed_aircon_mode": 2,
+        "assumed_aircon_parameter": "24.0,2,2,on",
+        "last_aircon_poll_at": recent_timestamp,
+    }
+
+    service, client, _, state_store = _build_service(
+        settings=settings,
+        temperature=20.0,
+        initial_state=initial_state,
+    )
+
+    # If the API were queried, it would return physical power as "off",
+    # but the cache says "on".
+    client.aircon_power = "off"
+    
+    # Run poll without force
+    with patch.object(client, "get_device_status", wraps=client.get_device_status) as mock_get_status:
+        status = service.poll_aircon_status("aircon-1")
+        assert mock_get_status.call_count == 0
+        assert status == {
+            "power": "on",
+            "mode": 2,
+            "temperature": 24.0,
+            "fanSpeed": 2,
+        }
+
+
+def test_poll_aircon_status_force() -> None:
+    """Test that passing force=True bypasses the cooldown and queries the physical API."""
+    settings = _default_settings()
+    settings["aircon_poll_cooldown_minutes"] = 15
+
+    # Set up active cache state with a recent poll timestamp
+    now = dt.datetime.now(dt.timezone.utc)
+    recent_timestamp = now.isoformat()
+    initial_state = {
+        "assumed_aircon_power": "on",
+        "assumed_aircon_mode": 2,
+        "assumed_aircon_parameter": "24.0,2,2,on",
+        "last_aircon_poll_at": recent_timestamp,
+    }
+
+    service, client, _, state_store = _build_service(
+        settings=settings,
+        temperature=20.0,
+        initial_state=initial_state,
+    )
+
+    # Physical status differs
+    client.aircon_power = "off"
+    client.aircon_mode = 1
+    client.aircon_temp = 20.0
+    client.aircon_fan_speed = 3
+
+    # Run poll with force=True
+    with patch.object(client, "get_device_status", wraps=client.get_device_status) as mock_get_status:
+        status = service.poll_aircon_status("aircon-1", force=True)
+        assert mock_get_status.call_count == 1
+        assert status == {
+            "power": "off",
+            "mode": 1,
+            "temperature": 20.0,
+            "fanSpeed": 3,
+        }
+        
+        # Verify state store got updated
+        updated_state = state_store.read()
+        assert updated_state["assumed_aircon_power"] == "off"
+        assert updated_state["last_aircon_poll_at"] != recent_timestamp
+
+
+def test_poll_aircon_status_expiry() -> None:
+    """Test that after the cooldown duration expires, a regular poll queries the physical API."""
+    settings = _default_settings()
+    settings["aircon_poll_cooldown_minutes"] = 15
+
+    # Set up expired cache timestamp (e.g. 20 minutes ago)
+    now = dt.datetime.now(dt.timezone.utc)
+    expired_timestamp = (now - dt.timedelta(minutes=20)).isoformat()
+    initial_state = {
+        "assumed_aircon_power": "on",
+        "assumed_aircon_mode": 2,
+        "assumed_aircon_parameter": "24.0,2,2,on",
+        "last_aircon_poll_at": expired_timestamp,
+    }
+
+    service, client, _, state_store = _build_service(
+        settings=settings,
+        temperature=20.0,
+        initial_state=initial_state,
+    )
+
+    # Physical status differs
+    client.aircon_power = "off"
+    client.aircon_mode = 1
+    client.aircon_temp = 20.0
+    client.aircon_fan_speed = 3
+
+    # Run regular poll (force=False)
+    with patch.object(client, "get_device_status", wraps=client.get_device_status) as mock_get_status:
+        status = service.poll_aircon_status("aircon-1")
+        assert mock_get_status.call_count == 1
+        assert status == {
+            "power": "off",
+            "mode": 1,
+            "temperature": 20.0,
+            "fanSpeed": 3,
+        }
+
+        # Verify state store got updated
+        updated_state = state_store.read()
+        assert updated_state["assumed_aircon_power"] == "off"
+        assert updated_state["last_aircon_poll_at"] != expired_timestamp
+
 
