@@ -18,7 +18,6 @@ from flask import (
 )
 
 from .config_store import StoreError
-from .ifttt import IFTTTWebhookError, extract_ifttt_webhooks
 from .switchbot_api import SwitchBotApiError
 
 
@@ -211,8 +210,6 @@ def _extract_aircon_scenes(settings: dict[str, Any]) -> dict[str, str]:
     return sanitized
 
 
-def _extract_ifttt_webhooks(settings: dict[str, Any]) -> dict[str, str]:
-    return extract_ifttt_webhooks(settings)
 
 
 def _build_quota_context(settings: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
@@ -267,8 +264,6 @@ def index() -> str:
         state_for_view["last_read_at"] = localized_last_read_at
     quota_context = _build_quota_context(settings, state)
     aircon_scenes, missing_scenes = _build_scenes_context(settings)
-    ifttt_webhooks = _extract_ifttt_webhooks(settings)
-    missing_webhooks = {key: not ifttt_webhooks[key] for key in AIRCON_SCENE_KEYS}
 
     return render_template(
         "index.html",
@@ -277,8 +272,6 @@ def index() -> str:
         **quota_context,
         aircon_scenes=aircon_scenes,
         missing_scenes=missing_scenes,
-        ifttt_webhooks=ifttt_webhooks,
-        missing_webhooks=missing_webhooks,
         aircon_scene_labels=AIRCON_SCENE_LABELS,
         aircon_scene_keys=AIRCON_SCENE_KEYS,
     )
@@ -294,19 +287,14 @@ def settings_page() -> str:
     time_window_form = _get_time_window_form(settings)
     quota_context = _build_quota_context(settings, state)
     aircon_scenes, missing_scenes = _build_scenes_context(settings)
-    ifttt_webhooks = _extract_ifttt_webhooks(settings)
-    missing_webhooks = {key: not ifttt_webhooks[key] for key in AIRCON_SCENE_KEYS}
 
     configured_scenes_count = sum(1 for value in aircon_scenes.values() if value)
-    configured_webhooks_count = sum(1 for value in ifttt_webhooks.values() if value)
 
     return render_template(
         "settings.html",
         settings=settings,
         aircon_scenes=aircon_scenes,
         missing_scenes=missing_scenes,
-        ifttt_webhooks=ifttt_webhooks,
-        missing_webhooks=missing_webhooks,
         aircon_scene_labels=AIRCON_SCENE_LABELS,
         time_window_form=time_window_form,
         day_choices=DAY_CHOICES,
@@ -317,7 +305,6 @@ def settings_page() -> str:
         aircon_scene_keys=AIRCON_SCENE_KEYS,
         quota_warning_threshold=quota_context["quota_warning_threshold"],
         configured_scenes_count=configured_scenes_count,
-        configured_webhooks_count=configured_webhooks_count,
     )
 
 
@@ -541,8 +528,6 @@ def update_settings() -> Any:
     settings["automation_enabled"] = _as_bool(request.form.get("automation_enabled"))
     settings["mode"] = str(request.form.get("mode", settings.get("mode", "winter"))).strip().lower()
 
-    trigger_mode_raw = str(request.form.get("trigger_mode", settings.get("trigger_mode", "direct"))).strip().lower()
-    settings["trigger_mode"] = trigger_mode_raw if trigger_mode_raw in ("direct", "ifttt") else "direct"
 
     settings["poll_interval_seconds"] = _as_int(
         request.form.get("poll_interval_seconds"),
@@ -637,14 +622,6 @@ def update_settings() -> Any:
 
     settings["aircon_scenes"] = updated_aircon_scenes
 
-    current_webhooks = _extract_ifttt_webhooks(settings)
-    updated_webhooks: dict[str, str] = {}
-    for key in AIRCON_SCENE_KEYS:
-        updated_webhooks[key] = str(
-            request.form.get(f"webhook_{key}_url", current_webhooks.get(key, ""))
-        ).strip()
-
-    settings["ifttt_webhooks"] = updated_webhooks
 
     settings_store.write(settings)
     scheduler_service.reschedule()
@@ -699,41 +676,6 @@ def _update_state_on_error(state_store: Any, error_msg: str) -> None:
     state = state_store.read()
     state["last_error"] = error_msg
     state_store.write(state)
-
-
-def _handle_ifttt_action(
-    action_key: str, webhook_url: str, state_reason: str, flash_label: str, assumed_power: str
-) -> Any:
-    ifttt_client = current_app.extensions["ifttt_client"]
-    state_store = current_app.extensions["state_store"]
-    
-    if not webhook_url:
-        action_label = AIRCON_SCENE_LABELS.get(action_key, action_key)
-        flash(f"Aucun webhook configuré pour {action_label} en mode IFTTT.", "error")
-        return redirect(url_for(ROUTE_INDEX))
-        
-    try:
-        ifttt_client.trigger_webhook(webhook_url)
-        assumed_mode = None
-        if action_key == "fan":
-            assumed_mode = 4
-        elif action_key == "winter":
-            assumed_mode = 5
-        elif action_key == "summer":
-            assumed_mode = 2
-        _update_state_on_success(
-            state_store,
-            assumed_power,
-            f"ifttt_webhook({action_key}) ({state_reason})",
-            assumed_mode=assumed_mode,
-        )
-        flash(flash_label)
-    except IFTTTWebhookError as exc:
-        error_msg = f"IFTTT webhook failed: {exc}"
-        _update_state_on_error(state_store, error_msg)
-        flash(f"IFTTT webhook failed for {action_key}: {exc}", "error")
-        
-    return redirect(url_for(ROUTE_INDEX))
 
 
 def _handle_direct_action(
@@ -799,15 +741,9 @@ def _execute_aircon_action(
 ) -> Any:
     settings_store = current_app.extensions["settings_store"]
     settings = settings_store.read()
-    trigger_mode = settings.get("trigger_mode", "direct")
-    
-    if trigger_mode == "ifttt":
-        webhook_url = _extract_ifttt_webhooks(settings).get(action_key, "").strip()
-        return _handle_ifttt_action(action_key, webhook_url, state_reason, flash_label, assumed_power)
-    else:
-        scene_id = _extract_aircon_scenes(settings).get(action_key, "").strip()
-        aircon_id = str(settings.get("aircon_device_id", "")).strip()
-        return _handle_direct_action(action_key, scene_id, aircon_id, state_reason, flash_label, assumed_power)
+    scene_id = _extract_aircon_scenes(settings).get(action_key, "").strip()
+    aircon_id = str(settings.get("aircon_device_id", "")).strip()
+    return _handle_direct_action(action_key, scene_id, aircon_id, state_reason, flash_label, assumed_power)
 
 
 @dashboard_bp.post("/actions/aircon_on")

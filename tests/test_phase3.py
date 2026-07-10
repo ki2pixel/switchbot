@@ -163,7 +163,6 @@ def test_history_api_503_fallback_in_production():
     app.extensions["settings_store"] = mock_store
     app.extensions["state_store"] = mock_store
     app.extensions["switchbot_client"] = MagicMock()
-    app.extensions["ifttt_client"] = MagicMock()
     app.extensions["scheduler_service"] = MagicMock()
     
     # We do NOT register history_service

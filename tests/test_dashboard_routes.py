@@ -75,12 +75,6 @@ class DummyClient:
         )
 
 
-class DummyIFTTTClient:
-    def __init__(self) -> None:
-        self.webhook_calls: list[str] = []
-
-    def trigger_webhook(self, webhook_url: str, *, event_data: dict | None = None) -> None:
-        self.webhook_calls.append(webhook_url)
 
 
 def _today_iso() -> str:
@@ -124,7 +118,6 @@ def _build_app(
     if isinstance(client, DummyClient):
         client.attach_quota_tracker(quota_tracker)
     app.extensions["switchbot_client"] = client or object()
-    app.extensions["ifttt_client"] = DummyIFTTTClient()
     app.extensions["automation_service"] = object()
     app.extensions["scheduler_service"] = scheduler
     app.extensions["quota_tracker"] = quota_tracker
@@ -180,7 +173,6 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
     form = {
         "automation_enabled": "on",
         "mode": "summer",
-        "trigger_mode": "ifttt",
         "poll_interval_seconds": "300",
         "adaptive_polling_enabled": "on",
         "idle_poll_interval_seconds": "900",
@@ -222,7 +214,6 @@ def test_update_settings_persists_manual_presets_and_scenes() -> None:
         "fan": "scene-f",
         "off": "scene-off",
     }
-    assert persisted["trigger_mode"] == "ifttt"
     assert persisted["adaptive_polling_enabled"] is True
     assert persisted["idle_poll_interval_seconds"] == 900
     assert persisted["poll_warmup_minutes"] == 20
@@ -319,31 +310,6 @@ def test_aircon_on_winter_runs_scene_and_updates_state() -> None:
     assert state["last_action"].startswith("scene(scene-w)")
 
 
-def test_aircon_on_winter_runs_webhook_when_ifttt_mode() -> None:
-    settings = {
-        "mode": "winter",
-        "trigger_mode": "ifttt",
-        "aircon_device_id": "aircon",
-        "aircon_scenes": {"winter": "scene-w", "summer": "", "fan": "", "off": ""},
-        "ifttt_webhooks": {"winter": "https://hook.ifttt/w", "summer": "", "fan": "", "off": ""}
-    }
-    dummy_client = DummyClient()
-    app, settings_store, state_store, _scheduler, _tracker = _build_app(
-        settings,
-        initial_state={"assumed_aircon_power": "off"},
-        client=dummy_client,
-    )
-    dummy_ifttt = app.extensions["ifttt_client"]
-
-    with app.test_client() as client:
-        response = client.post("/actions/aircon_on_winter", follow_redirects=False)
-
-    assert response.status_code == 302
-    assert dummy_ifttt.webhook_calls == ["https://hook.ifttt/w"]
-    assert dummy_client.scene_calls == []
-    state = state_store.read()
-    assert state["assumed_aircon_power"] == "on"
-    assert state["last_action"].startswith("ifttt_webhook(winter)")
 
 
 def test_aircon_on_winter_reports_missing_scene_id() -> None:
@@ -367,29 +333,6 @@ def test_aircon_on_winter_reports_missing_scene_id() -> None:
     assert state.get("last_action") is None
 
 
-def test_aircon_on_winter_reports_missing_webhook_in_ifttt_mode() -> None:
-    settings = {
-        "mode": "winter",
-        "trigger_mode": "ifttt",
-        "aircon_device_id": "aircon",
-        "aircon_scenes": {"winter": "scene-w", "summer": "", "fan": "", "off": ""},
-        "ifttt_webhooks": {"winter": "", "summer": "", "fan": "", "off": ""}
-    }
-    dummy_client = DummyClient()
-    app, settings_store, state_store, _scheduler, _tracker = _build_app(
-        settings,
-        client=dummy_client,
-    )
-    dummy_ifttt = app.extensions["ifttt_client"]
-
-    with app.test_client() as client:
-        response = client.post("/actions/aircon_on_winter", follow_redirects=True)
-
-    assert response.status_code == 200
-    assert dummy_ifttt.webhook_calls == []
-    assert dummy_client.scene_calls == []  # Ensure no fallback
-    state = state_store.read()
-    assert state.get("last_action") is None
 
 
 def test_aircon_off_runs_off_scene_when_configured() -> None:

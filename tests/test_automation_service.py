@@ -112,12 +112,6 @@ class DummyClient:
         return self.last_quota_snapshot
 
 
-class DummyIFTTTClient:
-    def __init__(self) -> None:
-        self.webhook_calls: list[str] = []
-
-    def trigger_webhook(self, webhook_url: str, *, event_data: dict | None = None) -> None:
-        self.webhook_calls.append(webhook_url)
 
 
 def _default_settings() -> dict[str, Any]:
@@ -175,8 +169,7 @@ def _build_service(
         kwargs["aircon_mode"] = initial_state["assumed_aircon_mode"]
 
     client = DummyClient(temperature=temperature, quota_tracker=quota_tracker, **kwargs)
-    ifttt_client = DummyIFTTTClient()
-    service = AutomationService(settings_store, state_store, client, ifttt_client)
+    service = AutomationService(settings_store, state_store, client)
     return service, client, settings_store, state_store
 
 
@@ -255,39 +248,6 @@ def test_run_once_prefers_winter_scene_and_records_quota() -> None:
     assert int(state["api_requests_total"]) >= 1
 
 
-def test_run_once_prefers_webhook_when_in_ifttt_mode() -> None:
-    settings = _default_settings()
-    settings["trigger_mode"] = "ifttt"
-    settings["ifttt_webhooks"] = {"winter": "http://webhook/winter"}
-    service, client, _settings_store, state_store = _build_service(
-        settings=settings, temperature=17.0
-    )
-
-    service.run_once()
-
-    # Webhook called, scene not called
-    assert service._ifttt_client.webhook_calls == ["http://webhook/winter"]
-    assert client.run_scene_calls == []
-    state = state_store.read()
-    assert state["assumed_aircon_power"] == "on"
-    assert str(state["last_action"]).startswith("ifttt_webhook(")
-
-
-def test_run_once_ifttt_mode_does_not_fallback_to_scene() -> None:
-    settings = _default_settings()
-    settings["trigger_mode"] = "ifttt"
-    # No webhook configured
-    settings["ifttt_webhooks"] = {"winter": ""}
-    service, client, _settings_store, state_store = _build_service(
-        settings=settings, temperature=17.0
-    )
-
-    service.run_once()
-
-    assert service._ifttt_client.webhook_calls == []
-    assert client.run_scene_calls == []  # No fallback!
-    state = state_store.read()
-    assert "Missing webhook" in str(state.get("last_error", ""))
 
 
 def test_run_once_falls_back_to_setall_when_scene_missing() -> None:

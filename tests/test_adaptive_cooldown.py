@@ -39,12 +39,6 @@ class DummyClient:
         self.run_scene_calls.append(scene_id)
 
 
-class DummyIFTTTClient:
-    def __init__(self) -> None:
-        self.webhook_calls: list[str] = []
-
-    def trigger_webhook(self, webhook_url: str, *, event_data: dict | None = None) -> None:
-        self.webhook_calls.append(webhook_url)
 
 
 def _default_settings() -> dict[str, Any]:
@@ -84,8 +78,7 @@ def _build_service(
     state_store = MemoryStore(initial_state or {})
     quota_tracker = ApiQuotaTracker(state_store)
     client = DummyClient(temperature=temperature, quota_tracker=quota_tracker)
-    ifttt_client = DummyIFTTTClient()
-    service = AutomationService(settings_store, state_store, client, ifttt_client)
+    service = AutomationService(settings_store, state_store, client)
     return service, client, settings_store, state_store
 
 
@@ -99,7 +92,7 @@ def test_adaptive_cooldown_blocks_on_action_for_5_minutes() -> None:
     
     initial_state = {
         "assumed_aircon_power": "on",
-        "last_action": "ifttt_webhook(winter)",
+        "last_action": "scene(scene-w) (automation_winter_on)",
         "last_action_at": last_action_at,
     }
     
@@ -115,7 +108,7 @@ def test_adaptive_cooldown_blocks_on_action_for_5_minutes() -> None:
     assert client.run_scene_calls == []
     state = state_store.read()
     assert state["assumed_aircon_power"] == "on"
-    assert state["last_action"] == "ifttt_webhook(winter)"
+    assert state["last_action"] == "scene(scene-w) (automation_winter_on)"
 
 
 def test_adaptive_cooldown_allows_on_action_after_5_minutes() -> None:
@@ -128,7 +121,7 @@ def test_adaptive_cooldown_allows_on_action_after_5_minutes() -> None:
     
     initial_state = {
         "assumed_aircon_power": "on",
-        "last_action": "ifttt_webhook(winter)",
+        "last_action": "scene(scene-w) (automation_winter_on)",
         "last_action_at": last_action_at,
     }
     
@@ -154,7 +147,7 @@ def test_adaptive_cooldown_blocks_off_action_for_1_minute() -> None:
     
     initial_state = {
         "assumed_aircon_power": "off",
-        "last_action": "ifttt_webhook(off)",
+        "last_action": "scene(scene-off) (automation_summer_off)",
         "last_action_at": last_action_at,
     }
     
@@ -182,7 +175,7 @@ def test_adaptive_cooldown_allows_off_action_after_1_minute() -> None:
     
     initial_state = {
         "assumed_aircon_power": "off",
-        "last_action": "ifttt_webhook(off)",
+        "last_action": "scene(scene-off) (automation_summer_off)",
         "last_action_at": last_action_at,
     }
     
@@ -215,7 +208,7 @@ def test_adaptive_cooldown_falls_back_to_default() -> None:
     
     initial_state = {
         "assumed_aircon_power": "on",
-        "last_action": "ifttt_webhook(winter)",
+        "last_action": "scene(scene-w) (automation_winter_on)",
         "last_action_at": last_action_at,
     }
     
@@ -242,7 +235,7 @@ def test_adaptive_cooldown_logs_remaining_time(caplog: Any) -> None:
     
     initial_state = {
         "assumed_aircon_power": "on",
-        "last_action": "ifttt_webhook(winter)",
+        "last_action": "scene(scene-w) (automation_winter_on)",
         "last_action_at": last_action_at,
     }
     

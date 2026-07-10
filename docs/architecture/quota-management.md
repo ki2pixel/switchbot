@@ -178,7 +178,7 @@ self._state_store.write(self._state)
 | Type d'Appel | Context | Fréquence | Impact Quota |
 | ------------ | ------- | --------- | ----------- |
 | `poll_meter()` | "poll_meter" | Toutes les 30s | Élevé |
-| `execute_scene()` | "scene_execution" | Manuel/IFTTT | Moyen |
+| `execute_scene()` | "scene_execution" | Manuel/Automation | Moyen |
 | `set_all()` | "direct_command" | Manuel | Faible |
 | `/devices` | "inventory" | Navigation | Faible |
 | `/actions/*` | "manual_action" | Manuel | Variable |

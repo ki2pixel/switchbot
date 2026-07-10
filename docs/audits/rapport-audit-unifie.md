@@ -95,11 +95,11 @@ Chaque constat issu de nos analyses a été catégorisé selon son niveau de sé
 
 | ID | Sévérité | Fichier(s) Impacté(s) | Description de l'Anomalie | Action Requise |
 | :--- | :---: | :--- | :--- | :--- |
-| **CRIT-01** | 🔴 | `config/settings.json` | Clé d'API webhook IFTTT réelle enregistrée en clair dans le dépôt Git. | Révocation immédiate; ignore de settings.json. |
+| **CRIT-01** | 🔴 | `config/settings.json` | [RÉSOLU / SUPPRIMÉ] Clé d'API webhook IFTTT réelle enregistrée en clair dans le dépôt Git. | Supprimé de la base de code. |
 | **CRIT-02** | 🔴 | `switchbot_dashboard/__init__.py` | Clé secrète Flask (`FLASK_SECRET_KEY`) avec repli par défaut sur `"dev"`. | Lever une RuntimeError en production. |
 | **CRIT-03** | 🔴 | `routes.py` (API History) | `NameError` sur `timedelta` en cas d'absence de `HistoryService`. | Corriger l'import en `dt.timedelta`. |
 | **MAJ-01** | 🟠 | `routes.py` (Formulaires) | Absence de protection CSRF sur les endpoints de modifications et d'actions. | Intégrer Flask-WTF et valider des jetons CSRF. |
-| **MAJ-02** | 🟠 | `switchbot_dashboard/ifttt.py` | Validation SSRF insuffisante sur les URLs de webhooks IFTTT. | Restreindre le netloc au domaine maker.ifttt.com. |
+| **MAJ-02** | 🟠 | `switchbot_dashboard/ifttt.py` | [RÉSOLU / SUPPRIMÉ] Validation SSRF insuffisante sur les URLs de webhooks IFTTT. | Supprimé de la base de code. |
 | **MAJ-03** | 🟠 | `routes.py`, `quota.py` | Absence de verrous de threads sur les mutations d'état (Race Conditions). | Rendre les mutations d'état atomiques. |
 | **MAJ-04** | 🟠 | `history_service.py` | Le paramètre `granularity` est ignoré; l'agrégation DB n'est pas fonctionnelle. | Implémenter l'agrégation SQL par tranches. |
 | **MAJ-05** | 🟠 | `__init__.py`, `postgres_store.py` | `HistoryService` accède directement à l'attribut privé `_pool` du store. | Exposer le pool via une interface publique. |
@@ -121,24 +121,8 @@ Chaque constat issu de nos analyses a été catégorisé selon son niveau de sé
 
 ## 5. Fiches Techniques Détaillées & Corrections
 
-### 🔴 CRIT-01 : Clé d'API IFTTT exposée dans le dépôt
-La clé de webhook IFTTT `k6QOrDiDeXrNxOhN94s3b` a été commise dans `config/settings.json`. Ce fichier n'étant pas ignoré par le système de gestion de versions, tout utilisateur accédant au dépôt Git public peut l'extraire et interagir avec l'infrastructure physique.
-
-#### ❌ Configuration vulnérable (`config/settings.json`)
-```json
-"ifttt_webhooks": {
-  "winter": "https://maker.ifttt.com/trigger/switchbot_winter/with/key/k6QOrDiDeXrNxOhN94s3b",
-  "summer": "https://maker.ifttt.com/trigger/switchbot_summer/with/key/k6QOrDiDeXrNxOhN94s3b"
-}
-```
-
-#### ✅ Solution sécurisée
-1. Révoquer immédiatement le jeton sur la console IFTTT.
-2. Ajouter le fichier de configuration local au `.gitignore` :
-   ```bash
-   echo "config/settings.json" >> .gitignore
-   ```
-3. Utiliser exclusivement les variables d'environnement ou la base de données Postgres persistée pour stocker les clés secrètes.
+### 🔴 CRIT-01 : Clé d'API IFTTT exposée dans le dépôt (RÉSOLU PAR SUPPRESSION DE LA FEATURE)
+Cette vulnérabilité a été définitivement résolue suite à la suppression totale du support d'IFTTT de l'application.
 
 ---
 
@@ -259,7 +243,7 @@ Ce plan d'action regroupe toutes les corrections à réaliser. Le traitement mé
 ### 🔴 Phase 1 : Quick Wins & Sécurité Critique (1-2 jours)
 Ces tâches concernent les failles critiques de sécurité et les plantages en production. Elles n'introduisent pas de changements d'architecture complexes et doivent être déployées immédiatement.
 
-1. **[CRIT-01] Révocation et isolation de la clé IFTTT** : Révoquer le jeton de webhook fuitif. Ajouter `config/settings.json` au fichier `.gitignore` du projet.
+1. **[CRIT-01] Révocation et isolation de la clé IFTTT** : [RÉSOLU PAR SUPPRESSION DE LA FEATURE]
 2. **[CRIT-02] Sécurisation du secret Flask** : Modifier `switchbot_dashboard/__init__.py` pour lever une exception bloquante en production si `FLASK_SECRET_KEY` est manquante.
 3. **[CRIT-03] Correction NameError de secours** : Remplacer l'appel `timedelta` par `dt.timedelta` dans `routes.py` pour éviter le crash en cas d'absence de Postgres.
 4. **[DevOps] Ajout de l'endpoint de diagnostic** : Créer la route `/healthz` dans `routes.py` retournant un état HTTP 200/503 après vérification de la disponibilité des stores Postgres/locaux.
@@ -275,7 +259,7 @@ Cette phase améliore la qualité globale de l'application, implémente les fonc
 8. **[MAJ-04 / MIN-02] Implémentation de la granularité d'historique** : Remplacer le code mort dans `HistoryService.get_history` pour réaliser une vraie agrégation temporelle SQL. Corriger l'expression de tranche temporelle en remplaçant `%s` par le format de placeholder psycopg correct `{}`.
 9. **[MAJ-05 / MAJ-06] Unification du Pool Postgres** : Refactoriser le bootstrap Flask pour injecter un pool de connexions unique et partagé dans `settings_store`, `state_store` et `HistoryService`. Remplacer l'accès privé par une propriété publique `@property pool`.
 10. **[MAJ-01] Intégration CSRF** : Installer et configurer `Flask-WTF` pour exiger et vérifier la présence de tokens CSRF sur l'ensemble des formulaires d'actions et de réglages.
-11. **[MAJ-02] Renforcement SSRF IFTTT** : Restreindre la validation des URLs de webhook pour s'assurer que le nom d'hôte cible appartient strictement au domaine `maker.ifttt.com`.
+11. **[MAJ-02] Renforcement SSRF IFTTT** : [RÉSOLU PAR SUPPRESSION DE LA FEATURE]
 12. **[Tests] Couverture switchbot_api.py à 85%** : Rédiger des tests unitaires mockant les retours réseau pour tester la signature HMAC, la gestion des limites de quota et les comportements en cas d'erreur 429.
 13. **[DevOps] Image Docker optimisée** : Réécrire le `Dockerfile` en appliquant le pattern *multi-stage build*. Compiler les dépendances psycopg dans une étape de build temporaire puis recopier uniquement les binaires dans l'image finale légère sans installer `build-essential`.
 

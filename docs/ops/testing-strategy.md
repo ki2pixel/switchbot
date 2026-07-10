@@ -1,19 +1,19 @@
 # Stratégie de Tests pour SwitchBot Dashboard v2
 
-**TL;DR** : Maintenez ≥85% de couverture avec pytest, testez la cascade IFTTT→scènes→commandes, et validez la résilience du système via les logs structurés et l'endpoint `/healthz`.
+**TL;DR** : Maintenez ≥85% de couverture avec pytest, testez la cascade scènes → commandes, et validez la résilience du système via les logs structurés et l'endpoint `/healthz`.
 
 ## Le Problème : Pourquoi des Tests Structurés ?
 
 Vous déployez un dashboard de domotique qui contrôle votre climatisation. Un bug dans l'automatisation peut faire surchauffer votre système ou laisser votre climatisation tourner toute la nuit. Pire encore, une fuite de quota API peut vous coûter cher en appels SwitchBot inutiles.
 
-Les tests ne sont pas une option ; ils sont votre filet de sécurité. Mais tester une application qui mélange Flask, APScheduler, des webhooks IFTTT et des commandes hardware demande une approche systématique.
+Les tests ne sont pas une option ; ils sont votre filet de sécurité. Mais tester une application qui mélange Flask, APScheduler, et des commandes hardware demande une approche systématique.
 
 ## La Solution : Une Architecture de Tests en Couches
 
 Le SwitchBot Dashboard utilise une architecture de tests à trois niveaux qui reflète sa structure technique :
 
 1. **Tests unitaires** : Validateurs et conversions (`_as_bool`, `_as_int`, `_as_float`)
-2. **Tests d'intégration** : Services injectés, cascade IFTTT→scènes→commandes
+2. **Tests d'intégration** : Services injectés, cascade scènes → commandes
 3. **Tests end-to-end** : Interface utilisateur, quotas API, résilience système
 
 Cette approche garantit que chaque composant fonctionne isolément ET que l'ensemble reste cohérent.
@@ -49,7 +49,7 @@ SCHEDULER_ENABLED=true
 {
   "meter_device_id": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
   "aircon_device_id": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
-  "poll_interval_seconds": 60,
+  "poll_interval_seconds": 120,
   "min_temperature": 22,
   "max_temperature": 26,
   "hysteresis_celsius": 0.5,
@@ -75,26 +75,24 @@ curl -v http://localhost:8000/healthz
   "api_requests_total": 42,
   "api_requests_remaining": 958,
   "api_quota_day": "2024-01-10",
-  "version": "1.0.0"
+  "version": "2.0.0"
 }
 ```
 
-### Tests de la Cascade IFTTT→Scènes→Commandes
+### Tests de la Cascade Scènes→Commandes
 
 La logique métier suit une cascade stricte :
 
-1. **IFTTT Webhook** (priorité 1)
-2. **Scène SwitchBot** (priorité 2) 
-3. **Commande directe** (fallback)
+1. **Scène SwitchBot** (priorité 1)
+2. **Commande directe** (fallback)
 
 ```python
 # Exemple de test de la cascade
-def test_ifttt_scene_command_cascade():
-    # 1. Configurer webhook IFTTT valide
+def test_scene_command_cascade():
+    # 1. Configurer scène favorite valide
     # 2. Déclencher action
-    # 3. Vérifier utilisation webhook
-    # 4. Supprimer webhook, vérifier fallback scène
-    # 5. Supprimer scène, vérifier fallback commande
+    # 3. Vérifier exécution de la scène
+    # 4. Supprimer scène, vérifier fallback commande directe
 ```
 
 ### Logs Structurés pour le Debugging
@@ -102,12 +100,9 @@ def test_ifttt_scene_command_cascade():
 Les préfixes de logs facilitent le diagnostic :
 
 ```bash
-# Logs IFTTT
-[ifttt] IFTTT webhook triggered successfully | status_code=200, url=https://maker.ifttt.com/trigger/...
-
 # Logs d'automatisation  
-[automation] Automation tick started | trigger=scheduler, interval=60s
-[automation] Using SwitchBot scene (webhook unavailable) | action_key=winter, scene_id=scene-w
+[automation] Automation tick started | trigger=scheduler, poll_interval_seconds=120
+[automation] Using SwitchBot scene | action_key=winter, scene_id=scene-w
 
 # Logs de santé
 [health] Health check completed | status=ok, scheduler_running=true
@@ -151,15 +146,14 @@ def test_scheduled_action():
 
 ### Piège #3 : Mock Incomplet des Services Externes
 
-**Le problème** : Mocker seulement l'API SwitchBot mais pas IFTTT.
+**Le problème** : Mocker seulement une partie des appels API SwitchBot.
 
-**La solution** : Mocker toute la chaîne de dépendances :
+**La solution** : Mocker toute la chaîne de dépendances de SwitchBotClient :
 ```python
-@patch('switchbot_dashboard.automation.IFTTTClient')
 @patch('switchbot_dashboard.automation.SwitchBotClient')
-def test_full_cascade(mock_ifttt, mock_switchbot):
+def test_full_cascade(mock_switchbot):
     # Configuration des mocks
-    # Test de la cascade complète
+    # Test de la cascade scène -> commande directe
 ```
 
 ### Piège #4 : État Persistant entre Tests
@@ -194,7 +188,6 @@ def test_time_window_handling():
 
 ### Tests Automatisés
 - [ ] Suite pytest complète passe (≥85% couverture)
-- [ ] Tests IFTTT : validation HTTPS, timeouts, fallbacks
 - [ ] Tests automation : hystérésis, cooldown, fenêtres horaires
 - [ ] Tests UI : bandeau quota, responsivité mobile
 
@@ -202,7 +195,7 @@ def test_time_window_handling():
 - [ ] `/healthz` retourne 200 avec métriques cohérentes
 - [ ] Logs structurés présents avec préfixes corrects
 - [ ] Gestion des erreurs API (429, timeout) sans crash
-- [ ] Fallback store (Redis → filesystem) fonctionnel
+- [ ] Fallback store (Postgres → filesystem) fonctionnel
 
 ### Interface Utilisateur
 - [ ] Bandeau quota s'affiche au seuil configuré
@@ -213,9 +206,9 @@ def test_time_window_handling():
 ## Références Techniques
 
 - **Commandes pytest** : `/mnt/venv_ext4/venv_switchbot/bin/python -m pytest --tb=short -q`
-- **Fichiers de test** : `tests/test_ifttt.py`, `tests/test_automation_service.py`, `tests/test_dashboard_routes.py`
+- **Fichiers de test** : `tests/test_automation_service.py`, `tests/test_dashboard_routes.py`
 - **Configuration** : `.env.example`, `config/settings.json`, `config/state.json`
-- **Logs** : Préfixes `[ifttt]`, `[automation]`, `[health]`, `[scheduler]`
+- **Logs** : Préfixes `[automation]`, `[health]`, `[scheduler]`
 
 ### ❌ Tests Sans Mocks / ✅ Tests Avec Mocks Complets
 
@@ -234,7 +227,3 @@ def test_time_window_handling():
 ## La Règle d'Or : Couverture Résiliente, Mocks Intelligents
 
 Testez ce que vous contrôlez avec des mocks, testez ce que vous ne contrôlez pas avec des intégrations ciblées. La résilience des tests garantit la résilience du système.
-
----
-
-Cette stratégie de tests garantit que chaque modification du code reste sécurisée pour votre système de domotique. Les tests ne sont pas une barrière ; ils sont votre assurance que votre climatisation ne vous jouera pas de tours.

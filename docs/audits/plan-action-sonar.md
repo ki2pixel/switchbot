@@ -6,7 +6,7 @@
 
 Vous affichez le tableau des derniers enregistrements dans le Dashboard. L'API vous renvoie des données JSON. Vous utilisez des *template strings* et `innerHTML` pour générer les lignes du tableau rapidement. C'est concis et ça fonctionne très bien. 
 
-Jusqu'au jour où le champ `last_action` (manipulé depuis IFTTT) contient une balise `<script>`. Votre interface vient d'exécuter du code malveillant sur le poste du client sans aucun avertissement. 
+Jusqu'au jour où le champ `last_action` (manipulé depuis l'API) contient une balise `<script>`. Votre interface vient d'exécuter du code malveillant sur le poste du client sans aucun avertissement. 
 
 > [!CAUTION]
 > Une vulnérabilité XSS critique (Blocker `jssecurity:S5696`) a été identifiée à la ligne 440 de `history.js` lors de l'injection des données non assainies dans `tbody.innerHTML`.
@@ -69,7 +69,7 @@ latestRecords.forEach(record => {
 Le Dashboard s'alourdit. Les fonctions critiques de `automation.py`, `routes.py`, et `loaders.js` dépassent le seuil autorisé de complexité cognitive (score > 15). 
 
 - **Aplatissement (`loaders.js`)** : La fonction `setupFormLoaders` s'enfonce sur 4 niveaux d'indentation. Nous utiliserons le modèle du retour anticipé (*early return*).
-- **Responsabilité Unique (`automation.py` & `routes.py`)** : Extraction de la logique métier (notamment la gestion IFTTT) en sous-fonctions distinctes.
+- **Responsabilité Unique (`automation.py` & `routes.py`)** : Extraction de la logique métier (notamment la gestion des scènes favorites) en sous-fonctions distinctes.
 - **Consolidation des Constantes (S1192)** : Les chaînes littérales dupliquées plus de 3 fois dans `routes.py` seront mutualisées sous forme de variables constantes en haut de fichier.
 
 ### ❌ Le "Nesting" Profond

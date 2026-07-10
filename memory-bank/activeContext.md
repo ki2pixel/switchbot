@@ -1,6 +1,7 @@
 # Contexte Actif
 
 ## Objectifs
+- [x] Suppression intégrale du support d'IFTTT de l'application (backend, frontend, tests et documentation) afin de reposer exclusivement sur l'API SwitchBot (mode direct et scènes).
 - [x] Optimisation de l'usage du quota SwitchBot par l'introduction d'un cache cooldown sur le sondage AC et renforcement des validations d'intervalles.
 - [x] Correction du rendu de la time scale Chart.js côté frontend et alignement des timestamps lors des écritures groupées (batch flushes) côté backend.
 - [x] Implémentation complète de l'Audit Backend (Sécurité, Stabilisation Store, Observabilité/Healthz, et Amortissement historique).
@@ -11,6 +12,7 @@
 - [x] Polling temps réel du statut AC (Air Conditioner) depuis l'API SwitchBot pour corriger l'incohérence d'état de l'automatisation en mode direct.
 
 ## Décisions Clés
+- Suppression de toute la cascade IFTTT : le système n'utilise plus que 2 niveaux (Scène favorite SwitchBot -> Commande directe via API SwitchBot) pour plus de fiabilité et moins de complexité.
 - Cache/cooldown de 15 minutes sur `poll_aircon_status` pour limiter drastiquement les requêtes SwitchBot API, avec option `force=True` uniquement lors de décisions critiques de commande climatiseur.
 - Augmentation de la validation minimale des intervalles de polling (60s pour `poll_interval_seconds`, 300s pour `idle_poll_interval_seconds`) sur le backend et le frontend.
 - Synchronisation de l'état supposé de l'AC avec le statut physique via `poll_aircon_status()` avant l'évaluation de température dans `_run_once_impl`, conditionné au mode `direct` et à la fenêtre horaire active.
@@ -27,16 +29,16 @@
 ## Modifications Skills Effectuées
 - Mise à jour de `add-feature/SKILL.md` (SPA Router, CSRF).
 - Mise à jour de `postgres-store-maintenance/SKILL.md` (gestion de contextes psycopg_pool).
-- Mise à jour de `ifttt-cascade/SKILL.md` (sécurité SSRF et timing attacks).
+- Suppression de `ifttt-cascade` (précédemment utilisé pour orchestrer IFTTT).
 
 ## Modifications Documentaires Effectuées
-- **`docs/README.md`** : Correction de l'information sur le suivi de quota (approche hybride et synchronisation des headers SwitchBot confirmées).
-- **`docs/architecture/storage-layer.md`** : Ajout de la gestion du connection pool (`psycopg_pool`) et des transactions avec row-level locking.
-- **`docs/guides/ifttt-setup.md`** : Documentation des sécurités SSRF (blocage IPs locales et domaine strict) et contre les Timing Attacks (`hmac.compare_digest`).
-- **`docs/guides/ui-navigation.md`** : Explication du cycle de vie des pages SPA (`spa-router.js`) et de la protection CSRF globale.
+- **`docs/architecture/automation-engine.md`** : Mise à jour pour décrire la cascade à 2 niveaux.
+- **`docs/ops/troubleshooting.md`** : Nettoyage opérationnel et simplification de la gestion de panne.
+- **`docs/ops/testing-strategy.md`** : Retrait d'IFTTT de la stratégie et des checklists de tests.
+- **`docs/audits/rapport-audit-unifie.md`** et **`docs/audits/plan-action-sonar.md`** : Résolution définitive des constats de sécurité IFTTT (`CRIT-01` et `MAJ-02`).
 
 ## Questions/Problèmes Ouverts
 - Aucun.
 
 ## Prochaines Étapes
-- En attente de nouvelles instructions.
+- En attente de nouvelles instructions de l'utilisateur.

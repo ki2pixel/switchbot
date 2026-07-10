@@ -1,44 +1,35 @@
 # Guide de Dépannage SwitchBot Dashboard v2
 
-**TL;DR** : Le Dashboard utilise une architecture à 3 niveaux de fallback (IFTTT → scène → commande directe) avec retry automatique, monitoring structuré et bascule PostgreSQL → fichier pour garantir la résilience en production.
+**TL;DR** : Le Dashboard utilise une architecture à 2 niveaux de fallback (Scène favorite → Commande directe) avec retry automatique, monitoring structuré et bascule PostgreSQL → fichier pour garantir la résilience en production.
 
 ## Le Problème : Pourquoi la Gestion d'Erreurs est Critique
 
-Vous déployez un dashboard de domotique qui contrôle votre climatisation. Soudain, l'API SwitchBot rate limite à 429, votre webhook IFTTT timeout, et PostgreSQL refuse la connexion. Votre climatisation reste en mode "on" alors qu'il fait 35°C. C'est exactement le scénario que la gestion d'erreurs multicouche du Dashboard v2 empêche.
+Vous déployez un dashboard de domotique qui contrôle votre climatisation. Soudain, l'API SwitchBot rate limite à 429, PostgreSQL refuse la connexion, et vos commandes directes échouent. Votre climatisation reste en mode "on" alors qu'il fait 35°C. C'est exactement le scénario que la gestion d'erreurs multicouche du Dashboard v2 empêche.
 
 ## La Solution : Architecture de Résilience
 
-### Cascade de Fallback à 3 Niveaux
+### Cascade de Fallback à 2 Niveaux
 
 Le Dashboard n'a jamais un seul point de défaillance. Chaque action climatisation suit une cascade déterministe :
 
-1. **IFTTT Webhook** (priorité) → déclenche applet IFTTT personnalisée
-2. **Scène SwitchBot** (fallback 1) → appelle API SwitchBot avec scène prédéfinie  
-3. **Commande directe** (fallback 2) → `setAll`/`turnOff` sur l'appareil
+1. **Scène SwitchBot** (priorité) → appelle API SwitchBot avec scène favorite prédéfinie
+2. **Commande directe** (fallback) → `setAll`/`turnOff` sur l'appareil
 
 ```python
 # switchbot_dashboard/automation.py
 def _trigger_aircon_action(self, action_key: str, state_reason: str) -> bool:
-    """Déclenche une action avec cascade à 3 niveaux."""
+    """Déclenche une action avec cascade à 2 niveaux."""
     
-    # Niveau 1: Webhooks IFTTT (priorité)
-    ifttt_webhooks = extract_ifttt_webhooks(self._settings)
-    if ifttt_webhooks and action_key in ifttt_webhooks:
-        webhook_url = ifttt_webhooks[action_key]
-        if self._execute_ifttt_webhook(webhook_url, action_key, state_reason):
-            return True
-        logger.info(f"[automation] IFTTT webhook failed, falling back to scene")
-    
-    # Niveau 2: Scènes SwitchBot (fallback 1)
+    # Niveau 1: Scènes SwitchBot (priorité)
     aircon_scenes = extract_aircon_scenes(self._settings)
     if aircon_scenes and action_key in aircon_scenes:
         scene_id = aircon_scenes[action_key]
-        if self._execute_aircon_scene(scene_id, action_key, state_reason):
+        if self._trigger_scene(scene_id, action_key, state_reason):
             return True
         logger.warning(f"[automation] Scene execution failed, falling back to direct command")
     
-    # Niveau 3: Commandes directes (fallback 2)
-    return self._execute_aircon_direct_command(action_key, state_reason)
+    # Niveau 2: Commandes directes (fallback)
+    return self._send_aircon_direct_command(action_key, state_reason)
 ```
 
 ### Fallback Store Automatique
@@ -126,7 +117,6 @@ def _run_tick_safe(self) -> None:
             exc,
             exc_info=True,  # Stack trace complet
         )
-        # Ne pas crasher le scheduler, continuer les ticks suivants
 ```
 
 ### 3. Variables d'Environnement Critiques
@@ -147,13 +137,11 @@ SCHEDULER_ENABLED=true             # Active/désactive le scheduler
 ```json
 // config/settings.json - Configuration des fallbacks
 {
-  "ifttt_webhooks": {
-    "aircon_cool": "https://maker.ifttt.com/trigger/aircon_cool/with/key/...",
-    "aircon_heat": "https://maker.ifttt.com/trigger/aircon_heat/with/key/..."
-  },
   "aircon_scenes": {
-    "aircon_cool": "scene_id_cool_mode",
-    "aircon_heat": "scene_id_heat_mode"
+    "winter": "scene_id_winter_mode",
+    "summer": "scene_id_summer_mode",
+    "fan": "scene_id_fan_mode",
+    "off": "scene_id_off_mode"
   },
   "aircon_device_id": "device_id_here",
   "automation_enabled": true
@@ -171,7 +159,6 @@ SCHEDULER_ENABLED=true             # Active/désactive le scheduler
 [scheduler] # Ticks, erreurs globales, health
 [store]     # Opérations stockage, bascules, erreurs
 [history]   # Service d'historique, batch insert
-[ifttt]     # Webhooks IFTTT, timeouts, fallbacks
 ```
 
 ### Health Check `/healthz`
@@ -223,62 +210,18 @@ def health_check() -> Response:
 
 ```python
 # mauvais : pas de fallback
-if not self._execute_ifttt_webhook(url):
-    logger.error("IFTTT failed, nothing else to do")
+if not self._execute_aircon_scene(scene_id):
+    logger.error("Scene failed, nothing else to do")
     return False
 ```
 
 ### ✅ Cascade Complète
 
 ```python
-# bon : cascade à 3 niveaux
-if not self._execute_ifttt_webhook(url):
-    logger.warning("IFTTT failed, trying scene")
-    if not self._execute_aircon_scene(scene_id):
-        logger.error("Scene failed, trying direct command")
-        return self._execute_direct_command(device_id, action)
-```
-
-### ❌ Logs Non Structurés
-
-```python
-# mauvais : pas de contexte
-logger.error("API failed")
-```
-
-### ✅ Logs Structurés
-
-```python
-# bon : contexte complet
-self._error(
-    "SwitchBot API request failed",
-    status_code=response.status_code,
-    endpoint=endpoint,
-    attempt=attempt,
-    max_attempts=max_attempts,
-    trigger="automation_tick"
-)
-```
-
-### ❌ Crash du Scheduler
-
-```python
-# mauvais : exception non catchée
-def tick(self):
-    # Si ça lève une exception, le scheduler s'arrête
-    result = some_operation_that_can_fail()
-```
-
-### ✅ Wrapper Résilient
-
-```python
-# bon : wrapper global qui catch tout
-def _run_tick_safe(self) -> None:
-    try:
-        self._tick_callable()
-    except Exception as exc:
-        self._logger.error("[scheduler] Exception caught: %s", exc, exc_info=True)
-        # Le scheduler continue de fonctionner
+# bon : cascade à 2 niveaux
+if not self._execute_aircon_scene(scene_id):
+    logger.warning("Scene failed, trying direct command")
+    return self._execute_direct_command(device_id, action)
 ```
 
 ## Diagnostic Rapide
@@ -304,40 +247,6 @@ grep "\[api\]" logs/app.log | grep "retry\|fallback"
 
 # Vérifier l'état du quota
 curl http://localhost:5000/healthz | jq '.api_requests_*'
-
-# Test direct de l'API
-curl -H "Authorization: Bearer $TOKEN" \
-     https://api.switchbot.com/v1/devices
-```
-
-### 3. Problèmes de Store
-
-```bash
-# Logs de bascule de store
-grep "\[store\]" logs/app.log
-
-# Vérifier la connectivité PostgreSQL
-python -c "import psycopg; print('PostgreSQL OK')" 2>/dev/null || echo "PostgreSQL KO"
-
-# Validation des fichiers JSON
-python -c "import json; print('Settings OK')" < config/settings.json
-```
-
-### 4. Validation de Configuration
-
-```bash
-# Vérifier les variables d'environnement
-env | grep -E "(LOG_LEVEL|SWITCHBOT_|STORE_|POSTGRES_|SCHEDULER_)"
-
-# Valider la configuration JSON
-python -c "
-import json
-with open('config/settings.json') as f:
-    config = json.load(f)
-    required = ['aircon_device_id', 'automation_enabled']
-    missing = [k for k in required if k not in config]
-    print(f'Missing keys: {missing}' if missing else 'Config OK')
-"
 ```
 
 ## Tests de Validation
@@ -349,28 +258,14 @@ with open('config/settings.json') as f:
 def test_switchbot_api_retry():
     """Test le retry avec backoff exponentiel."""
     
-def test_ifttt_webhook_fallback():
-    """Test le fallback webhook → scène → commande."""
+def test_scene_execution_fallback():
+    """Test le fallback scène → commande."""
     
 def test_scheduler_exception_handling():
     """Test le wrapper global du scheduler."""
     
 def test_postgres_store_fallback():
     """Test la bascule PostgreSQL → filesystem."""
-```
-
-### Tests d'Intégration
-
-```python
-# tests/integration/test_error_scenarios.py
-def test_api_rate_limit_handling():
-    """Test la gestion du rate limit 429."""
-    
-def test_network_timeout_recovery():
-    """Test la récupération après timeout réseau."""
-    
-def test_database_connection_loss():
-    """Test la perte de connexion PostgreSQL."""
 ```
 
 ## Checklist Production
@@ -383,30 +278,6 @@ def test_database_connection_loss():
 - [ ] Configuration `config/settings.json` validée
 - [ ] Backup `state.json`/`settings.json`
 - [ ] PostgreSQL connection pool configuré si utilisé
-
-### Monitoring Continu
-
-- [ ] Taux d'erreurs API < 1%
-- [ ] Quota API > 100 requêtes restantes
-- [ ] Scheduler running = true
-- [ ] Latence par tick < 100ms
-- [ ] Disponibilité > 99.9%
-
-### Incident Response
-
-1. **Détection** : Alertes monitoring ou logs ERROR
-2. **Diagnostic** : Logs structurés avec préfixes `[component]`
-3. **Isolation** : Vérifier composant affecté (API/store/scheduler)
-4. **Résolution** : Fallback automatique ou intervention manuelle
-5. **Post-mortem** : Documenter cause et prévention
-
-### Tableau Comparatif des Approches de Dépannage
-
-| Approche | Vitesse | Précision | Maintenance | Cas d'usage |
-|----------|---------|-----------|-------------|-------------|
-| **Logs réactifs** | Rapide | Moyenne | Faible | Problèmes simples |
-| **Playbooks guidés** | Moyenne | Élevée | Moyenne | Incidents récurrents |
-| **Health checks** | Immédiat | Faible | Faible | Monitoring continu |
 
 ## La Règle d'Or : Fallback Automatique, Intervention Minimale
 

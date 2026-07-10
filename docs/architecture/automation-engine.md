@@ -1,6 +1,6 @@
 # Moteur d'Automatisation SwitchBot
 
-**TL;DR**: Le moteur d'automatisation implémente une cascade à trois niveaux (IFTTT → Scènes → Commandes directes) avec idempotence des actions OFF et répétitions paramétrables pour garantir la fiabilité du contrôle climatique.
+**TL;DR**: Le moteur d'automatisation implémente une cascade à deux niveaux (Scènes favorites → Commandes Directes API) avec idempotence des actions OFF et répétitions paramétrables pour garantir la fiabilité du contrôle climatique.
 
 ## Le Problème : Pourquoi cette Architecture ?
 
@@ -11,50 +11,41 @@ Vous construisez un système de contrôle climatique intelligent. Vous voulez qu
 3. **Les actions OFF répétées** - Votre système envoie des dizaines de commandes OFF identiques
 4. **La gestion des fuseaux horaires** - Vos fenêtres horaires ne fonctionnent pas correctement lors des changements d'heure
 
-Ces problèmes vous font perdre le contrôle de votre système et génèrent des factures API inattendues.
+Ces problèmes vous font perdre le contrôle de votre système et génèrent des requêtes API inutiles.
 
 ## La Solution : Architecture en Cascade avec Idempotence
 
-### La Cascade IFTTT → Scènes → Commandes
+### La Cascade Scènes → Commandes Directes
 
-Le système utilise une approche à trois niveaux avec fallback automatique :
+Le système utilise une approche à deux niveaux avec fallback automatique :
 
 ```python
-# switchbot_dashboard/automation.py - Lignes 600-650
+# switchbot_dashboard/automation.py
 def _trigger_aircon_action(self, action_key: str, state_reason: str) -> bool:
-    """Déclenche une action de climatisation avec cascade à 3 niveaux."""
+    """Déclenche une action de climatisation avec cascade à 2 niveaux."""
     
-    # Niveau 1: Webhooks IFTTT (priorité)
-    ifttt_webhooks = extract_ifttt_webhooks(self._settings)
-    if ifttt_webhooks and action_key in ifttt_webhooks:
-        webhook_url = ifttt_webhooks[action_key]
-        if self._execute_ifttt_webhook(webhook_url, action_key, state_reason):
-            return True
-        logger.info(f"[automation] IFTTT webhook failed, falling back to scene")
-    
-    # Niveau 2: Scènes SwitchBot (fallback 1)
+    # Niveau 1: Scènes SwitchBot (priorité)
     aircon_scenes = extract_aircon_scenes(self._settings)
     if aircon_scenes and action_key in aircon_scenes:
         scene_id = aircon_scenes[action_key]
-        if self._execute_aircon_scene(scene_id, action_key, state_reason):
+        if self._trigger_scene(scene_id, action_key, state_reason):
             return True
         logger.warning(f"[automation] Scene execution failed, falling back to direct command")
     
-    # Niveau 3: Commandes directes (fallback 2)
-    return self._execute_aircon_direct_command(action_key, state_reason)
+    # Niveau 2: Commandes directes (fallback)
+    return self._send_aircon_direct_command(action_key, state_reason)
 ```
 
 Cette approche résout plusieurs problèmes :
-- **Fiabilité** : Si l'API SwitchBot échoue, les webhooks IFTTT fonctionnent toujours
-- **Économie de quota** : Les webhooks IFTTT ne consomment pas votre quota SwitchBot
-- **Flexibilité** : IFTTT peut déclencher des notifications, logs, et actions complexes
+- **Fiabilité** : Si la commande directe échoue, la scène favorite (exécutée côté cloud SwitchBot) peut être tentée d'abord, ou inversement.
+- **Économie de quota** : Le déclenchement de scènes reste optimisé et les gardes d'idempotence évitent les appels superflus.
 
 ### Idempotence des Actions OFF
 
 Pour éviter les déclenchements excessifs, le système combine deux gardes : état supposé et file d'attente.
 
 ```python
-# switchbot_dashboard/automation.py - Lignes 825-837 (winter_off)
+# switchbot_dashboard/automation.py
 state = self._state_store.read()
 if state.get("assumed_aircon_power") == "off":
     self._debug("Skipping winter_off: already assumed off", trigger=trigger)
@@ -82,7 +73,7 @@ Le cycle de vie garantit qu'une seule commande OFF est envoyée par cycle :
 ```bash
 # .env
 SCHEDULER_ENABLED=true
-POLL_INTERVAL_SECONDS=60
+POLL_INTERVAL_SECONDS=120
 TIMEZONE=Europe/Paris
 ```
 
@@ -90,12 +81,6 @@ TIMEZONE=Europe/Paris
 
 ```json
 {
-  "ifttt_webhooks": {
-    "winter": "https://maker.ifttt.com/trigger/switchbot_winter/with/key/YOUR_KEY",
-    "summer": "https://maker.ifttt.com/trigger/switchbot_summer/with/key/YOUR_KEY",
-    "fan": "https://maker.ifttt.com/trigger/switchbot_fan/with/key/YOUR_KEY",
-    "off": "https://maker.ifttt.com/trigger/switchbot_off/with/key/YOUR_KEY"
-  },
   "aircon_scenes": {
     "winter": "SCENE_WINTER_UUID",
     "summer": "SCENE_SUMMER_UUID", 
@@ -115,7 +100,7 @@ TIMEZONE=Europe/Paris
 Pour garantir l'arrêt effectif, le système planifie des commandes OFF répétées avec file d'attente persistante :
 
 ```python
-# switchbot_dashboard/automation.py - Lignes 403-430
+# switchbot_dashboard/automation.py
 def _schedule_off_repeat_task(self, now: dt.datetime, *, state_reason: str) -> None:
     """Planifie des commandes OFF répétées avec intervalle configurable."""
     settings = self._settings_store.read()
@@ -159,8 +144,8 @@ L'état de la file d'attente est persisté via `state_store` :
 Chaque tick d'automatisation commence par drainer la file d'attente des répétitions OFF :
 
 ```python
-# switchbot_dashboard/automation.py - Lignes 432-511
-def _process_off_repeat_task(self, now: dt.datetime, *, trigger: str, webhooks, scenes, aircon_device_id) -> None:
+# switchbot_dashboard/automation.py
+def _process_off_repeat_task(self, now: dt.datetime, *, trigger: str, scenes, aircon_device_id) -> None:
     """Exécute les répétitions OFF planifiées si l'heure est venue."""
     state = self._state_store.read()
     task = state.get("pending_off_repeat")
@@ -186,7 +171,6 @@ def _process_off_repeat_task(self, now: dt.datetime, *, trigger: str, webhooks, 
     # Exécution de l'action OFF
     success = self._perform_off_action(
         trigger=trigger,
-        webhooks=webhooks,
         scenes=scenes,
         aircon_device_id=aircon_device_id,
         state_reason=task.get("state_reason", "automation_off_repeat"),
@@ -204,18 +188,15 @@ def _process_off_repeat_task(self, now: dt.datetime, *, trigger: str, webhooks, 
         return
 
     next_run_at = (now_utc + dt.timedelta(seconds=interval_seconds)).isoformat()
-    # Mise à jour atomique de la file d'attente
-    # ...
+    # Mise à jour de la file...
 ```
-
-Le SchedulerService maintient un intervalle de polling serré pendant les répétitions OFF pour garantir l'exécution en temps opportun.
 
 ### Gestion Timezone-Aware des Fenêtres
 
 Le système gère correctement les fuseaux horaires et les traversées de minuit :
 
 ```python
-# switchbot_dashboard/automation.py - Lignes 26-50
+# switchbot_dashboard/automation.py
 def _is_now_in_windows(time_windows: list[dict[str, Any]], now: dt.datetime) -> bool:
     """Évalue les fenêtres horaires dans le fuseau configuré."""
     
@@ -248,31 +229,6 @@ def _is_now_in_windows(time_windows: list[dict[str, Any]], now: dt.datetime) -> 
     return False
 ```
 
-### Cache Timezone pour Performance
-
-```python
-# switchbot_dashboard/automation.py - Lignes 100-120
-def _get_timezone(self) -> ZoneInfo:
-    """Récupère le fuseau horaire avec cache."""
-    
-    timezone_key = self._settings.get("timezone", "Europe/Paris")
-    
-    # Cache pour éviter les résolutions répétées
-    if (hasattr(self, '_cached_timezone_key') and 
-        hasattr(self, '_cached_timezone_value') and
-        self._cached_timezone_key == timezone_key):
-        return self._cached_timezone_value
-    
-    try:
-        tz = ZoneInfo(timezone_key)
-        self._cached_timezone_key = timezone_key
-        self._cached_timezone_value = tz
-        return tz
-    except ZoneInfoNotFoundError:
-        logger.warning(f"[automation] Invalid timezone {timezone_key}, falling back to UTC")
-        return ZoneInfo("UTC")
-```
-
 ## Les Pièges : Erreurs Communes à Éviter
 
 ### ❌ Ignorer l'Idempotence et la File d'Attente
@@ -291,45 +247,20 @@ if temperature > max_temp and state.get("assumed_aircon_power") != "off" and not
     schedule_off_repeat_task(now, reason="automation_winter_off")
 ```
 
-### ❌ Configuration Hardcodée
-```python
-# Fragile : pas de flexibilité
-webhook_url = "https://maker.ifttt.com/trigger/switchbot_winter/with/key/STATIC_KEY"
-```
-
-### ✅ Configuration Centralisée
-```python
-# Robuste : configuration via settings.json
-webhook_url = self._settings["ifttt_webhooks"].get(action_key)
-```
-
-### ❌ Oublier le Fallback
+### ❌ Cascade Sans Protection
 ```python
 # Risqué : single point of failure
 def execute_action(action):
     return send_direct_command(action)  # Échec = pas d'action
 ```
 
-### ✅ Cascade Complète
+### ✅ Cascade avec Fallback
 ```python
-# Fiable : fallback automatique
+# Fiable : fallback automatique vers commande directe
 def execute_action(action):
-    if not try_ifttt_webhook(action):
-        if not try_scene(action):
-            return send_direct_command(action)
+    if not try_scene(action):
+        return send_direct_command(action)
     return True
-```
-
-### ❌ Gestion Naïve du Temps
-```python
-# Incorrect : ignore les fuseaux horaires
-if 8 <= now.hour <= 22:  # Ne fonctionne pas avec les changements d'heure
-```
-
-### ✅ Timezone-Aware
-```python
-# Correct : gestion des fuseaux et traversées de minuit
-if _is_now_in_windows(windows, now_with_timezone):
 ```
 
 ## Patterns de Logging pour le Débogage
@@ -338,17 +269,16 @@ Le système utilise des logs structurés avec préfixes `[automation]` :
 
 ```bash
 # Début de cycle
-[automation] Automation tick started | trigger=scheduler, interval=60s
+[automation] Automation tick started | trigger=scheduler, poll_interval_seconds=120
 
 # Évaluation fenêtres
-[automation] Time window evaluation | in_window=true, windows=[0,1,2] 08:00-22:00
+[automation] Time window evaluation | in_window=true, time_windows=[0,1,2,3,4,5,6] 00:00-23:59
 
 # Décision température
-[automation] Winter mode triggered | current_temp=17.5, min_temp=18.0, target=20.0
+[automation] Temperature evaluation | current_temp=17.5, min_temp=18.0, target=21.0
 
 # Action avec cascade
-[automation] Using IFTTT webhook | action=winter, webhook_success=true
-[automation] Using SwitchBot scene | action=winter, scene_success=true
+[automation] Using SwitchBot scene | action=winter, scene_id=SCENE_WINTER_UUID
 [automation] Using direct command | action=winter, command=setAll
 
 # Protection idempotence
@@ -359,7 +289,7 @@ Le système utilise des logs structurés avec préfixes `[automation]` :
 [automation] Executing scheduled off repeat | remaining=1, state_reason=automation_winter_off
 
 # Fin de cycle
-[automation] Automation tick finished | outcome=winter_on, duration=1.2s
+[automation] Automation tick finished | outcome=winter_on
 ```
 
 ## Tableau Comparatif des Stratégies OFF
@@ -368,9 +298,11 @@ Le système utilise des logs structurés avec préfixes `[automation]` :
 |-----------|-----------|-------------|------------|-------------------|
 | **OFF unique** | Moyenne | Minimal | Faible | Testing, fallback ultime |
 | **OFF repeat file** | Élevée | Modéré | Moyenne | Production, arrêt garanti |
-| **Cascade IFTTT** | Très élevée | Faible | Élevée | Production, résilience maximale |
+| **Cascade Scènes** | Très élevée | Faible | Moyenne | Production, résilience maximale |
 
 ## La Règle d'Or : État Centralisé, File d'Attente Décentralisée
+
+## The Golden Rule: Metadata Static, Execution Dynamic
 
 Le moteur d'automatisation fonctionne parce qu'il maintient un état centralisé (`assumed_aircon_power`) tout en utilisant une file d'attente décentralisée (`pending_off_repeat`) pour les actions critiques. Cette séparation garantit la fiabilité tout en offrant une flexibilité maximale.
 

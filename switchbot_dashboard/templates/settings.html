@@ -60,10 +60,8 @@
                     {% if settings.get('automation_enabled') %}checked{% endif %}
                   />
                   <label class="form-check-label" for="automation_enabled">Automatisation activée</label>
-                </div>
-
-                <div class="row g-3">
-                  <div class="col-12 col-md-4">
+                               <div class="row g-3">
+                  <div class="col-12 col-md-6">
                     <label class="form-label" for="mode">Mode</label>
                     <select class="form-select" id="mode" name="mode">
                       <option value="winter" {% if settings.get('mode') == 'winter' %}selected{% endif %}>hiver</option>
@@ -71,15 +69,7 @@
                     </select>
                   </div>
 
-                  <div class="col-12 col-md-4">
-                    <label class="form-label" for="trigger_mode">Mode de déclenchement</label>
-                    <select class="form-select" id="trigger_mode" name="trigger_mode">
-                      <option value="direct" {% if settings.get('trigger_mode', 'direct') == 'direct' %}selected{% endif %}>API SwitchBot Direct</option>
-                      <option value="ifttt" {% if settings.get('trigger_mode') == 'ifttt' %}selected{% endif %}>Webhooks IFTTT</option>
-                    </select>
-                  </div>
-
-                  <div class="col-12 col-md-4">
+                  <div class="col-12 col-md-6">
                     <label class="form-label" for="poll_interval_seconds">Intervalle de sondage (s)</label>
                     <input
                       class="form-control"
@@ -470,47 +460,10 @@
                 <hr class="my-4" />
 
                 <h2 class="h6">
-                  Webhooks IFTTT
-                  {% if settings.get('trigger_mode', 'direct') == 'ifttt' %}
-                    <span class="badge bg-success-subtle text-success-emphasis ms-1">Actif</span>
-                  {% else %}
-                    <span class="badge bg-secondary-subtle text-secondary-emphasis ms-1">Inactif</span>
-                  {% endif %}
+                  Scènes favorites SwitchBot
                 </h2>
                 <p class="small text-muted">
-                  Renseignez les URLs des webhooks IFTTT pour déclencher vos scènes via le cloud. (Actif uniquement en mode <strong>Webhooks IFTTT</strong>).
-                </p>
-                <div class="row g-3 mb-4">
-                  {% for key in aircon_scene_keys %}
-                    <div class="col-12 col-md-6">
-                      <label class="form-label" for="webhook_{{ key }}_url">{{ aircon_scene_labels[key] }}</label>
-                      <input
-                        class="form-control"
-                        id="webhook_{{ key }}_url"
-                        name="webhook_{{ key }}_url"
-                        value="{{ ifttt_webhooks[key] }}"
-                        placeholder="https://maker.ifttt.com/trigger/..."
-                        type="url"
-                      />
-                      {% if missing_webhooks[key] %}
-                        <div class="form-text text-warning">Non configuré (fallback vers scène SwitchBot)</div>
-                      {% else %}
-                        <div class="form-text text-success">Prêt</div>
-                      {% endif %}
-                    </div>
-                  {% endfor %}
-                </div>
-
-                <h2 class="h6">
-                  Scènes favorites SwitchBot (API Directe)
-                  {% if settings.get('trigger_mode', 'direct') == 'direct' %}
-                    <span class="badge bg-success-subtle text-success-emphasis ms-1">Actif</span>
-                  {% else %}
-                    <span class="badge bg-secondary-subtle text-secondary-emphasis ms-1">Inactif</span>
-                  {% endif %}
-                </h2>
-                <p class="small text-muted">
-                  Renseignez les IDs des scènes favorites (SwitchBot → Scenes). Elles seront utilisées via l'API SwitchBot locale/cloud. (Actif uniquement en mode <strong>API SwitchBot Direct</strong>).
+                  Renseignez les IDs des scènes favorites (SwitchBot → Scenes) utilisées par l'automatisation.
                 </p>
                 <div class="row g-3">
                   {% for key in aircon_scene_keys %}
@@ -556,10 +509,6 @@
                   {% endif %}
                 </dd>
 
-                <dt class="col-7">Webhooks IFTTT</dt>
-                <dd class="col-5 text-end">
-                  {{ configured_webhooks_count }} / {{ aircon_scene_keys | length }}
-                </dd>
 
                 <dt class="col-7">Scènes configurées</dt>
                 <dd class="col-5 text-end">

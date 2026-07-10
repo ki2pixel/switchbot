@@ -9,12 +9,6 @@ AIRCON_SCENE_LABELS: dict[str, str] = {
     "fan": "Aircon ON – Mode neutre",
     "off": "Aircon OFF – Scène",
 }
-AIRCON_IFTTT_LABELS: dict[str, str] = {
-    "winter": "IFTTT Webhook – Hiver",
-    "summer": "IFTTT Webhook – Été",
-    "fan": "IFTTT Webhook – Ventilateur",
-    "off": "IFTTT Webhook – Arrêt",
-}
 
 
 def extract_aircon_scenes(settings: dict[str, Any]) -> Dict[str, str]:

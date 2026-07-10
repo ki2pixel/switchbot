@@ -13,39 +13,9 @@ from flask import Flask
 from switchbot_dashboard import create_app
 from switchbot_dashboard.__init__ import _build_store
 from switchbot_dashboard.config_store import JsonStore, StoreError
-from switchbot_dashboard.ifttt import validate_webhook_url
 from switchbot_dashboard.postgres_store import PostgresStore, PostgresStoreError
 from switchbot_dashboard.quota import ApiQuotaTracker
 from switchbot_dashboard.history_service import HistoryService, HistoryServiceError
-
-
-class TestSSRFDefense:
-    def test_ssrf_valid_url(self) -> None:
-        # Standard valid public URL
-        with patch("socket.getaddrinfo") as mock_dns:
-            mock_dns.return_value = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("54.210.155.161", 443))]
-            assert validate_webhook_url("https://maker.ifttt.com/trigger/event/with/key") is True
-
-    def test_ssrf_invalid_scheme_or_host(self) -> None:
-        assert validate_webhook_url("http://maker.ifttt.com/trigger/event") is False
-        assert validate_webhook_url("https://evil.com/trigger/event") is False
-
-    def test_ssrf_private_ip_resolution(self) -> None:
-        # maker.ifttt.com resolving to a loopback/private IP must fail
-        private_ips = ["127.0.0.1", "10.0.0.1", "172.16.0.1", "192.168.1.1", "::1"]
-        for ip in private_ips:
-            with patch("socket.getaddrinfo") as mock_dns:
-                mock_dns.return_value = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, 443))]
-                assert validate_webhook_url("https://maker.ifttt.com/trigger/event") is False
-
-    def test_ssrf_dns_failure_handling(self) -> None:
-        # In production/normal mode, DNS resolution failure returns False
-        app = Flask("test_app")
-        app.testing = False
-        app.debug = False
-        with app.app_context():
-            with patch("socket.getaddrinfo", side_effect=socket.gaierror("DNS failed")):
-                assert validate_webhook_url("https://maker.ifttt.com/trigger/event") is False
 
 
 class TestFlaskSecretKeyHardening:
