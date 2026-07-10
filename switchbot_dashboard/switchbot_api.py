@@ -219,6 +219,9 @@ class SwitchBotClient:
         limit = self._safe_int(limit_raw)
         remaining = self._safe_int(remaining_raw)
 
+        if getattr(response, "status_code", None) == 429:
+            remaining = 0
+
         tracker_updated = False
         if limit is None and remaining is None:
             if self._quota_tracker:

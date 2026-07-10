@@ -264,3 +264,16 @@ class TestClientRequestOperations:
 
         mock_request.assert_called_once()
         assert "scenes/scene-uuid/execute" in mock_request.call_args[1]["url"]
+
+    @patch("requests.request")
+    def test_request_429_forces_remaining_to_zero(self, mock_request, client, mock_quota_tracker) -> None:
+        mock_response = MagicMock()
+        mock_response.status_code = 429
+        mock_response.headers = {}
+        mock_response.json.return_value = {"message": "Too Many Requests"}
+        mock_request.return_value = mock_response
+
+        with pytest.raises(SwitchBotApiError, match="SwitchBot HTTP 429"):
+            client.get_devices()
+
+        mock_quota_tracker.record_from_headers.assert_any_call(limit=None, remaining=0)
