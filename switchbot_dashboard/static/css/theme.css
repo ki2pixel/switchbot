@@ -22,6 +22,16 @@
   --sb-info-bg: #0b3a57;
   --sb-alert-text: #f8fafc;
   
+  /* History page and extended layout variables mapping */
+  --sb-surface: var(--sb-card);
+  --sb-surface-elevated: rgba(20, 28, 55, 0.8);
+  --sb-surface-hover: rgba(30, 41, 79, 0.9);
+  --sb-border-color: var(--sb-card-border);
+  --sb-text-primary: var(--sb-text);
+  --sb-text-secondary: var(--sb-muted);
+  --sb-text-muted: rgba(255, 255, 255, 0.4);
+  --sb-primary: var(--sb-accent);
+  
   /* Design System Tokens */
   --sb-spacing-xs: 0.25rem;
   --sb-spacing-sm: 0.5rem;

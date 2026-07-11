@@ -39,6 +39,16 @@ body {
   --sb-accent-contrast: #051434;
   --sb-shadow: 0 25px 60px rgba(2, 7, 20, 0.55);
   --sb-outline: rgba(255, 255, 255, 0.08);
+  
+  /* History page and extended layout variables mapping */
+  --sb-surface: var(--sb-card);
+  --sb-surface-elevated: rgba(20, 28, 55, 0.8);
+  --sb-surface-hover: rgba(30, 41, 79, 0.9);
+  --sb-border-color: var(--sb-card-border);
+  --sb-text-primary: var(--sb-text);
+  --sb-text-secondary: var(--sb-muted);
+  --sb-text-muted: rgba(255, 255, 255, 0.4);
+  --sb-primary: var(--sb-accent);
 }
 
 /* Critical Layout */
