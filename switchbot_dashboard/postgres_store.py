@@ -146,6 +146,7 @@ class PostgresStore:
                 "conninfo": connection_string,
                 "min_size": 1,
                 "max_size": max_connections,
+                "kwargs": {"sslmode": ssl_mode},
             }
             self._initialize_pool()
         else:

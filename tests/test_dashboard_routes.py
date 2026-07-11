@@ -728,7 +728,7 @@ def test_debug_state_valid_token() -> None:
     app.config["STATE_DEBUG_TOKEN"] = "secure-debug-token"
 
     with app.test_client() as client:
-        response = client.get("/debug/state?token=secure-debug-token")
+        response = client.get("/debug/state", headers={"Authorization": "Bearer secure-debug-token"})
 
     assert response.status_code == 200
     payload = response.get_json()
@@ -746,7 +746,7 @@ def test_debug_state_invalid_token() -> None:
     app.config["STATE_DEBUG_TOKEN"] = "secure-debug-token"
 
     with app.test_client() as client:
-        response = client.get("/debug/state?token=wrong-token")
+        response = client.get("/debug/state", headers={"Authorization": "Bearer wrong-token"})
 
     assert response.status_code == 404
 
@@ -777,7 +777,7 @@ def test_debug_state_not_configured() -> None:
     app.config["STATE_DEBUG_TOKEN"] = ""
 
     with app.test_client() as client:
-        response = client.get("/debug/state?token=some-token")
+        response = client.get("/debug/state", headers={"Authorization": "Bearer some-token"})
 
     assert response.status_code == 404
 

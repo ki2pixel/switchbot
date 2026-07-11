@@ -239,6 +239,7 @@ class TestPostgresStore:
                 conninfo=test_postgres_url,
                 min_size=1,
                 max_size=5,
+                kwargs={"sslmode": "verify-full"},
             )
 
     def test_table_creation(self, postgres_store):

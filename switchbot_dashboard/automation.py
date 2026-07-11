@@ -803,16 +803,87 @@ class AutomationService:
             aircon_device_id.strip(),
         )
 
+    def _acquire_lock(self) -> bool:
+        """
+        Acquire the concurrency lock in the state store.
+        Returns True if the lock was successfully acquired, False otherwise.
+        """
+        owner_label = "scheduler" if not has_request_context() else f"http:{request.endpoint}"
+        
+        def _check_and_set() -> bool:
+            state = self._state_store.read()
+            is_locked = state.get("automation_in_progress", False)
+            locked_at_str = state.get("automation_locked_at")
+            
+            is_expired = False
+            if is_locked and locked_at_str:
+                try:
+                    locked_at = dt.datetime.fromisoformat(locked_at_str)
+                    if locked_at.tzinfo is None:
+                        locked_at = locked_at.replace(tzinfo=dt.timezone.utc)
+                    now_utc = dt.datetime.now(dt.timezone.utc)
+                    if now_utc - locked_at > dt.timedelta(minutes=2):
+                        is_expired = True
+                except Exception as exc:
+                    self._warning("Failed to parse automation_locked_at", error=str(exc))
+                    is_expired = True
+            
+            if is_locked and not is_expired:
+                return False
+                
+            state["automation_in_progress"] = True
+            state["automation_locked_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+            state["automation_lock_owner"] = owner_label
+            self._state_store.write(state)
+            return True
+
+        if hasattr(self._state_store, "transaction"):
+            try:
+                with self._state_store.transaction():
+                    return _check_and_set()
+            except Exception as exc:
+                self._error("Failed to acquire lock via transaction", error=str(exc))
+                return False
+        else:
+            return _check_and_set()
+
+    def _release_lock(self) -> None:
+        """Release the concurrency lock in the state store."""
+        owner_label = "scheduler" if not has_request_context() else f"http:{request.endpoint}"
+        
+        def _clear_lock() -> None:
+            state = self._state_store.read()
+            if state.get("automation_lock_owner") == owner_label or not state.get("automation_in_progress"):
+                state["automation_in_progress"] = False
+                state["automation_locked_at"] = None
+                state["automation_lock_owner"] = None
+                self._state_store.write(state)
+
+        if hasattr(self._state_store, "transaction"):
+            try:
+                with self._state_store.transaction():
+                    _clear_lock()
+            except Exception as exc:
+                self._error("Failed to release lock via transaction", error=str(exc))
+        else:
+            _clear_lock()
+
     def run_once(self) -> None:
         import time
         start_time = time.perf_counter()
+        
+        if not self._acquire_lock():
+            self._debug("Skipping automation cycle: lock is held by another process")
+            return
+
         try:
-            if hasattr(self._state_store, "transaction"):
-                with self._state_store.transaction():
-                    self._run_once_impl()
-            else:
-                self._run_once_impl()
+            self._run_once_impl()
         finally:
+            try:
+                self._release_lock()
+            except Exception as exc:
+                self._error("Error releasing lock", error=str(exc))
+                
             duration = time.perf_counter() - start_time
             self._tick_durations.append(duration)
             if len(self._tick_durations) > 10:

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
+    <title>Connexion - SwitchBot Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/space-grotesk.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}" />
+    <style>
+      .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--sb-spacing-lg);
+      }
+      .login-card {
+        background: var(--sb-card);
+        border: 1px solid var(--sb-card-border);
+        box-shadow: var(--sb-shadow);
+        border-radius: 16px;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        width: 100%;
+        max-width: 420px;
+        padding: var(--sb-spacing-xl);
+        position: relative;
+        overflow: hidden;
+        transition: transform var(--sb-transition-normal), box-shadow var(--sb-transition-normal);
+      }
+      .login-card:hover {
+        transform: translateY(var(--sb-translate-hover));
+        box-shadow: var(--sb-glass-shadow-hover);
+        border-color: var(--sb-glass-border-hover);
+      }
+      .login-logo {
+        font-size: 3rem;
+        color: var(--sb-accent);
+        text-align: center;
+        margin-bottom: var(--sb-spacing-md);
+        text-shadow: 0 0 20px rgba(138, 180, 255, 0.4);
+      }
+      .form-control-sb {
+        background: var(--sb-glass-bg);
+        border: 1px solid var(--sb-glass-border);
+        color: var(--sb-text);
+        padding: 0.8rem 1rem;
+        border-radius: 8px;
+        transition: all var(--sb-transition-fast);
+      }
+      .form-control-sb:focus {
+        background: var(--sb-glass-bg-hover);
+        border-color: var(--sb-accent);
+        box-shadow: 0 0 0 3px rgba(138, 180, 255, 0.25);
+        color: var(--sb-text);
+        outline: none;
+      }
+    </style>
+  </head>
+  <body class="sb-dark">
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-logo">
+          <i class="fas fa-lock"></i>
+        </div>
+        <h2 class="text-center h4 mb-3">Tableau de bord</h2>
+        <p class="text-muted text-center small mb-4">
+          Veuillez saisir votre mot de passe pour accéder à l'interface d'administration.
+        </p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="mb-3" aria-live="polite" aria-atomic="true">
+              {% for category, message in messages %}
+                <div class="alert alert-danger py-2 px-3 small" role="alert" data-auto-dismiss="5000">
+                  <i class="fas fa-exclamation-circle me-2"></i>{{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form method="post" action="{{ url_for('dashboard.login') }}" data-loader>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="mb-4">
+            <label for="password" class="form-label small text-muted">Mot de passe</label>
+            <input
+              type="password"
+              class="form-control form-control-sb w-100"
+              id="password"
+              name="password"
+              required
+              placeholder="••••••••"
+              autocomplete="current-password"
+              autofocus
+            />
+          </div>
+
+          <button type="submit" class="btn btn-outline-light w-100 py-2">
+            <i class="fas fa-sign-in-alt me-2"></i>Se connecter
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/loaders.js') }}"></script>
+  </body>
+</html>

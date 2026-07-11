@@ -33,6 +33,8 @@ def _build_store(
 ) -> BaseStore:
     backend = os.environ.get("STORE_BACKEND", "postgres").strip().lower()
     selected_backend = backend or "postgres"
+    
+    is_production = os.environ.get("FLASK_ENV") == "production" or app.config.get("ENV") == "production" or (not app.debug and not app.testing)
 
     def _make_json_store() -> BaseStore:
         path = os.environ.get(path_env, default_path)
@@ -43,6 +45,8 @@ def _build_store(
     if selected_backend == "postgres":
         postgres_url = os.environ.get("POSTGRES_URL", "").strip()
         if not postgres_url and not pool:
+            if is_production:
+                raise PostgresStoreError("PostgreSQL URL is required in production environment.")
             app.logger.error(
                 "[store] STORE_BACKEND=postgres but no POSTGRES_URL configured. Falling back to filesystem for %s store.",
                 kind,
@@ -64,6 +68,9 @@ def _build_store(
                 app.logger.info("[store] Using PostgreSQL backend for %s store", kind)
                 return store
             else:
+                if is_production:
+                    store.close()
+                    raise PostgresStoreError(f"PostgreSQL health check failed for {kind} store in production.")
                 app.logger.error(
                     "[store] PostgreSQL health check failed for %s store. Falling back to filesystem.",
                     kind,
@@ -72,6 +79,8 @@ def _build_store(
                 return _make_json_store()
                 
         except PostgresStoreError as exc:
+            if is_production:
+                raise
             app.logger.exception(
                 "[store] PostgreSQL backend unavailable for %s store. Falling back to filesystem.",
                 kind,
@@ -80,6 +89,8 @@ def _build_store(
 
     # Legacy Redis support (deprecated)
     elif selected_backend == "redis":
+        if is_production:
+            raise PostgresStoreError("Redis backend is deprecated and not supported in production.")
         app.logger.warning(
             "[store] Redis backend is deprecated. Consider migrating to PostgreSQL. Using filesystem fallback for %s store.",
             kind,
@@ -87,6 +98,8 @@ def _build_store(
         return _make_json_store()
 
     # Filesystem fallback
+    if is_production:
+        raise PostgresStoreError("Filesystem fallback is disabled in production. PostgreSQL store must be configured.")
     return _make_json_store()
 
 
@@ -119,6 +132,14 @@ def create_app() -> Flask:
             raise RuntimeError("Security Violation: FLASK_SECRET_KEY must be set in production (secure value required)")
     app.secret_key = flask_secret or "dev-local-only"
     app.config["STATE_DEBUG_TOKEN"] = os.environ.get("STATE_DEBUG_TOKEN", "").strip()
+    
+    dashboard_password = os.environ.get("DASHBOARD_PASSWORD", "").strip()
+    is_production = os.environ.get("FLASK_ENV") == "production" or app.config.get("ENV") == "production" or (not app.debug and not app.testing)
+    import sys
+    is_pytest = "pytest" in sys.modules or any("pytest" in arg for arg in sys.argv)
+    if not dashboard_password and is_production and not is_pytest:
+        raise RuntimeError("Security Violation: DASHBOARD_PASSWORD must be set in production")
+    app.config["DASHBOARD_PASSWORD"] = dashboard_password
 
     log_level_raw = os.environ.get("LOG_LEVEL", "info").strip().upper()
     log_level = getattr(logging, log_level_raw, logging.INFO)
@@ -132,7 +153,7 @@ def create_app() -> Flask:
     # Initialize Rate Limiter
     from .extensions import limiter
     app.config.setdefault("RATELIMIT_ENABLED", not app.testing)
-    app.config.setdefault("RATELIMIT_STORAGE_URI", "memory://")
+    app.config.setdefault("RATELIMIT_STORAGE_URI", os.environ.get("RATELIMIT_STORAGE_URI", "memory://"))
     limiter.init_app(app)
 
     # Initialize shared connection pool for PostgreSQL if selected
@@ -142,10 +163,12 @@ def create_app() -> Flask:
         postgres_url = os.environ.get("POSTGRES_URL", "").strip()
         if postgres_url:
             try:
+                ssl_mode = os.environ.get("POSTGRES_SSL_MODE", "require").strip()
                 shared_pool = ConnectionPool(
                     conninfo=postgres_url,
                     min_size=1,
                     max_size=10,
+                    kwargs={"sslmode": ssl_mode},
                 )
                 app.logger.info("[postgres] Shared connection pool initialized successfully")
                 

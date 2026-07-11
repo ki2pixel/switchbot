@@ -1,44 +1,18 @@
 # Contexte Actif
 
 ## Objectifs
-- [x] Suppression intégrale du support d'IFTTT de l'application (backend, frontend, tests et documentation) afin de reposer exclusivement sur l'API SwitchBot (mode direct et scènes).
-- [x] Optimisation de l'usage du quota SwitchBot par l'introduction d'un cache cooldown sur le sondage AC et renforcement des validations d'intervalles.
-- [x] Correction du rendu de la time scale Chart.js côté frontend et alignement des timestamps lors des écritures groupées (batch flushes) côté backend.
-- [x] Implémentation complète de l'Audit Backend (Sécurité, Stabilisation Store, Observabilité/Healthz, et Amortissement historique).
-- [x] Correction de la pollution d'état (`last_error`) dans `automation.py` lors d'un fallback direct sans scène configurée.
-- [x] Campagne d'archivage de la Memory Bank effectuée.
-- [x] Audit d'alignement des Skills IA avec la base de code réalisé et validé.
-- [x] Alignement de la documentation technique (v2) avec le code réel, via le workflow `/docs-updater`.
-- [x] Polling temps réel du statut AC (Air Conditioner) depuis l'API SwitchBot pour corriger l'incohérence d'état de l'automatisation en mode direct.
+- [x] Résolution des vulnérabilités de sécurité P0 et P1 (mot de passe en clair DASHBOARD_PASSWORD, session authentifiée avec CSRF, page login glassmorphic, retrait du jeton de l'URL pour Bearer token).
+- [x] Durcissement du stockage et SSL (sslmode explicite via kwargs, blocage de démarrage sans fallback JSON en production).
+- [x] Optimisation des verrous et de la concurrence (appel API hors transaction PostgreSQL, verrou d'état distribué de 2 minutes pour éviter les conflits d'automatisation et d'UI).
+- [x] Fiabilité des quotas et rate-limiting (correction de la métrique history_service.py vers api_requests_total, rafraîchissement réel des quotas via get_devices, rate-limiting global configurable).
+- [x] Campagne d'intégration de tests unitaires et de non-régression complétée (164 tests passed, 0 failed).
 
 ## Décisions Clés
-- Suppression de toute la cascade IFTTT : le système n'utilise plus que 2 niveaux (Scène favorite SwitchBot -> Commande directe via API SwitchBot) pour plus de fiabilité et moins de complexité.
-- Cache/cooldown de 15 minutes sur `poll_aircon_status` pour limiter drastiquement les requêtes SwitchBot API, avec option `force=True` uniquement lors de décisions critiques de commande climatiseur.
-- Augmentation de la validation minimale des intervalles de polling (60s pour `poll_interval_seconds`, 300s pour `idle_poll_interval_seconds`) sur le backend et le frontend.
-- Synchronisation de l'état supposé de l'AC avec le statut physique via `poll_aircon_status()` avant l'évaluation de température dans `_run_once_impl`, conditionné au mode `direct` et à la fenêtre horaire active.
-- DummyClient des tests enrichi pour simuler l'état physique de l'AC et ses transitions lors de l'exécution de scènes/commandes.
-- Utilisation systématique d'objets `Date` JavaScript et tri croissant (ASC) côté frontend pour le rendu correct de Chart.js en mode `parsing: false`.
-- Masquage et désactivation du bouton "Réinitialiser zoom" si le plugin de zoom Chart.js n'est pas chargé (résolution d'un TypeError).
-- Déclaration explicite de la colonne `timestamp` lors des insertions groupées dans `state_history` pour éviter l'alignement artificiel des timestamps d'un même batch via `DEFAULT NOW()`.
-- Déplacement des secrets (webhooks IFTTT) hors de `settings.json` vers l'environnement (.env).
-- Mise en œuvre de protections SSRF strictes au niveau DNS pour les appels de webhooks externes.
-- Amortissement résilient des écritures d'historique en mémoire tampon si PostgreSQL est hors-ligne.
-- Utilisation systématique de la property `pool` de `PostgresStore` pour forcer les vérifications d'initialisation de connexion.
-- Blocage strict du démarrage Flask en production si `FLASK_SECRET_KEY` est vulnérable ou manquante.
-
-## Modifications Skills Effectuées
-- Mise à jour de `add-feature/SKILL.md` (SPA Router, CSRF).
-- Mise à jour de `postgres-store-maintenance/SKILL.md` (gestion de contextes psycopg_pool).
-- Suppression de `ifttt-cascade` (précédemment utilisé pour orchestrer IFTTT).
-
-## Modifications Documentaires Effectuées
-- **`docs/architecture/automation-engine.md`** : Mise à jour pour décrire la cascade à 2 niveaux.
-- **`docs/ops/troubleshooting.md`** : Nettoyage opérationnel et simplification de la gestion de panne.
-- **`docs/ops/testing-strategy.md`** : Retrait d'IFTTT de la stratégie et des checklists de tests.
-- **`docs/audits/rapport-audit-unifie.md`** et **`docs/audits/plan-action-sonar.md`** : Résolution définitive des constats de sécurité IFTTT (`CRIT-01` et `MAJ-02`).
-
-## Questions/Problèmes Ouverts
-- Aucun.
+- Utilisation de `DASHBOARD_PASSWORD` en variable d'environnement (valeur comparée de manière sécurisée en temps constant via `hmac.compare_digest`).
+- Blocage strict en production en cas de base PostgreSQL KO ou de mot de passe non défini pour empêcher des expositions ou comportements dégradés non contrôlés.
+- Utilisation de l'en-tête standard `Authorization: Bearer <token>` sur `/debug/state` et suppression du query paramètre `token` de l'URL.
+- Verrouillage concurrent en base de données (`automation_in_progress` et `automation_locked_at`) avec expiration automatique après 2 minutes, protégeant à la fois le tick d'automatisation et les commandes manuelles de l'UI.
+- Intégration de rate-limiting (Flask-Limiter) sur les points d'entrée sensibles (5/min pour la connexion et les réglages, 10/min pour le contrôle).
 
 ## Prochaines Étapes
-- En attente de nouvelles instructions de l'utilisateur.
+- En attente de nouveaux retours de l'utilisateur sur la livraison des corrections de l'audit.

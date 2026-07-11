@@ -15,6 +15,7 @@ from flask import (
     request,
     url_for,
     abort,
+    session,
 )
 
 from .config_store import StoreError
@@ -25,6 +26,33 @@ from .extensions import limiter
 
 dashboard_bp = Blueprint("dashboard", __name__)
 ROUTE_INDEX = "dashboard.index"
+
+
+@dashboard_bp.before_request
+def check_auth() -> Any:
+    if request.endpoint in (
+        "dashboard.login",
+        "dashboard.logout",
+        "dashboard.healthz",
+        "dashboard.debug_state",
+    ):
+        return None
+
+    if request.endpoint == "static" or (request.path and request.path.startswith("/static/")):
+        return None
+
+    password = current_app.config.get("DASHBOARD_PASSWORD")
+    if not password:
+        return None
+
+    if not session.get("logged_in"):
+        if request.path.startswith("/history/api/"):
+            return current_app.response_class(
+                response=json.dumps({"error": "Unauthorized"}),
+                status=401,
+                mimetype="application/json"
+            )
+        return redirect(url_for("dashboard.login"))
 
 
 DAY_CHOICES: list[dict[str, Any]] = [
@@ -321,22 +349,65 @@ def quota() -> str:
 
 
 @dashboard_bp.post("/quota/refresh")
+@limiter.limit("5 per minute")
 def quota_refresh() -> Any:
     quota_tracker = current_app.extensions.get("quota_tracker")
-    if quota_tracker is None:
-        flash("Suivi de quota indisponible.", "error")
+    client = current_app.extensions.get("switchbot_client")
+    if quota_tracker is None or client is None:
+        flash("Suivi de quota ou client API indisponible.", "error")
         return redirect(url_for("dashboard.quota"))
 
-    quota_tracker.record_call()
+    if client and hasattr(client, "get_devices"):
+        try:
+            client.get_devices()
+            flash("Compteurs de quota mis à jour depuis l'API SwitchBot.", "success")
+        except SwitchBotApiError as exc:
+            flash(f"Erreur lors de l'appel API SwitchBot : {exc}", "error")
+    else:
+        quota_tracker.record_call()
+        flash("Quota mis à jour.", "success")
+
     quota_tracker.refresh_snapshot()
-    flash("Quota mis à jour.", "success")
     return redirect(url_for("dashboard.quota"))
+
+
+@dashboard_bp.route("/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
+def login() -> Any:
+    if not current_app.config.get("DASHBOARD_PASSWORD"):
+        return redirect(url_for(ROUTE_INDEX))
+
+    if session.get("logged_in"):
+        return redirect(url_for(ROUTE_INDEX))
+
+    if request.method == "POST":
+        provided_password = request.form.get("password")
+        expected_password = current_app.config.get("DASHBOARD_PASSWORD")
+        if provided_password and hmac.compare_digest(provided_password, expected_password):
+            session["logged_in"] = True
+            flash("Connexion réussie.", "success")
+            return redirect(url_for(ROUTE_INDEX))
+        else:
+            flash("Mot de passe incorrect.", "error")
+
+    return render_template("login.html")
+
+
+@dashboard_bp.route("/logout")
+def logout() -> Any:
+    session.pop("logged_in", None)
+    flash("Déconnexion réussie.", "success")
+    return redirect(url_for("dashboard.login"))
 
 
 @dashboard_bp.get("/debug/state")
 def debug_state() -> Any:
     expected_token = current_app.config.get("STATE_DEBUG_TOKEN")
-    provided_token = request.args.get("token")
+    
+    auth_header = request.headers.get("Authorization")
+    provided_token = None
+    if auth_header and auth_header.startswith("Bearer "):
+        provided_token = auth_header[7:].strip()
 
     if not expected_token or not provided_token:
         abort(404)
@@ -507,6 +578,7 @@ def _update_profiles(request_form: Any, settings: dict[str, Any]) -> None:
 
 
 @dashboard_bp.post("/settings")
+@limiter.limit("5 per minute")
 def update_settings() -> Any:
     """Handle settings form submission and validation.
 
@@ -631,6 +703,7 @@ def update_settings() -> Any:
 
 
 @dashboard_bp.post("/actions/run_once")
+@limiter.limit("10 per minute")
 def run_once() -> Any:
     """Execute a single automation cycle manually.
 
@@ -648,6 +721,7 @@ def run_once() -> Any:
 
 
 @dashboard_bp.post("/actions/aircon_off")
+@limiter.limit("10 per minute")
 def aircon_off() -> Any:
     return _execute_aircon_action(
         "off",
@@ -681,55 +755,66 @@ def _update_state_on_error(state_store: Any, error_msg: str) -> None:
 def _handle_direct_action(
     action_key: str, scene_id: str, aircon_id: str, state_reason: str, flash_label: str, assumed_power: str
 ) -> Any:
-    client = current_app.extensions["switchbot_client"]
-    state_store = current_app.extensions["state_store"]
-
-    assumed_mode = None
-    if action_key == "fan":
-        assumed_mode = 4
-    elif action_key == "winter":
-        assumed_mode = 5
-    elif action_key == "summer":
-        assumed_mode = 2
-
-    if scene_id:
-        try:
-            client.run_scene(scene_id)
-            _update_state_on_success(
-                state_store,
-                assumed_power,
-                f"scene({scene_id}) ({state_reason})",
-                assumed_mode=assumed_mode,
-            )
-            flash(flash_label)
+    automation_service = current_app.extensions.get("automation_service")
+    has_lock_support = automation_service and hasattr(automation_service, "_acquire_lock")
+    if has_lock_support:
+        if not automation_service._acquire_lock():
+            flash("Action impossible : un cycle d'automatisation ou une autre commande est en cours. Veuillez réessayer.", "error")
             return redirect(url_for(ROUTE_INDEX))
-        except SwitchBotApiError as exc:
+
+    try:
+        client = current_app.extensions["switchbot_client"]
+        state_store = current_app.extensions["state_store"]
+
+        assumed_mode = None
+        if action_key == "fan":
+            assumed_mode = 4
+        elif action_key == "winter":
+            assumed_mode = 5
+        elif action_key == "summer":
+            assumed_mode = 2
+
+        if scene_id:
+            try:
+                client.run_scene(scene_id)
+                _update_state_on_success(
+                    state_store,
+                    assumed_power,
+                    f"scene({scene_id}) ({state_reason})",
+                    assumed_mode=assumed_mode,
+                )
+                flash(flash_label)
+                return redirect(url_for(ROUTE_INDEX))
+            except SwitchBotApiError as exc:
+                if not aircon_id:
+                    _update_state_on_error(state_store, str(exc))
+                    flash(str(exc), "error")
+                    return redirect(url_for(ROUTE_INDEX))
+                current_app.logger.warning(f"Scene execution failed for {action_key}: {exc}. Falling back to direct command.")
+
+        if action_key == "off":
             if not aircon_id:
+                flash("aircon_device_id manquant pour commande directe", "error")
+                return redirect(url_for(ROUTE_INDEX))
+            try:
+                client.send_command(aircon_id, command="turnOff", parameter="default", command_type="command")
+                _update_state_on_success(state_store, "off", f"turnOff ({state_reason})")
+                flash(flash_label)
+            except SwitchBotApiError as exc:
                 _update_state_on_error(state_store, str(exc))
                 flash(str(exc), "error")
-                return redirect(url_for(ROUTE_INDEX))
-            current_app.logger.warning(f"Scene execution failed for {action_key}: {exc}. Falling back to direct command.")
-
-    if action_key == "off":
-        if not aircon_id:
-            flash("aircon_device_id manquant pour commande directe", "error")
             return redirect(url_for(ROUTE_INDEX))
-        try:
-            client.send_command(aircon_id, command="turnOff", parameter="default", command_type="command")
-            _update_state_on_success(state_store, "off", f"turnOff ({state_reason})")
-            flash(flash_label)
-        except SwitchBotApiError as exc:
-            _update_state_on_error(state_store, str(exc))
-            flash(str(exc), "error")
-        return redirect(url_for(ROUTE_INDEX))
 
-    if not scene_id:
-        action_label = AIRCON_SCENE_LABELS.get(action_key, action_key)
-        flash(f"Aucune scène configurée pour {action_label} en mode API Direct.", "error")
-    else:
-        flash(f"Impossible d'exécuter l'action {action_key} : scène échouée et pas de commande directe supportée", "error")
-        
-    return redirect(url_for(ROUTE_INDEX))
+        if not scene_id:
+            action_label = AIRCON_SCENE_LABELS.get(action_key, action_key)
+            flash(f"Aucune scène configurée pour {action_label} en mode API Direct.", "error")
+        else:
+            flash(f"Impossible d'exécuter l'action {action_key} : scène échouée et pas de commande directe supportée", "error")
+            
+        return redirect(url_for(ROUTE_INDEX))
+    finally:
+        if has_lock_support:
+            automation_service._release_lock()
 
 
 def _execute_aircon_action(
@@ -747,6 +832,7 @@ def _execute_aircon_action(
 
 
 @dashboard_bp.post("/actions/aircon_on")
+@limiter.limit("10 per minute")
 def aircon_on() -> Any:
     """Route to the current mode scene for backward compatibility."""
     settings_store = current_app.extensions["settings_store"]
@@ -761,6 +847,7 @@ def aircon_on() -> Any:
 
 
 @dashboard_bp.post("/actions/aircon_on_winter")
+@limiter.limit("10 per minute")
 def aircon_on_winter() -> Any:
     return _execute_aircon_action(
         "winter",
@@ -771,6 +858,7 @@ def aircon_on_winter() -> Any:
 
 
 @dashboard_bp.post("/actions/aircon_on_summer")
+@limiter.limit("10 per minute")
 def aircon_on_summer() -> Any:
     return _execute_aircon_action(
         "summer",
@@ -781,6 +869,7 @@ def aircon_on_summer() -> Any:
 
 
 @dashboard_bp.post("/actions/aircon_on_fan")
+@limiter.limit("10 per minute")
 def aircon_on_fan() -> Any:
     return _execute_aircon_action(
         "fan",
@@ -828,6 +917,7 @@ def devices() -> str:
 
 
 @dashboard_bp.post("/actions/quick_off")
+@limiter.limit("10 per minute")
 def quick_off() -> Any:
     settings_store = current_app.extensions["settings_store"]
     

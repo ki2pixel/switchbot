@@ -1,3 +1,14 @@
+[2026-07-11 03:05:00] - Remédiation des Vulnérabilités, SSL, Stockage et Concurrence du Backend (Phases 1-4)
+- Décision : Implémenter l'authentification par session (mot de passe en clair DASHBOARD_PASSWORD), exiger SSL (sslmode) pour PostgreSQL, interdire le fallback JSON en production, isoler les transactions de ticks d'automatisation et introduire un verrou applicatif distribué en base de données.
+- Motivation : L'audit backend de sécurité a mis en évidence l'absence d'authentification sur les routes d'action et de réglage, une configuration SSL PostgreSQL inopérante, des fallbacks JSON silencieux masquant les pannes de DB, des blocages de connexions psycopg dus aux transactions englobant des appels API lents, et un risque de collision entre les actions manuelles et l'automatisation.
+- Implémentation :
+  1. **Sécurité et Authentification** : Ajout d'une session-auth avec mot de passe, création de `/login` glassmorphic et `/logout`, et protection CSRF. Sécurisation de `/debug/state` via Bearer token dans l'en-tête Authorization.
+  2. **Connexions BDD & Production** : Configuration explicite de `sslmode` dans les `kwargs` du psycopg ConnectionPool. Levée d'une erreur bloquante en production s'il y a un échec de connexion ou de health check.
+  3. **Concurrence & Transactions** : Suppression des transactions psycopg enveloppant les appels réseau. Création d'un verrou applicatif distribué via les clés `automation_in_progress` et `automation_locked_at` de la base de données (sécurité de libération à 2 minutes).
+  4. **Quotas & Limites** : Correction du quota d'historique (api_requests_total), appel de rafraîchissement quota réel via get_devices, et rate-limiting global par route sensible.
+- Implication : Le backend est désormais complètement sécurisé, robuste face aux conflits de concurrence et protégé contre la rétention indue de connexions de base de données.
+
+
 [2026-05-27 13:22:00] - Remédiation Phase 3 : Scalabilité & Expérience Native (Frontend)
 - Décision : Déporter le monitoring continu de performances (FPS, JS Heap) vers un Web Worker dédié (`perf-worker.js`) et implémenter un routeur asynchrone natif (`spa-router.js`) pour éliminer les rechargements complets de pages (SPA Light).
 - Motivation : Les calculs de FPS continus sur le thread principal consommaient de la CPU et risquaient de causer des micro-saccades lors du rendu des graphiques. De plus, les rechargements complets de pages lors du changement de menu nuisaient à la fluidité ressentie comme "native".

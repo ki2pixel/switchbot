@@ -266,7 +266,7 @@ class HistoryService:
         humidity = state_data.get("last_humidity")
         aircon_power = state_data.get("assumed_aircon_power", "unknown")
         last_action = state_data.get("last_action")
-        api_requests = state_data.get("api_requests_today", 0)
+        api_requests = state_data.get("api_requests_total", 0)
         error_count = state_data.get("error_count", 0)
         temp_stale = state_data.get("last_temperature_stale", False)
 
