@@ -164,13 +164,13 @@
   .scene-actions-wrapper {
     display: block;
     position: sticky;
-    bottom: 1rem;
+    bottom: calc(75px + env(safe-area-inset-bottom) * 1.1);
     background: var(--sb-glass-bg);
     backdrop-filter: blur(20px);
     border: 1px solid var(--sb-glass-border);
     border-radius: 1.25rem;
     padding: 1rem;
-    margin: 1rem -1rem -1rem;
+    margin: 1rem 0;
     box-shadow: var(--sb-glass-shadow);
     z-index: 10;
   }

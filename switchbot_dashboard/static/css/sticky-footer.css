@@ -319,3 +319,18 @@ body.sb-dark {
     color: var(--sb-accent-contrast) !important;
   }
 }
+
+/* Mobile Accessibility touch target size (WCAG 2.1) */
+@media (max-width: 767px) {
+  button, 
+  .btn, 
+  a.btn,
+  select,
+  .form-select, 
+  .form-control,
+  .sb-select,
+  .sb-input {
+    min-height: 44px !important;
+    min-width: 44px;
+  }
+}

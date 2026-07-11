@@ -75,12 +75,53 @@ class SPARouter {
         globalThis.location.href = url;
         return;
       }
+
+      // Collect CSS stylesheets from target page
+      const newStyleLinks = Array.from(newDoc.querySelectorAll('link[rel="stylesheet"], link[rel="preload"][as="style"]'));
+      const newCSSUrls = newStyleLinks.map(link => {
+        const href = link.getAttribute('href');
+        return href ? new URL(href, globalThis.location.origin).pathname : '';
+      }).filter(Boolean);
+
+      const currentStyleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"], link[rel="preload"][as="style"]'));
+      const pageSpecificCSSPattern = /\/static\/css\/(index|settings|actions|history|devices)\.css(\?.*)?$/;
+
+      // Inject missing stylesheets
+      const loadPromises = [];
+      newStyleLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (!href) return;
+        const resolvedUrl = new URL(href, globalThis.location.origin).pathname;
+        
+        const exists = currentStyleLinks.some(curLink => {
+          const curHref = curLink.getAttribute('href');
+          return curHref && new URL(curHref, globalThis.location.origin).pathname === resolvedUrl;
+        });
+
+        if (!exists) {
+          const newLink = document.createElement('link');
+          newLink.rel = 'stylesheet';
+          newLink.href = href;
+          
+          const loadPromise = new Promise(resolve => {
+            newLink.onload = resolve;
+            newLink.onerror = resolve; // avoid blocking
+            setTimeout(resolve, 3000); // failsafe
+          });
+          loadPromises.push(loadPromise);
+          document.head.appendChild(newLink);
+        }
+      });
       
       // 4. Perform visual fade-out before replacing content
       currentContent.style.opacity = '0';
       currentContent.style.transition = 'opacity 0.15s ease-in-out';
       
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Wait for both the fade-out and the new stylesheets to finish loading
+      await Promise.all([
+        new Promise(resolve => setTimeout(resolve, 150)),
+        ...loadPromises
+      ]);
       
       // Clean up previous page specific components
       if (globalThis.historyDashboard && typeof globalThis.historyDashboard.destroy === 'function') {
@@ -95,6 +136,20 @@ class SPARouter {
       // 5. Replace page content and update title
       currentContent.innerHTML = newContent.innerHTML;
       document.title = newDoc.title;
+
+      // Remove page-specific stylesheets from the old page that are not in the new page
+      currentStyleLinks.forEach(curLink => {
+        const href = curLink.getAttribute('href');
+        if (!href) return;
+        const resolvedUrl = new URL(href, globalThis.location.origin).pathname;
+        
+        if (pageSpecificCSSPattern.test(resolvedUrl)) {
+          const isNeeded = newCSSUrls.includes(resolvedUrl);
+          if (!isNeeded) {
+            curLink.remove();
+          }
+        }
+      });
       
       if (pushState) {
         history.pushState(null, '', url);

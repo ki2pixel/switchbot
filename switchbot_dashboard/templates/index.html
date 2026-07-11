@@ -42,12 +42,7 @@
         color: var(--sb-text);
         background-color: var(--sb-bg);
         min-height: 100vh;
-        padding-bottom: 80px;
-        padding-bottom: calc(80px + env(safe-area-inset-bottom));
       }
-
-      /* Prevent Flash of Unstyled Content (FOUC) safely on html and body */
-
 
       /* Critical Theme Variables */
       :root {
@@ -64,15 +59,6 @@
         --sb-accent-contrast: #051434;
         --sb-shadow: 0 25px 60px rgba(2, 7, 20, 0.55);
         --sb-outline: rgba(255, 255, 255, 0.08);
-        --sb-success: #6ee7b7;
-        --sb-danger: #ff6b81;
-        --sb-info: #4bc9f0;
-        --sb-warning: #f6c343;
-        --sb-success-bg: #0d4b39;
-        --sb-danger-bg: #611527;
-        --sb-info-bg: #0b3a57;
-        --sb-warning-bg: #5f370e;
-        --sb-alert-text: #f8fafc;
       }
 
       /* Critical Layout */
@@ -299,7 +285,7 @@
         border-color: var(--sb-danger);
       }
 
-      /* Bottom Navigation - Let sticky-footer.css handle responsive behavior */
+      /* Critical Bottom Navigation */
       #footer-bar {
         position: fixed;
         bottom: 0;
@@ -307,13 +293,13 @@
         right: 0;
         height: 60px;
         background: var(--sb-card);
-        border-top: 1px solid var(--sb-card-border);
+        border-top: 1px solid var(--sb-bottom-nav-border);
         backdrop-filter: blur(20px);
         display: flex;
         justify-content: space-around;
         align-items: center;
         z-index: 102;
-        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+        box-shadow: var(--sb-bottom-nav-shadow);
         padding-bottom: env(safe-area-inset-bottom);
       }
 
@@ -340,6 +326,58 @@
         margin-bottom: 0.25rem;
       }
 
+      /* Critical Body Padding for Bottom Nav */
+      body {
+        padding-bottom: 80px;
+        padding-bottom: calc(80px + env(safe-area-inset-bottom));
+      }
+
+      /* Critical Font Loading */
+      @font-face {
+        font-family: 'Space Grotesk';
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: url('/static/vendor/fonts/SpaceGrotesk-Regular.ttf') format('truetype');
+      }
+
+      @font-face {
+        font-family: 'Space Grotesk';
+        font-style: normal;
+        font-weight: 500;
+        font-display: swap;
+        src: url('/static/vendor/fonts/SpaceGrotesk-Medium.ttf') format('truetype');
+      }
+
+      @font-face {
+        font-family: 'Space Grotesk';
+        font-style: normal;
+        font-weight: 600;
+        font-display: swap;
+        src: url('/static/vendor/fonts/SpaceGrotesk-SemiBold.ttf') format('truetype');
+      }
+
+      /* Critical Accessibility */
+      [role="navigation"] {
+        outline: none;
+      }
+
+      [aria-hidden="true"] {
+        display: none;
+      }
+
+      /* Critical Loading States */
+      .skeleton {
+        background: linear-gradient(90deg, var(--sb-card) 25%, var(--sb-card-border) 50%, var(--sb-card) 75%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s infinite;
+      }
+
+      @keyframes skeleton-loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+
       /* Critical GPU Optimization */
       .sb-gpu-accelerated {
         transform: translateZ(0);
@@ -347,7 +385,7 @@
         perspective: 1000px;
       }
 
-      /* Responsive - Let sticky-footer.css handle footer visibility */
+      /* Critical Responsive */
       @media (max-width: 768px) {
         .container {
           padding-right: 0.75rem;
@@ -361,6 +399,20 @@
         .scene-actions {
           grid-template-columns: 1fr;
         }
+        
+        #footer-bar {
+          display: flex;
+        }
+      }
+
+      @media (min-width: 769px) {
+        #footer-bar {
+          display: none;
+        }
+        
+        body {
+          padding-bottom: 0;
+        }
       }
 
       /* Critical Reduced Motion */
@@ -372,21 +424,6 @@
           animation-iteration-count: 1 !important;
           transition-duration: 0.01ms !important;
         }
-      }
-      
-      /* Prevent flash of unstyled content - Enhanced anti-flash */
-      html, body {
-        background-color: #030712 !important;
-        color: #f4f7ff !important;
-      }
-      
-      /* Allow transitions for smooth UX */
-      .btn {
-        transition: all 0.15s ease-in-out, transform 0.1s ease-out;
-      }
-      
-      .btn:active {
-        transform: scale(0.98);
       }
     </style>
     

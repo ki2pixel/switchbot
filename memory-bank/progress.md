@@ -1,6 +1,12 @@
 # Progrès du Projet - SwitchBot Dashboard
 
 ## Terminé
+- **[2026-07-11 03:38:00] - Remédiation Audit Frontend (Navigation SPA, Ergonomie Mobile, Accessibilité, et Performances)**
+  - **Phase 1** : Gestion dynamique des CSS dans `spa-router.js` (injection et retrait au vol, attente des chargements). Refonte de `loaders.js` avec délégation globale d'événements pour éliminer les écouteurs dupliqués et perdus. CTA mobile repositionné pour éviter le chevauchement, cibles tactiles passées à 44px min.
+  - **Phase 2** : Accessibilité de l'overlay de chargement (`aria-busy="true"`, `role="status"` et text `sr-only`). Alternatives textuelles dynamiques résumant les moyennes/extrema des graphiques dans `history.js` et `history.html`. Landmark `<main>` unique et cascade de titres (`h1` -> `h2`) restaurés sur tous les templates.
+  - **Phase 3** : Allègement de `performance-optimizer.js` et `advanced-optimizer.js` en retirant les loops, observers et workers. Déclarations de polices Space Grotesk passées en local dans `critical.css` et synchronisées avec le bloc `<style>` inline de `index.html`.
+  - **Tests** : Validation de la suite de tests unitaires (163 tests passés, 1 échec existant lié à l'authentification backend).
+
 - **[2026-07-11 03:05:00] - Remédiation Audit Backend (Sécurité, Concurrence et Fiabilité)**
   - **Phase 1** : Authentification globale par mot de passe de session, page `/login` glassmorphic premium, route `/debug/state` sécurisée via token en en-tête `Authorization: Bearer <token>`, dépendance Gunicorn mise à jour à version `>=22.0.0`.
   - **Phase 2** : Configuration SSL (`sslmode`) explicite via kwargs dans psycopg pool, arrêt strict en production si pool Postgres ou health check HS (pas de fallback JSON silencieux).

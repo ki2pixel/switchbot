@@ -387,7 +387,17 @@ class HistoryDashboard {
     }
 
     updateCharts(historyData) {
-        if (!historyData || historyData.length === 0) return;
+        if (!historyData || historyData.length === 0) {
+            const tempDescriptionEl = document.getElementById('tempHumidityChartDescription');
+            if (tempDescriptionEl) {
+                tempDescriptionEl.textContent = "Graphique de température et humidité. Aucune donnée sur la période sélectionnée.";
+            }
+            const airconDescriptionEl = document.getElementById('airconStateChartDescription');
+            if (airconDescriptionEl) {
+                airconDescriptionEl.textContent = "Graphique de l'état de la climatisation. Aucune donnée sur la période sélectionnée.";
+            }
+            return;
+        }
 
         // Clone and reverse the data array for chronological order (ASC)
         const sortedData = [...historyData].reverse();
@@ -420,6 +430,43 @@ class HistoryDashboard {
             airconStates['unknown'] || 0
         ];
         this.charts.airconState.update('none');
+
+        // Update descriptions for A11y
+        const tempDescriptionEl = document.getElementById('tempHumidityChartDescription');
+        if (tempDescriptionEl) {
+            if (tempData.length > 0) {
+                const temps = tempData.map(d => d.y);
+                const humidities = humidityData.map(d => d.y);
+                
+                const minTemp = Math.min(...temps).toFixed(1);
+                const maxTemp = Math.max(...temps).toFixed(1);
+                const avgTemp = (temps.reduce((sum, val) => sum + val, 0) / temps.length).toFixed(1);
+                
+                const minHum = humidities.length > 0 ? Math.min(...humidities).toFixed(1) : '--';
+                const maxHum = humidities.length > 0 ? Math.max(...humidities).toFixed(1) : '--';
+                const avgHum = humidities.length > 0 ? (humidities.reduce((sum, val) => sum + val, 0) / humidities.length).toFixed(1) : '--';
+                
+                tempDescriptionEl.textContent = `Graphique de température et humidité. Température : minimale ${minTemp}°C, maximale ${maxTemp}°C, moyenne ${avgTemp}°C. Humidité relative : minimale ${minHum}%, maximale ${maxHum}%, moyenne ${avgHum}%.`;
+            } else {
+                tempDescriptionEl.textContent = "Graphique de température et humidité. Aucune donnée sur la période sélectionnée.";
+            }
+        }
+
+        const airconDescriptionEl = document.getElementById('airconStateChartDescription');
+        if (airconDescriptionEl) {
+            const onTicks = airconStates['on'] || 0;
+            const offTicks = airconStates['off'] || 0;
+            const unknownTicks = airconStates['unknown'] || 0;
+            const totalTicks = onTicks + offTicks + unknownTicks;
+            
+            if (totalTicks > 0) {
+                const onPct = Math.round((onTicks / totalTicks) * 100);
+                const offPct = Math.round((offTicks / totalTicks) * 100);
+                airconDescriptionEl.textContent = `Graphique de l'état de la climatisation. Climatisation allumée pendant ${onPct}% du temps, éteinte pendant ${offPct}% du temps.`;
+            } else {
+                airconDescriptionEl.textContent = "Graphique de l'état de la climatisation. Aucune donnée sur la période sélectionnée.";
+            }
+        }
     }
 
     updateStatusCards(aggregates) {

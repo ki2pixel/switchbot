@@ -94,14 +94,17 @@
         const overlay = document.createElement('span');
         overlay.className = LOADER_OVERLAY_CLASS;
         overlay.setAttribute('aria-hidden', 'true');
-        overlay.setAttribute('role', 'presentation');
         
         const loaderText = element ? (element.getAttribute('data-loader-text') || 'Chargement...') : 'Chargement...';
         
         const spinner = document.createElement('span');
         spinner.className = LOADER_SPINNER_CLASS;
-        spinner.setAttribute('role', 'img');
-        spinner.setAttribute('aria-label', loaderText);
+        spinner.setAttribute('role', 'status');
+        
+        const srText = document.createElement('span');
+        srText.className = 'sr-only';
+        srText.textContent = loaderText;
+        spinner.appendChild(srText);
         
         overlay.appendChild(spinner);
         return overlay;
@@ -117,12 +120,15 @@
         overlay.id = GLOBAL_LOADER_ID;
         overlay.className = 'sb-global-loader';
         overlay.setAttribute('aria-hidden', 'true');
-        overlay.setAttribute('role', 'presentation');
 
         const spinner = document.createElement('div');
         spinner.className = 'sb-global-loader__spinner';
-        spinner.setAttribute('role', 'img');
-        spinner.setAttribute('aria-label', 'Chargement...');
+        spinner.setAttribute('role', 'status');
+
+        const srText = document.createElement('span');
+        srText.className = 'sr-only';
+        srText.textContent = 'Chargement en cours...';
+        spinner.appendChild(srText);
 
         overlay.appendChild(spinner);
         document.body.appendChild(overlay);
@@ -132,7 +138,15 @@
     const showGlobalLoader = () => {
         const overlay = ensureGlobalLoader();
         overlay.classList.add(GLOBAL_LOADER_ACTIVE_CLASS);
+        overlay.setAttribute('aria-hidden', 'false');
         document.body.classList.add('sb-loading');
+        
+        const appContent = document.getElementById('app-content');
+        if (appContent) {
+            appContent.setAttribute('aria-busy', 'true');
+        } else {
+            document.body.setAttribute('aria-busy', 'true');
+        }
     };
 
     const hideGlobalLoader = () => {
@@ -141,7 +155,14 @@
             return;
         }
         overlay.classList.remove(GLOBAL_LOADER_ACTIVE_CLASS);
+        overlay.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('sb-loading');
+        
+        const appContent = document.getElementById('app-content');
+        if (appContent) {
+            appContent.removeAttribute('aria-busy');
+        }
+        document.body.removeAttribute('aria-busy');
     };
     
     const resetButtonState = (button, originalText) => {
@@ -170,6 +191,7 @@
         
         requestAnimationFrame(() => {
             overlay.style.opacity = '1';
+            overlay.setAttribute('aria-hidden', 'false');
         });
     };
     
@@ -185,6 +207,7 @@
         const overlay = element.querySelector(`.${LOADER_OVERLAY_CLASS}`);
         if (overlay) {
             overlay.style.opacity = '0';
+            overlay.setAttribute('aria-hidden', 'true');
             
             setTimeout(() => {
                 if (overlay.parentElement) {
@@ -225,11 +248,6 @@
         scheduleLoaderFailsafe(submitButton, finalizeSubmission);
     };
 
-    const setupFormLoaders = () => {
-        const forms = document.querySelectorAll('form[data-loader]');
-        forms.forEach(form => form.addEventListener('submit', event => handleFormSubmit(event, form)));
-    };
-    
     const handleButtonClick = (event, button) => {
         if (button.disabled) {
             event.preventDefault();
@@ -256,12 +274,6 @@
         scheduleLoaderFailsafe(button, () => {
             hideGlobalLoader();
             finalizeAction();
-        });
-    };
-
-    const setupButtonLoaders = () => {
-        document.querySelectorAll('button[data-loader]').forEach(button => {
-            button.addEventListener('click', event => handleButtonClick(event, button));
         });
     };
     
@@ -293,18 +305,39 @@
         }, 150);
     };
 
-    const setupNavigationLoaders = () => {
-        document.querySelectorAll('a[data-loader]').forEach(link => {
-            link.addEventListener('click', event => handleNavigationClick(event, link));
+    // Placeholders for backward compatibility and tests
+    const setupFormLoaders = () => {};
+    const setupButtonLoaders = () => {};
+
+    const setupGlobalDelegation = () => {
+        // Handle form submits (delegated)
+        document.addEventListener('submit', (event) => {
+            const form = event.target.closest('form[data-loader]');
+            if (form) {
+                handleFormSubmit(event, form);
+            }
+        });
+
+        // Handle clicks for buttons and links (delegated)
+        document.addEventListener('click', (event) => {
+            const button = event.target.closest('button[data-loader]');
+            if (button) {
+                handleButtonClick(event, button);
+                return;
+            }
+
+            const link = event.target.closest('a[data-loader]');
+            if (link) {
+                handleNavigationClick(event, link);
+                return;
+            }
         });
     };
     
-    document.addEventListener('DOMContentLoaded', () => {
+    const initLoaders = () => {
         ensureGlobalLoader();
         hideGlobalLoader();
-        setupFormLoaders();
-        setupButtonLoaders();
-        setupNavigationLoaders();
+        setupGlobalDelegation();
         
         globalThis.SwitchBotLoaders = {
             show: showLoader,
@@ -314,6 +347,16 @@
             scheduleFailsafe: scheduleLoaderFailsafe,
             clearFailsafe: clearLoaderFailsafe,
             failsafeDelayMs: FAILSAFE_TIMEOUT_MS,
+            init: () => {
+                ensureGlobalLoader();
+                hideGlobalLoader();
+            }
         };
-    });
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initLoaders);
+    } else {
+        initLoaders();
+    }
 })();

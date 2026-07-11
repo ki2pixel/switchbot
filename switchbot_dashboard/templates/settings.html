@@ -14,6 +14,7 @@
   </head>
   <body class="sb-dark">
     <div id="app-content">
+    <main class="sb-page__content">
     <div class="container py-4">
       <header class="page-header mb-4">
         <div class="page-header-main">
@@ -45,7 +46,7 @@
       <div class="row g-3">
         <div class="col-12 col-xl-9">
           <div class="card">
-            <div class="card-header">Paramètres d'automatisation</div>
+            <div class="card-header"><h2 class="h5 card-title mb-0">Paramètres d'automatisation</h2></div>
             <div class="card-body">
               <form method="post" action="{{ url_for('dashboard.update_settings') }}" class="settings-form" data-loader>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -491,7 +492,7 @@
 
         <div class="col-12 col-xl-3">
           <div class="card h-100">
-            <div class="card-header">Résumé rapide</div>
+            <div class="card-header"><h2 class="h5 card-title mb-0">Résumé rapide</h2></div>
             <div class="card-body">
               <dl class="row mb-0 small">
                 <dt class="col-7">Mode actuel</dt>
@@ -524,6 +525,7 @@
         </div>
       </div>
     </div>
+    </main>
     </div>
     
     {% include '_footer_nav.html' %}

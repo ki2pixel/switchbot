@@ -6,13 +6,14 @@
 - [x] Optimisation des verrous et de la concurrence (appel API hors transaction PostgreSQL, verrou d'état distribué de 2 minutes pour éviter les conflits d'automatisation et d'UI).
 - [x] Fiabilité des quotas et rate-limiting (correction de la métrique history_service.py vers api_requests_total, rafraîchissement réel des quotas via get_devices, rate-limiting global configurable).
 - [x] Campagne d'intégration de tests unitaires et de non-régression complétée (164 tests passed, 0 failed).
+- [x] Remédiation des défauts, vulnérabilités et ergonomie frontend de l'audit complétée (Navigation SPA, CTA mobile, A11y loaders et graphiques, sémantique HTML, allègement optimiseurs, local fonts et CSS critique).
 
 ## Décisions Clés
-- Utilisation de `DASHBOARD_PASSWORD` en variable d'environnement (valeur comparée de manière sécurisée en temps constant via `hmac.compare_digest`).
-- Blocage strict en production en cas de base PostgreSQL KO ou de mot de passe non défini pour empêcher des expositions ou comportements dégradés non contrôlés.
-- Utilisation de l'en-tête standard `Authorization: Bearer <token>` sur `/debug/state` et suppression du query paramètre `token` de l'URL.
-- Verrouillage concurrent en base de données (`automation_in_progress` et `automation_locked_at`) avec expiration automatique après 2 minutes, protégeant à la fois le tick d'automatisation et les commandes manuelles de l'UI.
-- Intégration de rate-limiting (Flask-Limiter) sur les points d'entrée sensibles (5/min pour la connexion et les réglages, 10/min pour le contrôle).
+- Gestion dynamique et synchronisée des feuilles de style CSS de page dans `spa-router.js` pour éviter le FOUC et éliminer les accumulations de styles.
+- Délégation d'événements globale sur `document` pour les loaders (`loaders.js`), stabilisant les écouteurs d'événements et protégeant contre les écouteurs dupliqués dans la SPA.
+- Accessibilité enrichie : attribut `aria-busy` pendant le chargement, live region `role="status"` avec étiquettes vocales sur les spinners, et alternatives textuelles dynamiques (statistiques calculées en JS) pour les graphiques d'historique.
+- Optimiseurs de performance simplifiés pour éliminer les boucles en arrière-plan et le Web Worker, et désactivation de toutes les connexions externes CDN/Google pour un offline-first strict.
+- Polices Space Grotesk hébergées et référencées localement dans `critical.css` et `index.html`.
 
 ## Prochaines Étapes
-- En attente de nouveaux retours de l'utilisateur sur la livraison des corrections de l'audit.
+- En attente de nouveaux retours de l'utilisateur sur les modifications frontend ou pour démarrer une nouvelle tâche.
