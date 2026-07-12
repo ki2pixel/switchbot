@@ -27,6 +27,8 @@
 - Utilisation de `CachedStoreWrapper` pour encapsuler settings et state store dans `AutomationService` et redirection de la référence de store de `quota_tracker` pour assurer une cohérence parfaite et éliminer les requêtes de quota redondantes.
 - Utilisation de `_transaction_context` pour encapsuler de façon optionnelle les transactions dans les blueprints Flask afin de supporter à la fois les stores réels et les MemoryStore de test.
 - Limitation des temps de retry de l'API à 3s pour éviter d'occuper les threads du serveur de production en cas d'erreur de service externe.
+- Contournement automatique de la requête d'état de l'API pour les appareils infrarouges virtuels (identifiés par leur ID long à tirets) car l'API SwitchBot ne supporte pas l'état en lecture (erreur 190 systématique). Cela évite le gaspillage du quota d'API et le bruit dans les logs.
+
 
 - [x] Phase F1 : Routage SPA & Mécanismes de Navigation (Complété)
   - Correction désynchronisation CSS / doublons preload links dans `spa-router.js`.

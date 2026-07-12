@@ -1,6 +1,11 @@
 # Progrès du Projet - SwitchBot Dashboard
 
 ## Terminé
+- **[2026-07-12 13:34:00] - Correction du bug d'interrogation de statut des climatiseurs virtuels**
+  - Élimination des requêtes d'état infructueuses sur l'API SwitchBot pour les climatiseurs virtuels (infrarouge), car l'API retourne systématiquement statusCode=190 (wrong deviceId) et ne supporte pas l'état en lecture.
+  - Bypass automatique à l'aide d'un filtre basé sur le format de l'ID de l'appareil (longueur > 12 et >= 2 tirets), renvoyant directement le statut estimé depuis le state store.
+  - Ajout d'une mise à jour de `last_aircon_poll_at` lors des erreurs physiques pour respecter le cooldown (15m par défaut) et éviter une boucle de requêtes à chaque tick (toutes les 15 secondes) en cas de défaillance réseau temporaire.
+  - Ajout d'un test unitaire `test_poll_aircon_status_virtual_bypass` dans `test_automation_service.py` pour valider le bypass, portant le total de tests à 199 passés.
 - **[2026-07-12 13:25:00] - Exécution complète de la remédiation Frontend (Phases 1 à 5)**
   - **Routage SPA & Navigation** : Correction de la désynchronisation CSS/preload, suppression du double footer, correction du CTA mobile sticky via `--sb-footer-height`, retrait de `bottom-nav.js` et robustification du filtre de scripts.
   - **Assets & Performance** : Suppression des brands de Font Awesome (−320 Ko), suppression de fa-solid.ttf, conversion Space Grotesk en WOFF2 (−62% de poids), suppression de tous les fichiers JS/CSS morts.
