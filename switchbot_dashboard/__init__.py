@@ -37,8 +37,8 @@ def _build_store(
 ) -> BaseStore:
     backend = os.environ.get("STORE_BACKEND", "postgres").strip().lower()
     selected_backend = backend or "postgres"
-    
-    is_production = os.environ.get("FLASK_ENV") == "production" or app.config.get("ENV") == "production" or (not app.debug and not app.testing)
+    is_testing = app.testing or os.environ.get("FLASK_ENV") == "testing"
+    is_production = (os.environ.get("FLASK_ENV") == "production" or app.config.get("ENV") == "production" or (not app.debug and not app.testing)) and not is_testing
 
     def _make_json_store() -> BaseStore:
         path = os.environ.get(path_env, default_path)
@@ -143,8 +143,9 @@ def create_app() -> Flask:
     app.config["STATE_DEBUG_TOKEN"] = os.environ.get("STATE_DEBUG_TOKEN", "").strip()
     
     dashboard_password = os.environ.get("DASHBOARD_PASSWORD", "").strip()
-    is_production = os.environ.get("FLASK_ENV") == "production" or app.config.get("ENV") == "production" or (not app.debug and not app.testing)
     is_pytest = "pytest" in sys.modules or any("pytest" in arg for arg in sys.argv)
+    is_testing = app.testing or os.environ.get("FLASK_ENV") == "testing"
+    is_production = (os.environ.get("FLASK_ENV") == "production" or app.config.get("ENV") == "production" or (not app.debug and not app.testing)) and not is_testing
     if not dashboard_password and is_production and not is_pytest:
         raise RuntimeError("Security Violation: DASHBOARD_PASSWORD must be set in production")
     app.config["DASHBOARD_PASSWORD"] = dashboard_password

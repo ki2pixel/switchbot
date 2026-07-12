@@ -143,6 +143,7 @@ class TestHistoryServiceBufferResiliency:
 class TestStoreFailoverAndBuild:
     def test_build_store_fallback_on_unhealthy_postgres(self, monkeypatch, tmp_path) -> None:
         app = Flask("test_app")
+        app.config["TESTING"] = True
         settings_path = tmp_path / "settings.json"
         
         monkeypatch.setenv("STORE_BACKEND", "postgres")
@@ -167,6 +168,7 @@ class TestStoreFailoverAndBuild:
 
     def test_build_store_fallback_on_postgres_exception(self, monkeypatch, tmp_path) -> None:
         app = Flask("test_app")
+        app.config["TESTING"] = True
         settings_path = tmp_path / "settings.json"
         
         monkeypatch.setenv("STORE_BACKEND", "postgres")
