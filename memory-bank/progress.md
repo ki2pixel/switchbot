@@ -1,6 +1,9 @@
 # Progrès du Projet - SwitchBot Dashboard
 
 ## Terminé
+- **[2026-07-12 12:50:00] - Correction de la détection de l'environnement de test en CI**
+  - Correction de l'évaluation fausse-positive de `is_production` lors de l'absence du fichier `.env` (donc pas de `FLASK_DEBUG=1`) dans les runners CI en se basant explicitement sur `app.testing` et `FLASK_ENV=testing`.
+  - Configuration explicite de `app.config["TESTING"] = True` sur les applications Flask de test simulant les fallbacks.
 - **[2026-07-12 12:41:00] - Finalisation des Phases 3, 4 et 5 du plan d'implémentation**
   - **Performance (P-01 à P-04)** : Implémentation du cache de 60s sur les requêtes d'appareils, limitation des retries bloquants à 3s, transactions sur les modifications de paramètres dans les routes, et optimisation du logger de quota via un proxy de store `CachedStoreWrapper` avec cohérence de cache dynamique pour le quota tracker.
   - **Qualité (Q-01 à Q-05, A-05)** : Nettoyage complet via Ruff (14 corrections automatiques), unification des convertisseurs numériques (`_safe_int`, `_safe_float`, `_safe_bool`) et helpers temporels dans `utils.py`, retrait des constantes dupliquées, et documentation du mapping base de données/état.
