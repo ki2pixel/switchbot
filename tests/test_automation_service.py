@@ -770,3 +770,30 @@ def test_poll_aircon_status_expiry() -> None:
         assert updated_state["last_aircon_poll_at"] != expired_timestamp
 
 
+def test_poll_aircon_status_virtual_bypass() -> None:
+    """Test that virtual infrared device IDs bypass API status queries entirely."""
+    settings = _default_settings()
+    initial_state = {
+        "assumed_aircon_power": "on",
+        "assumed_aircon_mode": 2,
+        "assumed_aircon_parameter": "24.0,2,2,on",
+    }
+    service, client, _, _ = _build_service(
+        settings=settings,
+        temperature=20.0,
+        initial_state=initial_state,
+    )
+    
+    # Run poll with virtual device ID (length > 12 and >= 2 hyphens)
+    with patch.object(client, "get_device_status", wraps=client.get_device_status) as mock_get_status:
+        status = service.poll_aircon_status("01-202401301615-24010246", force=True)
+        # Should not call the API at all
+        assert mock_get_status.call_count == 0
+        assert status == {
+            "power": "on",
+            "mode": 2,
+            "temperature": 24.0,
+            "fanSpeed": 2,
+        }
+
+

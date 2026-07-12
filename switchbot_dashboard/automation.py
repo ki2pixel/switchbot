@@ -335,6 +335,40 @@ class AutomationService:
         last_aircon_poll_at = state.get("last_aircon_poll_at")
         has_cached_status = state.get("assumed_aircon_power") is not None
 
+        # Check if the device is a virtual infrared remote.
+        # Virtual infrared devices (IDs with length > 12 and at least 2 hyphens) do not support status queries.
+        # Calling the API on them always returns status 190 and wastes quota.
+        is_virtual = len(aircon_device_id) > 12 and aircon_device_id.count("-") >= 2
+        if is_virtual:
+            self._debug(
+                "Aircon polling bypassed (virtual infrared remote doesn't support status queries)",
+                trigger=trigger,
+                aircon_device_id=aircon_device_id,
+            )
+            power = state.get("assumed_aircon_power")
+            mode = state.get("assumed_aircon_mode")
+            temperature = None
+            fan_speed = None
+
+            param = state.get("assumed_aircon_parameter")
+            if param and isinstance(param, str):
+                parts = param.split(",")
+                if len(parts) >= 4:
+                    try:
+                        temperature = float(parts[0]) if '.' in parts[0] else int(parts[0])
+                        if mode is None:
+                            mode = int(parts[1])
+                        fan_speed = int(parts[2])
+                    except (ValueError, IndexError):
+                        pass
+
+            return {
+                "power": power,
+                "mode": mode,
+                "temperature": temperature,
+                "fanSpeed": fan_speed,
+            }
+
         is_cooldown_active = False
         if not force and last_aircon_poll_at and has_cached_status:
             try:
@@ -389,6 +423,8 @@ class AutomationService:
                 error=str(exc),
             )
             self._log_quota_snapshot(context="aircon_status_error")
+            # Update last_aircon_poll_at on failure to avoid continuous poll loops on subsequent ticks
+            self._update_state(last_aircon_poll_at=_utc_now_iso())
             return None
 
         self._log_quota_snapshot(context="aircon_status")
