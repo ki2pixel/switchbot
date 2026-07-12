@@ -8,7 +8,7 @@ import datetime as dt
 from unittest.mock import MagicMock, patch
 from zoneinfo import ZoneInfo
 
-from switchbot_dashboard.automation import AutomationService, OFF_REPEAT_STATE_KEY, _is_now_in_windows
+from switchbot_dashboard.automation import AutomationService, _is_now_in_windows
 from switchbot_dashboard.quota import ApiQuotaTracker
 
 

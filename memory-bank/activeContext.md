@@ -1,19 +1,32 @@
 # Contexte Actif
 
 ## Objectifs
-- [x] Résolution des vulnérabilités de sécurité P0 et P1 (mot de passe en clair DASHBOARD_PASSWORD, session authentifiée avec CSRF, page login glassmorphic, retrait du jeton de l'URL pour Bearer token).
-- [x] Durcissement du stockage et SSL (sslmode explicite via kwargs, blocage de démarrage sans fallback JSON en production).
-- [x] Optimisation des verrous et de la concurrence (appel API hors transaction PostgreSQL, verrou d'état distribué de 2 minutes pour éviter les conflits d'automatisation et d'UI).
-- [x] Fiabilité des quotas et rate-limiting (correction de la métrique history_service.py vers api_requests_total, rafraîchissement réel des quotas via get_devices, rate-limiting global configurable).
-- [x] Campagne d'intégration de tests unitaires et de non-régression complétée (164 tests passed, 0 failed).
-- [x] Remédiation des défauts, vulnérabilités et ergonomie frontend de l'audit complétée (Navigation SPA, CTA mobile, A11y loaders et graphiques, sémantique HTML, allègement optimiseurs, local fonts et CSS critique).
-- [x] Intégration complète de la configuration et des règles de l'écosystème Codex (Starlark, instructions AGENTS.md hiérarchiques, compatibilité de skills, guide de configuration).
+- [x] Phase 1 : Sécurité, Session & Hardening (Complété)
+  - Implémentation des en-têtes de sécurité HTTP (S-01) et cookies de session sécurisés SameSite/Secure (S-02).
+  - Alerte sur le stockage Rate Limit en production (S-04), validation du mode de fonctionnement et des IDs d'appareils (S-05, S-06).
+  - Rotation de session post-connexion (S-07), allowlist stricte sur le debug (S-08) et page 503 personnalisée pour StoreError (Q-04).
+- [x] Phase 2 : Architecture, Nettoyage & Refactoring IFTTT (Complété)
+  - Retrait du code mort lié aux webhooks et IFTTT (A-01, S-03).
+  - Suppression de psycopg pool __del__ non déterministe (A-02) et des anciens stores JsonStore / FailoverStore inutilisés (A-03, A-04).
+  - Planification horaire de la purge d'historique hors de la boucle principale (A-06).
+- [x] Phase 3 : Optimisations de Performance (Complété)
+  - Cache en mémoire de 60s pour `get_devices()` et `get_device_status()` afin d'éliminer les requêtes N+1 (P-01).
+  - Plafonnement des temps de sommeil à 3s maximum lors des retries SwitchBot (P-02).
+  - Encapsulation transactionnelle des lectures-écritures de paramètres dans `routes.py` (P-03).
+  - Proxy `CachedStoreWrapper` pour éliminer les lectures redondantes en base durant un tick (P-04) avec cohérence de cache liée au quota tracker.
+- [x] Phase 4 : Qualité du Code & Robustesse (Complété)
+  - Analyse Ruff 100% propre (Q-01) et centralisation des fonctions utilitaires dans `utils.py` (Q-02, A-05).
+  - Importation des constantes/fonctions à responsabilité unique pour éliminer la duplication de code (Q-03).
+  - Documentation du mapping historique entre api_requests_total (état) et api_requests_today (base de données) (Q-05).
+- [x] Phase 5 : Tests de Non-Régression & CI (Complété)
+  - Intégration de PostgreSQL et exécution des tests unitaires dans le workflow GitHub Actions (T-01).
+  - Ajout des cas de tests pour la rotation de session, la validation de paramètres et le cache (T-02, T-03).
+  - Suite de tests unitaire de 166 tests verte à 100%.
 
 ## Décisions Clés
-- Utilisation de règles Starlark déclaratives dans `.codex/rules/development.rules` pour autoriser les commandes de développement (pytest, git, activation venv) sans invites interactives.
-- Découpage hiérarchique de `AGENTS.md` (racine) et `tests/AGENTS.md` (tests) pour rester sous le budget de 32 KiB imposé par Codex tout en conservant toutes les règles de développement.
-- Standardisation des compétences (`.agents/skills/`) avec spécification Open Agent Skills et support de configuration via `agents/openai.yaml`.
-- Correction du test `test_quota_refresh_route_makes_api_call` qui échouait à cause d'une session non authentifiée, rétablissant le statut 100% vert de la suite de tests (164/164).
+- Utilisation de `CachedStoreWrapper` pour encapsuler settings et state store dans `AutomationService` et redirection de la référence de store de `quota_tracker` pour assurer une cohérence parfaite et éliminer les requêtes de quota redondantes.
+- Utilisation de `_transaction_context` pour encapsuler de façon optionnelle les transactions dans les blueprints Flask afin de supporter à la fois les stores réels et les MemoryStore de test.
+- Limitation des temps de retry de l'API à 3s pour éviter d'occuper les threads du serveur de production en cas d'erreur de service externe.
 
 ## Prochaines Étapes
-- En attente de nouveaux retours de l'utilisateur ou de démarrage d'une nouvelle tâche de développement.
+- En attente de nouvelles instructions de l'utilisateur.

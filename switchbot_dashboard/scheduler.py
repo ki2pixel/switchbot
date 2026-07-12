@@ -10,6 +10,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from .config_store import BaseStore
 from .automation import DEFAULT_TIMEZONE, OFF_REPEAT_STATE_KEY, _is_now_in_windows, _parse_hhmm
+from .utils import _safe_int
 
 
 class SchedulerService:
@@ -51,16 +52,7 @@ class SchedulerService:
 
     @staticmethod
     def _as_int(value: Any, *, default: int, minimum: int | None = None, maximum: int | None = None) -> int:
-        try:
-            parsed = int(value)
-        except (TypeError, ValueError):
-            parsed = default
-
-        if minimum is not None and parsed < minimum:
-            parsed = minimum
-        if maximum is not None and parsed > maximum:
-            parsed = maximum
-        return parsed
+        return _safe_int(value, default=default, minimum=minimum, maximum=maximum)
 
     def _has_pending_off_repeat(self) -> bool:
         if self._state_store is None:
@@ -263,3 +255,8 @@ class SchedulerService:
                 return False
 
             return getattr(self._scheduler, "running", False)
+
+    def get_scheduler(self) -> BackgroundScheduler | None:
+        """Get the underlying APScheduler instance."""
+        with self._lock:
+            return self._scheduler

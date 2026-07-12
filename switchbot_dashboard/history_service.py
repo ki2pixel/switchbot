@@ -10,7 +10,6 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
-from .postgres_store import PostgresStoreError
 
 
 class HistoryServiceError(RuntimeError):
@@ -266,6 +265,8 @@ class HistoryService:
         humidity = state_data.get("last_humidity")
         aircon_power = state_data.get("assumed_aircon_power", "unknown")
         last_action = state_data.get("last_action")
+        # Mapping: the state store holds "api_requests_total" (authoritative estimate),
+        # which is recorded in the "api_requests_today" database column for historical schema compatibility.
         api_requests = state_data.get("api_requests_total", 0)
         error_count = state_data.get("error_count", 0)
         temp_stale = state_data.get("last_temperature_stale", False)

@@ -122,7 +122,7 @@ def test_index_template_structure():
     assert len(post_forms) > 0, "index.html doit avoir des formulaires POST"
     
     for form in post_forms:
-        assert form.has_attr('data-loader'), f"Formulaire dans index.html doit avoir data-loader"
+        assert form.has_attr('data-loader'), "Formulaire dans index.html doit avoir data-loader"
 
 
 def test_performance_documentation_exists():

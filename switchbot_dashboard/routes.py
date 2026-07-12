@@ -3,6 +3,9 @@ from __future__ import annotations
 import datetime as dt
 import hmac
 import json
+import os
+import random
+import re
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -18,14 +21,49 @@ from flask import (
     session,
 )
 
-from .config_store import StoreError
+from .config_store import StoreError, JsonStore
+from .postgres_store import PostgresStore
 from .switchbot_api import SwitchBotApiError
-
-
 from .extensions import limiter
+from .aircon import AIRCON_SCENE_KEYS, AIRCON_SCENE_LABELS, extract_aircon_scenes as _extract_aircon_scenes
+from .utils import (
+    DEFAULT_TIMEZONE,
+    _safe_int as _as_int,
+    _safe_float as _as_float,
+    _safe_bool as _as_bool,
+    _utc_now_iso,
+    _resolve_timezone,
+    _parse_iso_datetime,
+)
+
+import contextlib
+
+@contextlib.contextmanager
+def _transaction_context(store: Any) -> Any:
+    if hasattr(store, "transaction"):
+        with store.transaction():
+            yield
+    else:
+        yield
+
 
 dashboard_bp = Blueprint("dashboard", __name__)
 ROUTE_INDEX = "dashboard.index"
+
+# Global StoreError handler (Q-04)
+@dashboard_bp.app_errorhandler(StoreError)
+def handle_store_error(error: StoreError) -> Any:
+    current_app.logger.error(f"[store] Handled StoreError globally on blueprint: {error}")
+    if request.path.startswith("/history/api/") or request.headers.get("Accept") == "application/json":
+        return current_app.response_class(
+            response=json.dumps({
+                "error": "Service Indisponible",
+                "message": "Le stockage de données est temporairement indisponible."
+            }),
+            status=503,
+            mimetype="application/json"
+        )
+    return render_template("503.html"), 503
 
 
 @dashboard_bp.before_request
@@ -112,43 +150,10 @@ AC_MODE_CHOICES: list[dict[str, Any]] = [
     {"value": 5, "label": "Heat"},
 ]
 
-AIRCON_SCENE_KEYS: tuple[str, ...] = ("winter", "summer", "fan", "off")
-AIRCON_SCENE_LABELS: dict[str, str] = {
-    "winter": "Aircon ON – Hiver",
-    "summer": "Aircon ON – Été",
-    "fan": "Aircon ON – Mode neutre",
-    "off": "Aircon OFF – Scène",
-}
 DEFAULT_QUOTA_WARNING_THRESHOLD = 250
-DEFAULT_TIMEZONE = "Europe/Paris"
 
 
-def _utc_now_iso() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat()
 
-
-def _parse_iso_datetime(value: str) -> dt.datetime | None:
-    raw = value.strip()
-    if not raw:
-        return None
-    if raw.endswith("Z"):
-        raw = raw[:-1] + "+00:00"
-    try:
-        parsed = dt.datetime.fromisoformat(raw)
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=dt.timezone.utc)
-    return parsed
-
-
-def _resolve_timezone(settings: dict[str, Any]) -> dt.tzinfo:
-    raw_timezone = settings.get("timezone")
-    timezone_name = str(raw_timezone or "").strip() or DEFAULT_TIMEZONE
-    try:
-        return ZoneInfo(timezone_name)
-    except ZoneInfoNotFoundError:
-        return dt.timezone.utc
 
 
 def _localize_iso_timestamp(value: Any, timezone: dt.tzinfo) -> str | None:
@@ -160,49 +165,7 @@ def _localize_iso_timestamp(value: Any, timezone: dt.tzinfo) -> str | None:
     return parsed.astimezone(timezone).isoformat()
 
 
-def _as_bool(value: Any) -> bool:
-    if value is None:
-        return False
 
-    if isinstance(value, bool):
-        return value
-
-    return str(value).strip().lower() in {"1", "true", "yes", "on"}
-
-
-def _as_int(value: Any, default: int, minimum: int | None = None, maximum: int | None = None) -> int:
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        return default
-
-    if minimum is not None and parsed < minimum:
-        return minimum
-
-    if maximum is not None and parsed > maximum:
-        return maximum
-
-    return parsed
-
-
-def _as_float(
-    value: Any,
-    default: float,
-    minimum: float | None = None,
-    maximum: float | None = None,
-) -> float:
-    try:
-        parsed = float(value)
-    except (TypeError, ValueError):
-        return default
-
-    if minimum is not None and parsed < minimum:
-        return minimum
-
-    if maximum is not None and parsed > maximum:
-        return maximum
-
-    return parsed
 
 
 def _get_time_window_form(settings: dict[str, Any]) -> dict[str, Any]:
@@ -226,16 +189,7 @@ def _get_time_window_form(settings: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _extract_aircon_scenes(settings: dict[str, Any]) -> dict[str, str]:
-    raw_scenes = settings.get("aircon_scenes", {})
-    if not isinstance(raw_scenes, dict):
-        raw_scenes = {}
 
-    sanitized: dict[str, str] = {}
-    for key in AIRCON_SCENE_KEYS:
-        value = raw_scenes.get(key, "")
-        sanitized[key] = str(value).strip() if isinstance(value, str) else ""
-    return sanitized
 
 
 
@@ -384,7 +338,13 @@ def login() -> Any:
         provided_password = request.form.get("password")
         expected_password = current_app.config.get("DASHBOARD_PASSWORD")
         if provided_password and hmac.compare_digest(provided_password, expected_password):
+            # Session rotation to prevent session fixation (S-07)
+            old_session = dict(session)
+            session.clear()
+            for k, v in old_session.items():
+                session[k] = v
             session["logged_in"] = True
+            session.permanent = True
             flash("Connexion réussie.", "success")
             return redirect(url_for(ROUTE_INDEX))
         else:
@@ -418,15 +378,32 @@ def debug_state() -> Any:
     state_store = current_app.extensions["state_store"]
     state = state_store.read()
 
+    # State Allowlist Filtering (S-08)
+    STATE_ALLOWLIST = {
+        "api_requests_total",
+        "api_requests_today",
+        "last_api_request_timestamp",
+        "temperature",
+        "humidity",
+        "last_meter_timestamp",
+        "assumed_aircon_power",
+        "last_aircon_control_timestamp",
+        "last_cooldown_timestamp",
+        "automation_last_run_timestamp",
+        "automation_last_status",
+        "automation_disabled_until",
+        "temperature_stale",
+    }
+    filtered_state = {k: v for k, v in state.items() if k in STATE_ALLOWLIST}
+
     return current_app.response_class(
-        json.dumps(state, indent=2, ensure_ascii=False) + "\n",
+        json.dumps(filtered_state, indent=2, ensure_ascii=False) + "\n",
         mimetype="application/json",
     )
 
 
 @dashboard_bp.get("/healthz")
 def healthz() -> Any:
-    import os
     app = current_app
     settings_store = app.extensions["settings_store"]
     state_store = app.extensions["state_store"]
@@ -440,7 +417,7 @@ def healthz() -> Any:
         scheduler_running = bool(scheduler_service.is_running())
         automation_enabled = bool(settings.get("automation_enabled", False))
         last_tick = state.get("last_tick")
-    except StoreError as exc:
+    except StoreError:
         app.logger.exception("[health] store error")
         payload = {
             "status": "error",
@@ -450,7 +427,7 @@ def healthz() -> Any:
         return app.response_class(
             json.dumps(payload) + "\n", mimetype="application/json", status=503
         )
-    except Exception as exc:  # pragma: no cover - defensive fallback
+    except Exception:  # pragma: no cover - defensive fallback
         app.logger.exception("[health] unexpected failure")
         payload = {
             "status": "error",
@@ -465,8 +442,6 @@ def healthz() -> Any:
     postgres_configured = (os.environ.get("STORE_BACKEND", "postgres").strip().lower() == "postgres")
     postgres_connected = False
     
-    from .postgres_store import PostgresStore
-    from .config_store import JsonStore
     if isinstance(settings_store, PostgresStore):
         postgres_connected = bool(settings_store.health_check())
     elif isinstance(settings_store, JsonStore):
@@ -594,108 +569,128 @@ def update_settings() -> Any:
     settings_store = current_app.extensions["settings_store"]
     scheduler_service = current_app.extensions["scheduler_service"]
 
-    settings = settings_store.read()
-    current_aircon_scenes = _extract_aircon_scenes(settings)
+    with _transaction_context(settings_store):
+        settings = settings_store.read()
+        current_aircon_scenes = _extract_aircon_scenes(settings)
 
-    settings["automation_enabled"] = _as_bool(request.form.get("automation_enabled"))
-    settings["mode"] = str(request.form.get("mode", settings.get("mode", "winter"))).strip().lower()
-
-
-    settings["poll_interval_seconds"] = _as_int(
-        request.form.get("poll_interval_seconds"),
-        default=int(settings.get("poll_interval_seconds", 120) or 120),
-        minimum=60,
-        maximum=3600,
-    )
-
-    settings["adaptive_polling_enabled"] = _as_bool(
-        request.form.get("adaptive_polling_enabled", settings.get("adaptive_polling_enabled", True))
-    )
-    settings["idle_poll_interval_seconds"] = _as_int(
-        request.form.get("idle_poll_interval_seconds"),
-        default=int(settings.get("idle_poll_interval_seconds", 600) or 600),
-        minimum=300,
-        maximum=86_400,
-    )
-    settings["poll_warmup_minutes"] = _as_int(
-        request.form.get("poll_warmup_minutes"),
-        default=int(settings.get("poll_warmup_minutes", 15) or 15),
-        minimum=0,
-        maximum=24 * 60,
-    )
-    settings["aircon_poll_cooldown_minutes"] = _as_int(
-        request.form.get("aircon_poll_cooldown_minutes"),
-        default=int(settings.get("aircon_poll_cooldown_minutes", 15) or 15),
-        minimum=1,
-        maximum=24 * 60,
-    )
-
-    settings["hysteresis_celsius"] = _as_float(
-        request.form.get("hysteresis_celsius"),
-        default=float(settings.get("hysteresis_celsius", 0.3) or 0.3),
-        minimum=0.0,
-        maximum=5.0,
-    )
-
-    settings["command_cooldown_seconds"] = _as_int(
-        request.form.get("command_cooldown_seconds"),
-        default=int(settings.get("command_cooldown_seconds", 180) or 180),
-        minimum=0,
-        maximum=3600,
-    )
-    settings["action_on_cooldown_seconds"] = _as_int(
-        request.form.get("action_on_cooldown_seconds"),
-        default=int(settings.get("action_on_cooldown_seconds", 0) or 0),
-        minimum=0,
-        maximum=3600,
-    )
-    settings["action_off_cooldown_seconds"] = _as_int(
-        request.form.get("action_off_cooldown_seconds"),
-        default=int(settings.get("action_off_cooldown_seconds", 0) or 0),
-        minimum=0,
-        maximum=3600,
-    )
-    settings["off_repeat_count"] = _as_int(
-        request.form.get("off_repeat_count"),
-        default=int(settings.get("off_repeat_count", 1) or 1),
-        minimum=1,
-        maximum=10,
-    )
-    settings["off_repeat_interval_seconds"] = _as_int(
-        request.form.get("off_repeat_interval_seconds"),
-        default=int(settings.get("off_repeat_interval_seconds", 10) or 10),
-        minimum=1,
-        maximum=600,
-    )
-
-    settings["turn_off_outside_windows"] = _as_bool(request.form.get("turn_off_outside_windows"))
-    settings["fan_mode_during_window"] = _as_bool(request.form.get("fan_mode_during_window"))
-
-    _update_timezone(request.form, settings)
-
-    settings["api_quota_warning_threshold"] = _as_int(
-        request.form.get("api_quota_warning_threshold"),
-        default=int(settings.get("api_quota_warning_threshold", DEFAULT_QUOTA_WARNING_THRESHOLD) or DEFAULT_QUOTA_WARNING_THRESHOLD),
-        minimum=0,
-        maximum=10_000,
-    )
-
-    settings["meter_device_id"] = str(request.form.get("meter_device_id", "")).strip()
-    settings["aircon_device_id"] = str(request.form.get("aircon_device_id", "")).strip()
-
-    _update_time_windows(request.form, settings)
-    _update_profiles(request.form, settings)
-
-    updated_aircon_scenes: dict[str, str] = {}
-    for key in AIRCON_SCENE_KEYS:
-        updated_aircon_scenes[key] = str(
-            request.form.get(f"scene_{key}_id", current_aircon_scenes.get(key, ""))
-        ).strip()
-
-    settings["aircon_scenes"] = updated_aircon_scenes
+        settings["automation_enabled"] = _as_bool(request.form.get("automation_enabled"))
+        
+        # Mode Validation (S-05)
+        mode = str(request.form.get("mode", settings.get("mode", "winter"))).strip().lower()
+        if mode not in ("winter", "summer"):
+            flash("Le mode sélectionné est invalide (doit être 'winter' ou 'summer').", "error")
+            return redirect(url_for("dashboard.settings_page"))
+        settings["mode"] = mode
 
 
-    settings_store.write(settings)
+        settings["poll_interval_seconds"] = _as_int(
+            request.form.get("poll_interval_seconds"),
+            default=int(settings.get("poll_interval_seconds", 120) or 120),
+            minimum=60,
+            maximum=3600,
+        )
+
+        settings["adaptive_polling_enabled"] = _as_bool(
+            request.form.get("adaptive_polling_enabled", settings.get("adaptive_polling_enabled", True))
+        )
+        settings["idle_poll_interval_seconds"] = _as_int(
+            request.form.get("idle_poll_interval_seconds"),
+            default=int(settings.get("idle_poll_interval_seconds", 600) or 600),
+            minimum=300,
+            maximum=86_400,
+        )
+        settings["poll_warmup_minutes"] = _as_int(
+            request.form.get("poll_warmup_minutes"),
+            default=int(settings.get("poll_warmup_minutes", 15) or 15),
+            minimum=0,
+            maximum=24 * 60,
+        )
+        settings["aircon_poll_cooldown_minutes"] = _as_int(
+            request.form.get("aircon_poll_cooldown_minutes"),
+            default=int(settings.get("aircon_poll_cooldown_minutes", 15) or 15),
+            minimum=1,
+            maximum=24 * 60,
+        )
+
+        settings["hysteresis_celsius"] = _as_float(
+            request.form.get("hysteresis_celsius"),
+            default=float(settings.get("hysteresis_celsius", 0.3) or 0.3),
+            minimum=0.0,
+            maximum=5.0,
+        )
+
+        settings["command_cooldown_seconds"] = _as_int(
+            request.form.get("command_cooldown_seconds"),
+            default=int(settings.get("command_cooldown_seconds", 180) or 180),
+            minimum=0,
+            maximum=3600,
+        )
+        settings["action_on_cooldown_seconds"] = _as_int(
+            request.form.get("action_on_cooldown_seconds"),
+            default=int(settings.get("action_on_cooldown_seconds", 0) or 0),
+            minimum=0,
+            maximum=3600,
+        )
+        settings["action_off_cooldown_seconds"] = _as_int(
+            request.form.get("action_off_cooldown_seconds"),
+            default=int(settings.get("action_off_cooldown_seconds", 0) or 0),
+            minimum=0,
+            maximum=3600,
+        )
+        settings["off_repeat_count"] = _as_int(
+            request.form.get("off_repeat_count"),
+            default=int(settings.get("off_repeat_count", 1) or 1),
+            minimum=1,
+            maximum=10,
+        )
+        settings["off_repeat_interval_seconds"] = _as_int(
+            request.form.get("off_repeat_interval_seconds"),
+            default=int(settings.get("off_repeat_interval_seconds", 10) or 10),
+            minimum=1,
+            maximum=600,
+        )
+
+        settings["turn_off_outside_windows"] = _as_bool(request.form.get("turn_off_outside_windows"))
+        settings["fan_mode_during_window"] = _as_bool(request.form.get("fan_mode_during_window"))
+
+        _update_timezone(request.form, settings)
+
+        settings["api_quota_warning_threshold"] = _as_int(
+            request.form.get("api_quota_warning_threshold"),
+            default=int(settings.get("api_quota_warning_threshold", DEFAULT_QUOTA_WARNING_THRESHOLD) or DEFAULT_QUOTA_WARNING_THRESHOLD),
+            minimum=0,
+            maximum=10_000,
+        )
+
+        # Device IDs Validation (S-06)
+        device_id_pattern = re.compile(r"^[a-zA-Z0-9:-]*$")
+        meter_device_id = str(request.form.get("meter_device_id", "")).strip()
+        aircon_device_id = str(request.form.get("aircon_device_id", "")).strip()
+
+        if len(meter_device_id) > 50 or not device_id_pattern.match(meter_device_id):
+            flash("L'ID du capteur est invalide (caractères alphanumériques/tirets/deux-points, max 50 caractères).", "error")
+            return redirect(url_for("dashboard.settings_page"))
+
+        if len(aircon_device_id) > 50 or not device_id_pattern.match(aircon_device_id):
+            flash("L'ID du climatiseur est invalide (caractères alphanumériques/tirets/deux-points, max 50 caractères).", "error")
+            return redirect(url_for("dashboard.settings_page"))
+
+        settings["meter_device_id"] = meter_device_id
+        settings["aircon_device_id"] = aircon_device_id
+
+        _update_time_windows(request.form, settings)
+        _update_profiles(request.form, settings)
+
+        updated_aircon_scenes: dict[str, str] = {}
+        for key in AIRCON_SCENE_KEYS:
+            updated_aircon_scenes[key] = str(
+                request.form.get(f"scene_{key}_id", current_aircon_scenes.get(key, ""))
+            ).strip()
+
+        settings["aircon_scenes"] = updated_aircon_scenes
+
+        settings_store.write(settings)
+
     scheduler_service.reschedule()
 
     flash("Paramètres enregistrés.")
@@ -921,9 +916,10 @@ def devices() -> str:
 def quick_off() -> Any:
     settings_store = current_app.extensions["settings_store"]
     
-    settings = settings_store.read()
-    settings["automation_enabled"] = False
-    settings_store.write(settings)
+    with _transaction_context(settings_store):
+        settings = settings_store.read()
+        settings["automation_enabled"] = False
+        settings_store.write(settings)
     
     return _execute_aircon_action(
         "off",
@@ -969,7 +965,6 @@ def actions_page() -> str:
 
 
 def _generate_mock_history_data(start: dt.datetime, end: dt.datetime) -> list[dict[str, Any]]:
-    import random
     mock_data = []
     current = start
     while current <= end:
@@ -1065,7 +1060,7 @@ def history_api_data() -> Any:
 
     except ValueError as exc:
         return {"error": f"Invalid parameters: {exc}"}, 400
-    except Exception as exc:
+    except Exception:
         current_app.logger.exception("[history] API error")
         # Return empty data structure on error to avoid breaking the frontend
         return {
@@ -1091,8 +1086,6 @@ def history_api_aggregates() -> Any:
             }, 503
         
         # Return mock aggregates when service is not available
-        import random
-        
         return {
             "period_hours": 6,
             "aggregates": {
@@ -1143,7 +1136,7 @@ def history_api_aggregates() -> Any:
             "aggregates": aggregates,
         }
 
-    except Exception as exc:
+    except Exception:
         current_app.logger.exception("[history] Aggregates API error")
         # Return empty aggregates on error to avoid breaking the frontend
         return {
@@ -1176,8 +1169,6 @@ def history_api_latest() -> Any:
             }, 503
         
         # Return mock latest records when service is not available
-        import random
-        
         mock_latest = []
         for i in range(10):
             timestamp = dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=i * 5)
@@ -1221,7 +1212,7 @@ def history_api_latest() -> Any:
             "count": len(latest),
         }
 
-    except Exception as exc:
+    except Exception:
         current_app.logger.exception("[history] Latest API error")
         # Return empty latest on error to avoid breaking the frontend
         return {

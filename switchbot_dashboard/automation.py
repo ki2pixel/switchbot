@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import copy
 import datetime as dt
 import logging
+import time
 from typing import Any, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -10,6 +12,7 @@ from flask import has_request_context, request
 from .aircon import AIRCON_SCENE_LABELS, extract_aircon_scenes
 from .config_store import BaseStore
 from .switchbot_api import SwitchBotApiError, SwitchBotClient
+from .utils import _safe_int, _utc_now_iso
 
 
 def _parse_hhmm(value: str) -> dt.time:
@@ -54,9 +57,6 @@ def _is_now_in_windows(time_windows: list[dict[str, Any]], now: dt.datetime) -> 
     return any(_is_time_in_window(w, now) for w in time_windows)
 
 
-def _utc_now_iso() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat()
-
 
 def _ensure_utc(value: dt.datetime) -> dt.datetime:
     if value.tzinfo is None:
@@ -95,11 +95,57 @@ def _summarize_time_windows(time_windows: list[dict[str, Any]]) -> str:
     return "; ".join(segments)
 
 
+class CachedStoreWrapper:
+    """Proxy store that caches reads and writes during a single execution context.
+    
+    Prevents redundant database queries during a single automation tick (P-04).
+    """
+    def __init__(self, store: BaseStore) -> None:
+        self._store = store
+        self._cache: dict[str, Any] | None = None
+
+    def clear_cache(self) -> None:
+        self._cache = None
+
+    def read(self) -> dict[str, Any]:
+        if self._cache is None:
+            self._cache = self._store.read()
+        return copy.deepcopy(self._cache)
+
+    def write(self, data: dict[str, Any]) -> None:
+        self._cache = copy.deepcopy(data)
+        self._store.write(data)
+
+    def transaction(self) -> Any:
+        if not hasattr(self._store, "transaction"):
+            import contextlib
+            @contextlib.contextmanager
+            def dummy():
+                self.clear_cache()
+                yield
+                self.clear_cache()
+            return dummy()
+
+        self.clear_cache()
+        class CacheClearingTransaction:
+            def __init__(self, parent: CachedStoreWrapper, tx: Any) -> None:
+                self.parent = parent
+                self.tx = tx
+            def __enter__(self) -> Any:
+                self.parent.clear_cache()
+                return self.tx.__enter__()
+            def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Any:
+                res = self.tx.__exit__(exc_type, exc_val, exc_tb)
+                self.parent.clear_cache()
+                return res
+        return CacheClearingTransaction(self, self._store.transaction())
+
+
 class AutomationService:
     """Core automation service for SwitchBot device control.
 
     Manages temperature monitoring, scene execution, and device automation
-    with timezone-aware scheduling and IFTTT webhook integration.
+    with timezone-aware scheduling.
 
     Attributes:
         _settings_store: Persistent storage for configuration settings
@@ -120,14 +166,19 @@ class AutomationService:
         history_service: Optional[Any] = None,  # HistoryService to avoid circular import
         logger: logging.Logger | None = None,
     ) -> None:
-        self._settings_store = settings_store
-        self._state_store = state_store
+        self._settings_store = CachedStoreWrapper(settings_store)
+        self._state_store = CachedStoreWrapper(state_store)
         self._client = switchbot_client
         self._history_service = history_service
         self._logger = logger or logging.getLogger(__name__)
         self._cached_timezone_key = None
         self._cached_timezone_value = None
         self._tick_durations: list[float] = []
+
+        # Share the wrapped state store with the quota tracker to ensure cache coherency (P-04)
+        if hasattr(self._client, "_quota_tracker") and self._client._quota_tracker:
+            if hasattr(self._client._quota_tracker, "_state_store"):
+                self._client._quota_tracker._state_store = self._state_store
 
     def _update_state(self, **updates: Any) -> None:
         state = self._state_store.read()
@@ -278,7 +329,7 @@ class AutomationService:
         # Check cooldown
         now = dt.datetime.now(dt.timezone.utc)
         settings = self._settings_store.read()
-        poll_cooldown_minutes = int(settings.get("aircon_poll_cooldown_minutes", 15) or 15)
+        poll_cooldown_minutes = _safe_int(settings.get("aircon_poll_cooldown_minutes"), default=15)
 
         state = self._state_store.read()
         last_aircon_poll_at = state.get("last_aircon_poll_at")
@@ -391,14 +442,14 @@ class AutomationService:
         assumed_power = state.get("assumed_aircon_power", "")
         
         if assumed_power == "on":
-            cooldown_seconds = int(settings.get("action_on_cooldown_seconds", 0) or 0)
+            cooldown_seconds = _safe_int(settings.get("action_on_cooldown_seconds"), default=0)
             cooldown_type = "ON"
         else:
-            cooldown_seconds = int(settings.get("action_off_cooldown_seconds", 0) or 0)
+            cooldown_seconds = _safe_int(settings.get("action_off_cooldown_seconds"), default=0)
             cooldown_type = "OFF"
         
+        default_cooldown = _safe_int(settings.get("command_cooldown_seconds"), default=0)
         if cooldown_seconds <= 0:
-            default_cooldown = int(settings.get("command_cooldown_seconds", 0) or 0)
             if default_cooldown <= 0:
                 return False
             cooldown_seconds = default_cooldown
@@ -525,17 +576,17 @@ class AutomationService:
         task = state.get(OFF_REPEAT_STATE_KEY)
         if not isinstance(task, dict):
             return False
-        remaining = int(task.get("remaining", 0) or 0)
+        remaining = _safe_int(task.get("remaining"), default=0)
         return remaining > 0
 
     def _schedule_off_repeat_task(self, now: dt.datetime, *, state_reason: str) -> None:
         settings = self._settings_store.read()
-        repeat_count = int(settings.get("off_repeat_count", 1) or 1)
+        repeat_count = _safe_int(settings.get("off_repeat_count"), default=1)
         if repeat_count <= 1:
             self._clear_off_repeat_task()
             return
 
-        interval_seconds = int(settings.get("off_repeat_interval_seconds", 10) or 10)
+        interval_seconds = _safe_int(settings.get("off_repeat_interval_seconds"), default=10)
         if interval_seconds < 1:
             interval_seconds = 1
 
@@ -570,7 +621,7 @@ class AutomationService:
         if not isinstance(task, dict):
             return
 
-        remaining = int(task.get("remaining", 0) or 0)
+        remaining = _safe_int(task.get("remaining"), default=0)
         if remaining <= 0:
             self._clear_off_repeat_task()
             return
@@ -591,7 +642,7 @@ class AutomationService:
             return
 
         state_reason = str(task.get("state_reason", "automation_off_repeat")).strip() or "automation_off_repeat"
-        interval_seconds = int(task.get("interval_seconds", 10) or 10)
+        interval_seconds = _safe_int(task.get("interval_seconds"), default=10)
         if interval_seconds < 1:
             interval_seconds = 1
 
@@ -685,7 +736,7 @@ class AutomationService:
                 if not isinstance(profile, dict):
                     profile = {}
                 target_temp = float(profile.get("target_temp", 22.0) or 22.0)
-                fan_speed = int(profile.get("fan_speed", 3) or 3)
+                fan_speed = _safe_int(profile.get("fan_speed"), default=3)
                 
                 try:
                     self._send_aircon_setall(
@@ -869,8 +920,13 @@ class AutomationService:
             _clear_lock()
 
     def run_once(self) -> None:
-        import time
         start_time = time.perf_counter()
+        
+        # Clear store caches for this tick (P-04)
+        if hasattr(self._settings_store, "clear_cache"):
+            self._settings_store.clear_cache()
+        if hasattr(self._state_store, "clear_cache"):
+            self._state_store.clear_cache()
         
         if not self._acquire_lock():
             self._debug("Skipping automation cycle: lock is held by another process")
@@ -967,8 +1023,8 @@ class AutomationService:
             min_temp = float(profile.get("min_temp"))
             max_temp = float(profile.get("max_temp"))
             target_temp = float(profile.get("target_temp"))
-            ac_mode = int(profile.get("ac_mode"))
-            fan_speed = int(profile.get("fan_speed"))
+            ac_mode = _safe_int(profile.get("ac_mode"), default=5)
+            fan_speed = _safe_int(profile.get("fan_speed"), default=3)
         except (TypeError, ValueError):
             self._update_state(last_error=f"Invalid profile configuration for mode: {mode}")
             self._error("Invalid automation profile configuration", trigger=trigger, mode=mode)
@@ -1020,7 +1076,7 @@ class AutomationService:
         settings = self._settings_store.read()
         timezone_info, timezone_name = self._get_timezone(settings, trigger=trigger)
         now = dt.datetime.now(dt.timezone.utc).astimezone(timezone_info)
-        poll_interval = int(settings.get("poll_interval_seconds", 0) or 0)
+        poll_interval = _safe_int(settings.get("poll_interval_seconds"), default=0)
         automation_enabled = bool(settings.get("automation_enabled", False))
         outcome = "noop"
 
@@ -1123,14 +1179,3 @@ class AutomationService:
                 self._history_service.record_state(current_state, timezone_name)
             except Exception as exc:
                 self._warning("Failed to record state in history", trigger=trigger, error=str(exc))
-            else:
-                try:
-                    deleted = self._history_service.cleanup_old_records()
-                    if deleted:
-                        self._debug(
-                            "Cleaned up old history records",
-                            trigger=trigger,
-                            deleted=deleted,
-                        )
-                except Exception as exc:
-                    self._warning("Failed to cleanup history records", trigger=trigger, error=str(exc))

@@ -1,4 +1,14 @@
-[2026-07-11 03:05:00] - Remédiation des Vulnérabilités, SSL, Stockage et Concurrence du Backend (Phases 1-4)
+[2026-07-12 12:41:00] - Optimisation des performances, cache d'API et transactionnalité des routes (Phases 3-5)
+- Décision : Centraliser les convertisseurs de types dans `utils.py`, utiliser un proxy contextuel de store `CachedStoreWrapper` pour éliminer les requêtes DB redondantes et garder la cohérence du quota tracker, implémenter un cache de 60s pour les requêtes d'appareils, conditionner l'enveloppement transactionnel pour supporter les MemoryStore de test, et intégrer PostgreSQL dans le workflow CI GitHub Actions.
+- Motivation : Les requêtes d'appareils sur la page `/devices` engendraient un problème de requête N+1 surchargeant l'API SwitchBot. L'appel fréquent de quota snapshot dans la boucle d'automatisation lisait à chaque fois l'état depuis le store, provoquant des requêtes DB superflues. Les environnements de test utilisaient des instances MemoryStore simples sans support de transaction, et le workflow CI n'exécutait aucun test automatisé avec PostgreSQL.
+- Implémentation :
+  1. **Cache d'API** : Ajout d'un dictionnaire de cache de 60s sur `get_devices()` et `get_device_status()` dans `SwitchBotClient`. Plafonnement du sommeil de retry à 3s maximum lors des appels.
+  2. **Cache de Store** : Introduction de `CachedStoreWrapper` qui intercepte les requêtes de lecture/écriture en mémoire tampon durant un tick unique. Partage automatique de la référence de store avec le `ApiQuotaTracker` pour garantir la cohérence des écritures.
+  3. **Abstraction de Transaction** : Ajout de la fonction utilitaire `_transaction_context` dans `routes.py` pour supporter optionnellement les transactions, évitant les crashs sur les MemoryStores.
+  4. **Qualité & Tests** : Unification des parsers numériques (`_safe_int`, etc.) dans `utils.py`. Configuration d'un service PostgreSQL dans `.github/workflows/build-and-push.yml` et configuration de `TEST_POSTGRES_URL` pour y exécuter `pytest`.
+- Implication : L'application est hautement optimisée avec une réduction drastique des requêtes API/DB. La CI assure maintenant de manière autonome la non-régression sur base de données réelle.
+
+[2026-07-12 10:35:00] - Remédiation des Vulnérabilités, SSL, Stockage et Concurrence du Backend (Phases 1-4)
 - Décision : Implémenter l'authentification par session (mot de passe en clair DASHBOARD_PASSWORD), exiger SSL (sslmode) pour PostgreSQL, interdire le fallback JSON en production, isoler les transactions de ticks d'automatisation et introduire un verrou applicatif distribué en base de données.
 - Motivation : L'audit backend de sécurité a mis en évidence l'absence d'authentification sur les routes d'action et de réglage, une configuration SSL PostgreSQL inopérante, des fallbacks JSON silencieux masquant les pannes de DB, des blocages de connexions psycopg dus aux transactions englobant des appels API lents, et un risque de collision entre les actions manuelles et l'automatisation.
 - Implémentation :

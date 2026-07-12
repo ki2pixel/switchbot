@@ -5,7 +5,6 @@ import logging
 import threading
 from typing import Any
 
-import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
@@ -319,7 +318,3 @@ class PostgresStore:
                 "[postgres] Health check failed for %s store (%s)", self._kind, exc
             )
             return False
-
-    def __del__(self) -> None:
-        """Cleanup on garbage collection."""
-        self.close()

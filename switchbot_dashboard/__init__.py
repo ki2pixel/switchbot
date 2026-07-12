@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import atexit
+import datetime
 import logging
 import os
 from pathlib import Path
+import sys
 
 from dotenv import load_dotenv
 
@@ -19,6 +22,7 @@ from .routes import dashboard_bp
 from .scheduler import SchedulerService
 from .quota import ApiQuotaTracker
 from .switchbot_api import SwitchBotClient
+from .extensions import limiter
 
 load_dotenv()
 
@@ -78,7 +82,7 @@ def _build_store(
                 store.close()
                 return _make_json_store()
                 
-        except PostgresStoreError as exc:
+        except PostgresStoreError:
             if is_production:
                 raise
             app.logger.exception(
@@ -121,12 +125,17 @@ def _mark_temperature_stale(app: Flask, state_store: BaseStore, *, reason: str) 
 
 def create_app() -> Flask:
     app = Flask(__name__)
+    
+    # Configure session cookie options (S-02)
+    app.config["SESSION_COOKIE_SECURE"] = not app.debug and not app.testing
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["PERMANENT_SESSION_LIFETIME"] = datetime.timedelta(minutes=30)
+
     flask_secret = os.environ.get("FLASK_SECRET_KEY")
     insecure_keys = {"dev-local-only", "change-me", "default", "secret", "password", "key", "admin"}
     is_insecure = not flask_secret or str(flask_secret).strip().lower() in insecure_keys
 
     if is_insecure and not app.debug and not app.testing:
-        import sys
         is_pytest = "pytest" in sys.modules or any("pytest" in arg for arg in sys.argv)
         if not is_pytest:
             raise RuntimeError("Security Violation: FLASK_SECRET_KEY must be set in production (secure value required)")
@@ -135,7 +144,6 @@ def create_app() -> Flask:
     
     dashboard_password = os.environ.get("DASHBOARD_PASSWORD", "").strip()
     is_production = os.environ.get("FLASK_ENV") == "production" or app.config.get("ENV") == "production" or (not app.debug and not app.testing)
-    import sys
     is_pytest = "pytest" in sys.modules or any("pytest" in arg for arg in sys.argv)
     if not dashboard_password and is_production and not is_pytest:
         raise RuntimeError("Security Violation: DASHBOARD_PASSWORD must be set in production")
@@ -151,10 +159,16 @@ def create_app() -> Flask:
     csrf.init_app(app)
 
     # Initialize Rate Limiter
-    from .extensions import limiter
     app.config.setdefault("RATELIMIT_ENABLED", not app.testing)
     app.config.setdefault("RATELIMIT_STORAGE_URI", os.environ.get("RATELIMIT_STORAGE_URI", "memory://"))
     limiter.init_app(app)
+
+    # Durcissement Rate Limiter (S-04)
+    if is_production and app.config.get("RATELIMIT_STORAGE_URI", "").startswith("memory://"):
+        app.logger.warning(
+            "[api] RATELIMIT_STORAGE_URI is set to memory:// in production. "
+            "Under multi-worker Gunicorn environments, rate limits will not be shared between workers."
+        )
 
     # Initialize shared connection pool for PostgreSQL if selected
     shared_pool = None
@@ -173,7 +187,6 @@ def create_app() -> Flask:
                 app.logger.info("[postgres] Shared connection pool initialized successfully")
                 
                 # Register atexit shutdown handler
-                import atexit
                 @atexit.register
                 def close_shared_pool() -> None:
                     try:
@@ -181,7 +194,7 @@ def create_app() -> Flask:
                         logging.getLogger().info("[postgres] Shared connection pool closed successfully via atexit")
                     except Exception as exc:
                         logging.getLogger().warning("[postgres] Error closing shared connection pool via atexit (%s)", exc)
-            except Exception as exc:
+            except Exception:
                 app.logger.exception("[postgres] Failed to initialize shared connection pool")
 
     project_root = Path(__file__).resolve().parents[1]
@@ -254,7 +267,7 @@ def create_app() -> Flask:
                 retention_hours=6,
             )
             app.logger.info("[history] HistoryService initialized with PostgreSQL backend")
-        except Exception as exc:
+        except Exception:
             app.logger.exception("[history] Failed to initialize HistoryService")
     else:
         app.logger.warning("[history] HistoryService disabled: PostgreSQL backend not available")
@@ -284,6 +297,20 @@ def create_app() -> Flask:
 
     app.register_blueprint(dashboard_bp)
 
+    # HTTP Security Headers (S-01)
+    @app.after_request
+    def set_security_headers(response):
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['Content-Security-Policy'] = (
+            "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+        )
+        if not app.debug and not app.testing:
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        return response
+
     _mark_temperature_stale(app, state_store, reason="app_start")
     try:
         automation_service.poll_meter()
@@ -304,6 +331,19 @@ def create_app() -> Flask:
         else:
             scheduler_service.start()
             app.logger.info("[scheduler] APScheduler enabled and started")
+            
+            # Register hourly history cleanup job (A-04)
+            if history_service:
+                scheduler = scheduler_service.get_scheduler()
+                if scheduler:
+                    scheduler.add_job(
+                        func=history_service.cleanup_old_records,
+                        trigger="interval",
+                        hours=1,
+                        id="history_cleanup",
+                        replace_existing=True,
+                    )
+                    app.logger.info("[scheduler] Registered hourly history cleanup job")
     else:
         app.logger.info("[scheduler] APScheduler disabled via SCHEDULER_ENABLED=false")
 

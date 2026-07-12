@@ -19,7 +19,7 @@ from typing import Any
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from switchbot_dashboard.config_store import JsonStore, RedisJsonStore, StoreError
+from switchbot_dashboard.config_store import JsonStore, StoreError
 from switchbot_dashboard.postgres_store import PostgresStore, PostgresStoreError
 
 

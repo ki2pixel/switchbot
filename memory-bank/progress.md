@@ -1,6 +1,17 @@
 # Progrès du Projet - SwitchBot Dashboard
 
 ## Terminé
+- **[2026-07-12 12:41:00] - Finalisation des Phases 3, 4 et 5 du plan d'implémentation**
+  - **Performance (P-01 à P-04)** : Implémentation du cache de 60s sur les requêtes d'appareils, limitation des retries bloquants à 3s, transactions sur les modifications de paramètres dans les routes, et optimisation du logger de quota via un proxy de store `CachedStoreWrapper` avec cohérence de cache dynamique pour le quota tracker.
+  - **Qualité (Q-01 à Q-05, A-05)** : Nettoyage complet via Ruff (14 corrections automatiques), unification des convertisseurs numériques (`_safe_int`, `_safe_float`, `_safe_bool`) et helpers temporels dans `utils.py`, retrait des constantes dupliquées, et documentation du mapping base de données/état.
+  - **Validation & CI (T-01 à T-03)** : Intégration de PostgreSQL dans GitHub Actions et automatisation des tests pytest dans la CI. Ajout de tests de non-régression robustes pour le cache d'API, le plafonnement de retries, la validation de paramètres et la rotation de session. Suite de tests verte à 100% (166/166).
+- **[2026-07-12 12:35:00] - Implémentation des Phases 1 et 2 du plan d'implémentation**
+  - **Sécurité (S-01 à S-08)** : Ajout des en-têtes HTTP de sécurité, configuration stricte SameSite/Secure pour les cookies de session Flask, alertes Rate-Limit, validations rigoureuses de paramètres et des IDs de capteurs/AC, rotation de session post-connexion, allowlist stricte sur le debug et gestion globale de StoreError (page 503 personnalisée).
+  - **Nettoyage (A-01 à A-06)** : Nettoyage du code IFTTT/webhooks mort, suppression du destructeur non déterministe de pool psycopg, purge de RedisJsonStore/FailoverStore, et migration de la purge périodique de l'historique vers APScheduler (job horaire).
+- **[2026-07-12 12:29:00] - Restructuration du plan d'audit en plan d'implémentation**
+  - **Audit de plan.md** : Réécriture complète de plan.md pour le convertir d'un document de constatations d'audit en un plan d'implémentation découpé en 5 phases actionnables.
+  - **Adaptation IFTTT** : Redéfinition des tâches S-03 (SSRF) et A-01 (cascade IFTTT) vers le nettoyage de documentation et l'audit de code mort, suite à la suppression préalable d'IFTTT.
+  - **Fichiers Liés** : Tâches documentées avec leurs chemins absolus, détails d'implémentation et critères d'acceptation de test précis.
 - **[2026-07-12 12:18:00] - Intégration et Configuration de l'écosystème Codex**
   - **Règles Déclaratives** : Création de `.codex/rules/development.rules` en Starlark pour pré-approuver les commandes de développement (activation venv, pytest, git, python, ripgrep) sans invites répétitives.
   - **Instructions Hiérarchiques** : Division des instructions pour rester dans le budget de 32 KiB, avec un `AGENTS.md` à la racine pour les règles système globales et un `tests/AGENTS.md` spécifique à la stratégie de test.

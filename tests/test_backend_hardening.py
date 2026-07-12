@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import datetime as dt
 import decimal
-import ipaddress
-import socket
 import sys
 from unittest.mock import MagicMock, patch
 
@@ -12,7 +10,7 @@ from flask import Flask
 
 from switchbot_dashboard import create_app
 from switchbot_dashboard.__init__ import _build_store
-from switchbot_dashboard.config_store import JsonStore, StoreError
+from switchbot_dashboard.config_store import JsonStore
 from switchbot_dashboard.postgres_store import PostgresStore, PostgresStoreError
 from switchbot_dashboard.quota import ApiQuotaTracker
 from switchbot_dashboard.history_service import HistoryService, HistoryServiceError
@@ -136,9 +134,6 @@ class TestHistoryServiceBufferResiliency:
         
         # If postgres recovers
         pool_mock.connection.side_effect = None
-        conn_context = pool_mock.connection.return_value
-        conn = conn_context.__enter__.return_value
-        cursor = conn.cursor.return_value.__enter__.return_value
         
         # Triggering a force flush should succeed and clear the buffer
         service.flush_pending_records(force=True)
@@ -334,7 +329,7 @@ class TestPostgresSslAndFailover:
         with patch("switchbot_dashboard.postgres_store.ConnectionPool") as mock_pool, \
              patch("switchbot_dashboard.postgres_store.PostgresStore._ensure_table_exists"):
             
-            store = PostgresStore(
+            PostgresStore(
                 connection_string="postgresql://localhost/fake",
                 kind="settings",
                 logger=MagicMock(),

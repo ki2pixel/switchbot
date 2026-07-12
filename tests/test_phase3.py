@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import unittest
 from unittest.mock import MagicMock, patch
-import pytest
 from flask import Flask
 
-from switchbot_dashboard.config_store import JsonStore, StoreError
-from switchbot_dashboard.postgres_store import PostgresStore, PostgresStoreError
+from switchbot_dashboard.config_store import JsonStore
+from switchbot_dashboard.postgres_store import PostgresStore
 
 
 def test_json_store_transaction_success(tmp_path):
@@ -19,7 +17,7 @@ def test_json_store_transaction_success(tmp_path):
     assert store_file.exists()
     
     # Enter transaction
-    with store.transaction() as tx:
+    with store.transaction():
         # Read inside transaction
         data = store.read()
         assert data == {"key": "initial"}
@@ -183,3 +181,129 @@ def test_history_api_503_fallback_in_production():
         # Check /history/api/latest returns 503
         response = client.get("/history/api/latest")
         assert response.status_code == 503
+
+
+def test_switchbot_client_status_caching():
+    from switchbot_dashboard.switchbot_api import SwitchBotClient
+    
+    client = SwitchBotClient(token="test", secret="test")
+    client._request = MagicMock(return_value={"body": {"temperature": 22.5}})
+    
+    res1 = client.get_device_status("meter_1")
+    res2 = client.get_device_status("meter_1")
+    
+    client._request.assert_called_once_with("GET", "/v1.1/devices/meter_1/status")
+    assert res1 == res2
+
+
+def test_switchbot_client_devices_caching():
+    from switchbot_dashboard.switchbot_api import SwitchBotClient
+    
+    client = SwitchBotClient(token="test", secret="test")
+    client._request = MagicMock(return_value={"body": {"deviceList": []}})
+    
+    res1 = client.get_devices()
+    res2 = client.get_devices()
+    
+    client._request.assert_called_once_with("GET", "/v1.1/devices")
+    assert res1 == res2
+
+
+def test_switchbot_client_retry_delay_cap():
+    from switchbot_dashboard.switchbot_api import SwitchBotClient
+    import requests
+    
+    client = SwitchBotClient(token="test", secret="test", retry_delay_seconds=10, retry_attempts=2)
+    
+    with patch("requests.request", side_effect=requests.RequestException("failing")), \
+         patch("time.sleep") as mock_sleep:
+        try:
+            client.get_devices()
+        except Exception:
+            pass
+        
+        mock_sleep.assert_called_once_with(3)
+
+
+def test_settings_validation_mode_error():
+    from switchbot_dashboard.routes import dashboard_bp
+    
+    app = Flask(__name__)
+    app.secret_key = "test"
+    app.register_blueprint(dashboard_bp)
+    
+    from switchbot_dashboard.extensions import limiter
+    limiter.init_app(app)
+    
+    mock_store = MagicMock()
+    mock_store.read.return_value = {}
+    app.extensions["settings_store"] = mock_store
+    app.extensions["state_store"] = mock_store
+    app.extensions["switchbot_client"] = MagicMock()
+    app.extensions["scheduler_service"] = MagicMock()
+    
+    with app.test_client() as client:
+        response = client.post("/settings", data={"mode": "invalid_mode"})
+        assert response.status_code == 302
+        with client.session_transaction() as sess:
+            flashes = sess.get("_flashes", [])
+            assert any("Le mode sélectionné est invalide" in msg[1] for msg in flashes)
+
+
+def test_settings_validation_device_id_error():
+    from switchbot_dashboard.routes import dashboard_bp
+    
+    app = Flask(__name__)
+    app.secret_key = "test"
+    app.register_blueprint(dashboard_bp)
+    
+    from switchbot_dashboard.extensions import limiter
+    limiter.init_app(app)
+    
+    mock_store = MagicMock()
+    mock_store.read.return_value = {"mode": "winter"}
+    app.extensions["settings_store"] = mock_store
+    app.extensions["state_store"] = mock_store
+    app.extensions["switchbot_client"] = MagicMock()
+    app.extensions["scheduler_service"] = MagicMock()
+    
+    with app.test_client() as client:
+        response = client.post("/settings", data={
+            "mode": "winter",
+            "meter_device_id": "a" * 51,
+            "aircon_device_id": "valid_ac"
+        })
+        assert response.status_code == 302
+        with client.session_transaction() as sess:
+            flashes = sess.get("_flashes", [])
+            assert any("L'ID du capteur est invalide" in msg[1] for msg in flashes)
+
+
+def test_session_rotation_post_login_success():
+    from switchbot_dashboard.routes import dashboard_bp
+    
+    app = Flask(__name__)
+    app.secret_key = "test_rotation"
+    app.config["DASHBOARD_PASSWORD"] = "secret123"
+    app.register_blueprint(dashboard_bp)
+    
+    from switchbot_dashboard.extensions import limiter
+    limiter.init_app(app)
+    
+    mock_store = MagicMock()
+    mock_store.read.return_value = {}
+    app.extensions["settings_store"] = mock_store
+    app.extensions["state_store"] = mock_store
+    app.extensions["switchbot_client"] = MagicMock()
+    app.extensions["scheduler_service"] = MagicMock()
+    
+    with app.test_client() as client:
+        with client.session_transaction() as sess:
+            sess["some_pre_existing_data"] = "stays"
+            
+        response = client.post("/login", data={"password": "secret123"})
+        assert response.status_code == 302
+        
+        with client.session_transaction() as sess:
+            assert sess.get("logged_in") is True
+            assert sess.get("some_pre_existing_data") == "stays"

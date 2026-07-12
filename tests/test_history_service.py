@@ -12,7 +12,6 @@ This test suite covers:
 from __future__ import annotations
 
 import datetime as dt
-import json
 from unittest.mock import MagicMock, patch
 
 import pytest

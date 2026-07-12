@@ -4,6 +4,8 @@ import datetime as dt
 import logging
 from typing import Any
 
+from .utils import _safe_int
+
 from .config_store import BaseStore
 
 logger = logging.getLogger(__name__)
@@ -98,7 +100,4 @@ class ApiQuotaTracker:
 
     @staticmethod
     def _safe_int(value: Any, *, fallback: int) -> int:
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return fallback
+        return _safe_int(value, default=fallback)
