@@ -1,0 +1,75 @@
+# .codex/rules/development.rules
+# Starlark prefix rules for SwitchBot Dashboard local development
+
+# 1. Virtual Environment Activation
+prefix_rule(
+    pattern = [["source", "."], "/mnt/venv_ext4/venv_switchbot/bin/activate"],
+    decision = "allow",
+    justification = "Allow activating the project's Python virtual environment",
+    match = [
+        "source /mnt/venv_ext4/venv_switchbot/bin/activate",
+        ". /mnt/venv_ext4/venv_switchbot/bin/activate",
+    ],
+)
+
+# 2. Pytest Unit Testing
+prefix_rule(
+    pattern = [["python", "python3"], "-m", "pytest"],
+    decision = "allow",
+    justification = "Allow running project unit and integration tests via pytest",
+    match = [
+        "python -m pytest",
+        "python3 -m pytest tests/test_automation.py",
+        "python -m pytest -v -k test_quota",
+    ],
+)
+
+# 3. Python Local Scripts / Flask Server
+prefix_rule(
+    pattern = [["python", "python3"], ["app.py", "run_worker.py"]],
+    decision = "allow",
+    justification = "Allow starting the local Flask app or background worker for verification",
+    match = [
+        "python app.py",
+        "python3 run_worker.py",
+    ],
+)
+
+# 4. Git Version Control (Safe Operations)
+prefix_rule(
+    pattern = ["git", ["status", "diff", "log", "show", "branch"]],
+    decision = "allow",
+    justification = "Allow viewing local git repository status, diffs, and history",
+    match = [
+        "git status",
+        "git diff HEAD",
+        "git log -n 5 --oneline",
+        "git show HEAD",
+        "git branch -a",
+    ],
+)
+
+# 5. Git Staging and Committing
+prefix_rule(
+    pattern = ["git", ["add", "commit", "push", "pull", "checkout"]],
+    decision = "allow",
+    justification = "Allow staging, committing, branching, and pushing code updates",
+    match = [
+        "git add .",
+        "git commit -m 'feat: update config'",
+        "git checkout main",
+        "git pull origin main",
+        "git push",
+    ],
+)
+
+# 6. Ripgrep Search (Fast File Search)
+prefix_rule(
+    pattern = ["rg"],
+    decision = "allow",
+    justification = "Allow using ripgrep for local codebase search",
+    match = [
+        "rg 'AutomationService'",
+        "rg --files",
+    ],
+)

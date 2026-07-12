@@ -1,6 +1,12 @@
 # Progrès du Projet - SwitchBot Dashboard
 
 ## Terminé
+- **[2026-07-12 12:18:00] - Intégration et Configuration de l'écosystème Codex**
+  - **Règles Déclaratives** : Création de `.codex/rules/development.rules` en Starlark pour pré-approuver les commandes de développement (activation venv, pytest, git, python, ripgrep) sans invites répétitives.
+  - **Instructions Hiérarchiques** : Division des instructions pour rester dans le budget de 32 KiB, avec un `AGENTS.md` à la racine pour les règles système globales et un `tests/AGENTS.md` spécifique à la stratégie de test.
+  - **Guide d'Intégration** : Rédaction d'un guide complet `docs/codex/integration-guide.md` comparant la sécurité Windsurf vs Codex, détaillant la compatibilité des skills Open Agent Skills et la configuration locale.
+  - **Correction Test** : Correction du test unitaire `test_quota_refresh_route_makes_api_call` (authentification de session manquante), rendant la suite de 164 tests de nouveau verte à 100%.
+
 - **[2026-07-11 03:45:00] - Remédiation Audit Frontend (Navigation SPA, Ergonomie Mobile, Accessibilité, et Performances)**
   - **Phase 1** : Gestion dynamique des CSS dans `spa-router.js` (injection et retrait au vol, attente des chargements). Refonte de `loaders.js` avec délégation globale d'événements pour éliminer les écouteurs dupliqués et perdus. CTA mobile repositionné pour éviter le chevauchement, cibles tactiles passées à 44px min.
   - **Phase 2** : Accessibilité de l'overlay de chargement (`aria-busy="true"`, `role="status"` et text `sr-only`). Alternatives textuelles dynamiques résumant les moyennes/extrema des graphiques dans `history.js` et `history.html`. Landmark `<main>` unique et cascade de titres (`h1` -> `h2`) restaurés sur tous les templates.

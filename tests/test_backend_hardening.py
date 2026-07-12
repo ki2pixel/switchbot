@@ -447,6 +447,7 @@ class TestQuotaActualRefresh:
         monkeypatch.setenv("SWITCHBOT_SETTINGS_PATH", str(settings_path))
         monkeypatch.setenv("SWITCHBOT_STATE_PATH", str(state_path))
         monkeypatch.setenv("STORE_BACKEND", "filesystem")
+        monkeypatch.setenv("DASHBOARD_PASSWORD", "securepassword")
         
         app = create_app()
         app.config["WTF_CSRF_ENABLED"] = False
@@ -455,6 +456,10 @@ class TestQuotaActualRefresh:
         app.extensions["switchbot_client"] = mock_client
         
         with app.test_client() as client:
+            # Login to establish an authenticated session
+            login_resp = client.post("/login", data={"password": "securepassword"})
+            assert login_resp.status_code == 302
+            
             response = client.post("/quota/refresh")
             
             assert response.status_code == 302

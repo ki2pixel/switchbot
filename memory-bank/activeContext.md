@@ -7,13 +7,13 @@
 - [x] Fiabilité des quotas et rate-limiting (correction de la métrique history_service.py vers api_requests_total, rafraîchissement réel des quotas via get_devices, rate-limiting global configurable).
 - [x] Campagne d'intégration de tests unitaires et de non-régression complétée (164 tests passed, 0 failed).
 - [x] Remédiation des défauts, vulnérabilités et ergonomie frontend de l'audit complétée (Navigation SPA, CTA mobile, A11y loaders et graphiques, sémantique HTML, allègement optimiseurs, local fonts et CSS critique).
+- [x] Intégration complète de la configuration et des règles de l'écosystème Codex (Starlark, instructions AGENTS.md hiérarchiques, compatibilité de skills, guide de configuration).
 
 ## Décisions Clés
-- Gestion dynamique et synchronisée des feuilles de style CSS de page dans `spa-router.js` pour éviter le FOUC et éliminer les accumulations de styles.
-- Délégation d'événements globale sur `document` pour les loaders (`loaders.js`), stabilisant les écouteurs d'événements et protégeant contre les écouteurs dupliqués dans la SPA.
-- Accessibilité enrichie : attribut `aria-busy` pendant le chargement, live region `role="status"` avec étiquettes vocales sur les spinners, et alternatives textuelles dynamiques (statistiques calculées en JS) pour les graphiques d'historique.
-- Optimiseurs de performance simplifiés pour éliminer les boucles en arrière-plan et le Web Worker, et désactivation de toutes les connexions externes CDN/Google pour un offline-first strict.
-- Polices Space Grotesk hébergées et référencées localement dans `critical.css` et `index.html`.
+- Utilisation de règles Starlark déclaratives dans `.codex/rules/development.rules` pour autoriser les commandes de développement (pytest, git, activation venv) sans invites interactives.
+- Découpage hiérarchique de `AGENTS.md` (racine) et `tests/AGENTS.md` (tests) pour rester sous le budget de 32 KiB imposé par Codex tout en conservant toutes les règles de développement.
+- Standardisation des compétences (`.agents/skills/`) avec spécification Open Agent Skills et support de configuration via `agents/openai.yaml`.
+- Correction du test `test_quota_refresh_route_makes_api_call` qui échouait à cause d'une session non authentifiée, rétablissant le statut 100% vert de la suite de tests (164/164).
 
 ## Prochaines Étapes
-- En attente de nouveaux retours de l'utilisateur sur les modifications frontend ou pour démarrer une nouvelle tâche.
+- En attente de nouveaux retours de l'utilisateur ou de démarrage d'une nouvelle tâche de développement.
