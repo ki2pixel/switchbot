@@ -110,6 +110,24 @@
         return overlay;
     };
 
+    // Lazily created aria-live region for loader announcements (P2.1 a11y fix)
+    let loaderLiveRegion = null;
+    const getLoaderLiveRegion = () => {
+        if (!loaderLiveRegion) {
+            loaderLiveRegion = document.createElement('div');
+            loaderLiveRegion.setAttribute('aria-live', 'polite');
+            loaderLiveRegion.setAttribute('aria-atomic', 'true');
+            loaderLiveRegion.className = 'sr-only';
+            document.body.appendChild(loaderLiveRegion);
+        }
+        return loaderLiveRegion;
+    };
+
+    const announceLoader = (message) => {
+        const region = getLoaderLiveRegion();
+        region.textContent = message;
+    };
+
     const ensureGlobalLoader = () => {
         let overlay = document.getElementById(GLOBAL_LOADER_ID);
         if (overlay) {
@@ -138,8 +156,9 @@
     const showGlobalLoader = () => {
         const overlay = ensureGlobalLoader();
         overlay.classList.add(GLOBAL_LOADER_ACTIVE_CLASS);
-        overlay.setAttribute('aria-hidden', 'false');
+        overlay.removeAttribute('aria-hidden');
         document.body.classList.add('sb-loading');
+        announceLoader('Chargement en cours...');
         
         const appContent = document.getElementById('app-content');
         if (appContent) {
@@ -157,6 +176,7 @@
         overlay.classList.remove(GLOBAL_LOADER_ACTIVE_CLASS);
         overlay.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('sb-loading');
+        announceLoader('Chargement terminé.');
         
         const appContent = document.getElementById('app-content');
         if (appContent) {
@@ -191,7 +211,7 @@
         
         requestAnimationFrame(() => {
             overlay.style.opacity = '1';
-            overlay.setAttribute('aria-hidden', 'false');
+            overlay.removeAttribute('aria-hidden');
         });
     };
     
@@ -230,9 +250,10 @@
         submitButton.textContent = loaderText;
         submitButton.disabled = true;
         
-        setTimeout(() => {
+        // Submit immediately after the loader is painted (P3.18 — removed 1s delay)
+        requestAnimationFrame(() => {
             form.submit();
-        }, 1000);
+        });
 
         const finalizeSubmission = () => {
             hideGlobalLoader();
@@ -243,7 +264,7 @@
         setTimeout(() => {
             finalizeSubmission();
             clearLoaderFailsafe(submitButton);
-        }, 10000);
+        }, 5000);
 
         scheduleLoaderFailsafe(submitButton, finalizeSubmission);
     };

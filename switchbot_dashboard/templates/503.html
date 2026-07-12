@@ -57,10 +57,11 @@
     </style>
   </head>
   <body class="sb-bg">
+    <main id="app-content">
     <div class="error-container">
       <div class="error-card">
         <div class="error-icon">
-          <i class="fas fa-database"></i>
+          <i class="fas fa-database" aria-hidden="true"></i>
         </div>
         <h1 class="h3 mb-3 text-light">Base de données indisponible</h1>
         <p class="text-secondary mb-4">
@@ -68,10 +69,11 @@
         </p>
         <div class="d-grid gap-2">
           <a href="{{ url_for('dashboard.index') }}" class="btn btn-sb">
-            <i class="fas fa-sync-alt me-2"></i>Réessayer
+            <i class="fas fa-sync-alt me-2" aria-hidden="true"></i>Réessayer
           </a>
         </div>
       </div>
     </div>
+    </main>
   </body>
 </html>

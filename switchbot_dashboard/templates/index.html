@@ -441,7 +441,6 @@
     <link rel="preload" href="{{ url_for('static', filename='css/theme.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'" />
     <link rel="preload" href="{{ url_for('static', filename='css/index.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'" />
     <link rel="preload" href="{{ url_for('static', filename='js/loaders.js') }}" as="script" />
-    <link rel="preload" href="{{ url_for('static', filename='js/advanced-optimizer.js') }}" as="script" />
     <link rel="preload" href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'" />
     <link rel="preload" href="{{ url_for('static', filename='vendor/css/space-grotesk.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'" />
     
@@ -461,6 +460,7 @@
     </script>
   </head>
   <body class="sb-dark sb-page sb-dashboard">
+    <a href="#app-content" class="sr-only" style="position:absolute;top:-999px;left:-999px;z-index:9999">Aller au contenu principal</a>
 
 <!-- Enhanced anti-flash script for body -->
 <script>
@@ -632,9 +632,6 @@
     <script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
     <script src="{{ url_for('static', filename='js/loaders.js') }}"></script>
     <script src="{{ url_for('static', filename='js/spa-router.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bottom-nav.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/performance-optimizer.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/advanced-optimizer.js') }}"></script>
     
     <!-- Enhanced Performance Optimization Script -->
     <script>

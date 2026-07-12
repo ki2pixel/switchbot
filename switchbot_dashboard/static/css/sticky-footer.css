@@ -80,7 +80,7 @@ body.sb-dark {
   font-weight: 500;
   margin-top: 0.25rem;
   opacity: 0.7;
-  font-family: "Roboto", sans-serif !important;
+  font-family: inherit;
 }
 
 /* Hide text on mobile - show only icons */

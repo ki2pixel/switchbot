@@ -306,7 +306,8 @@ def create_app() -> Flask:
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; script-src 'self' 'unsafe-inline'; "
-            "style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+            "style-src 'self' 'unsafe-inline'; font-src 'self'; "
+            "img-src 'self' data:; connect-src 'self'"
         )
         if not app.debug and not app.testing:
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'

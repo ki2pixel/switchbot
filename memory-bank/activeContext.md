@@ -28,5 +28,37 @@
 - Utilisation de `_transaction_context` pour encapsuler de façon optionnelle les transactions dans les blueprints Flask afin de supporter à la fois les stores réels et les MemoryStore de test.
 - Limitation des temps de retry de l'API à 3s pour éviter d'occuper les threads du serveur de production en cas d'erreur de service externe.
 
+- [x] Phase F1 : Routage SPA & Mécanismes de Navigation (Complété)
+  - Correction désynchronisation CSS / doublons preload links dans `spa-router.js`.
+  - Suppression du double footer lors des transitions SPA.
+  - Robustification du filtre `globalScripts` contre les query strings `?v=`.
+  - Correction du chevauchement CTA mobile / footer bar.
+  - Suppression de `bottom-nav.js` (fichier mort) et consolidation visibilité desktop/mobile.
+- [x] Phase F2 : Optimisation des Assets & Performance (Complété - PurgeCSS différé)
+  - Suppression de Font Awesome Brands (320 Ko inutilisés) et du TTF fa-solid.
+  - Suppression des fichiers morts : `performance-optimizer.js`, `advanced-optimizer.js`, `perf-worker.js`, `critical.css`.
+  - Conversion Space Grotesk TTF → WOFF2 (−62%) et correction référence Roboto.
+  - [ ] Purge Bootstrap via PurgeCSS — DIFFÉRÉ (nécessite validation visuelle étendue).
+- [x] Phase F3 : Accessibilité WCAG 2.1 AA & Conformité UX (Complété)
+  - Réparation `aria-hidden` loaders + région `aria-live` pour les annonces.
+  - Définition globale de `.sr-only` / `.visually-hidden` dans `theme.css`.
+  - Structuration sémantique (hiérarchie titres, landmarks `<main>`, skip-links, `scope` table).
+  - Gestion du focus après transition SPA.
+  - Suppression du délai artificiel de 1s dans `loaders.js`.
+- [x] Phase F4 : Sécurité Frontend & Robustesse Dynamique (Complété)
+  - Validation same-origin dans `loadScriptDynamic()` + sélecteur CSS sûr.
+  - Refactoring `innerHTML` → DOM API dans `history.js` (zéro innerHTML).
+  - Implémentation CSP minimale (ajout de `font-src 'self'`).
+  - `AbortController` + timeout 10s pour les fetch history.
+  - Nettoyage des `console.log` de debug en production (passage en console.debug).
+- [x] Phase F5 : Couverture de Tests Frontend (Complété)
+  - Tests SPA (doublons CSS, filtre scripts, fallback full-page).
+  - Tests accessibilité (`.sr-only`, skip-link, `<main>`, `scope`).
+  - Tests performance (fichiers morts absents, FA brands absent, CSP font-src, AbortController).
+  - Suite de 31 tests unitaires/intégration frontend 100% verte.
+
 ## Prochaines Étapes
-- En attente de nouvelles instructions de l'utilisateur.
+- [ ] Lancer et surveiller le tableau de bord en production.
+- [ ] Valider visuellement le rendu responsive global sur mobile réel.
+
+**Plan détaillé :** [remediation_frontend_plan.md](file:///home/kidpixel/SwitchBot/docs/remediation/remediation_frontend_plan.md)

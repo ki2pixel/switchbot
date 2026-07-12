@@ -3,18 +3,21 @@
  * Implements lightweight asynchronous dynamic page transitions (AJAX-SPA).
  * Intercepts navigation, updates main #app-content container, manages browser
  * history, and executes page-specific scripts safely.
+ *
+ * Security: loadScriptDynamic validates same-origin before injection.
+ * A11y: Focus is moved to #app-content after transition, route change is
+ *       announced via an aria-live region for screen readers.
  */
 'use strict';
 
 class SPARouter {
   constructor() {
     this.isTransitioning = false;
+    // Global scripts that must never be re-executed during SPA transitions.
+    // Checked against the URL pathname (query strings are stripped).
     this.globalScripts = [
       'loaders.js',
       'alerts.js',
-      'bottom-nav.js',
-      'performance-optimizer.js',
-      'advanced-optimizer.js',
       'spa-router.js'
     ];
     this.init();
@@ -25,7 +28,19 @@ class SPARouter {
     globalThis.addEventListener('popstate', () => {
       this.navigate(globalThis.location.href, null, false);
     });
-    console.log('🚀 SPA Light Router initialized');
+  }
+
+  /**
+   * Normalize an href to its pathname, stripping query strings and fragments.
+   * @param {string} href Raw href attribute value
+   * @returns {string} Resolved pathname (e.g. "/static/css/theme.css")
+   */
+  static normalizeHref(href) {
+    try {
+      return new URL(href, globalThis.location.origin).pathname;
+    } catch {
+      return '';
+    }
   }
 
   /**
@@ -76,40 +91,54 @@ class SPARouter {
         return;
       }
 
-      // Collect CSS stylesheets from target page
-      const newStyleLinks = Array.from(newDoc.querySelectorAll('link[rel="stylesheet"], link[rel="preload"][as="style"]'));
-      const newCSSUrls = newStyleLinks.map(link => {
-        const href = link.getAttribute('href');
-        return href ? new URL(href, globalThis.location.origin).pathname : '';
-      }).filter(Boolean);
+      // ── CSS Synchronization (P1.1 fix) ──
+      // Build a Set of all CSS pathnames already present in the document
+      // to avoid injecting duplicates of global stylesheets.
+      const existingCSS = new Set(
+        Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+          .map(link => SPARouter.normalizeHref(link.getAttribute('href') || ''))
+          .filter(Boolean)
+      );
 
-      const currentStyleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"], link[rel="preload"][as="style"]'));
-      const pageSpecificCSSPattern = /\/static\/css\/(index|settings|actions|history|devices)\.css(\?.*)?$/;
+      // Collect CSS stylesheets from the target page
+      const newStyleLinks = Array.from(
+        newDoc.querySelectorAll('link[rel="stylesheet"], link[rel="preload"][as="style"]')
+      );
+      const newCSSPaths = new Set(
+        newStyleLinks
+          .map(link => SPARouter.normalizeHref(link.getAttribute('href') || ''))
+          .filter(Boolean)
+      );
 
-      // Inject missing stylesheets
+      const pageSpecificCSSPattern = /\/static\/css\/(index|settings|actions|history|devices)\.css$/;
+
+      // Inject only stylesheets that are not already in the document
       const loadPromises = [];
       newStyleLinks.forEach(link => {
         const href = link.getAttribute('href');
         if (!href) return;
-        const resolvedUrl = new URL(href, globalThis.location.origin).pathname;
-        
-        const exists = currentStyleLinks.some(curLink => {
-          const curHref = curLink.getAttribute('href');
-          return curHref && new URL(curHref, globalThis.location.origin).pathname === resolvedUrl;
-        });
+        const normalized = SPARouter.normalizeHref(href);
+        if (!normalized || existingCSS.has(normalized)) return; // Skip duplicates
 
-        if (!exists) {
-          const newLink = document.createElement('link');
-          newLink.rel = 'stylesheet';
-          newLink.href = href;
-          
-          const loadPromise = new Promise(resolve => {
-            newLink.onload = resolve;
-            newLink.onerror = resolve; // avoid blocking
-            setTimeout(resolve, 3000); // failsafe
-          });
-          loadPromises.push(loadPromise);
-          document.head.appendChild(newLink);
+        const newLink = document.createElement('link');
+        newLink.rel = 'stylesheet';
+        newLink.href = href;
+        
+        const loadPromise = new Promise(resolve => {
+          newLink.onload = resolve;
+          newLink.onerror = resolve; // avoid blocking
+          setTimeout(resolve, 3000); // failsafe
+        });
+        loadPromises.push(loadPromise);
+        document.head.appendChild(newLink);
+        existingCSS.add(normalized);
+      });
+
+      // Remove orphaned preload links that are no longer needed
+      document.querySelectorAll('link[rel="preload"][as="style"]').forEach(pl => {
+        const plPath = SPARouter.normalizeHref(pl.getAttribute('href') || '');
+        if (plPath && !newCSSPaths.has(plPath)) {
+          pl.remove();
         }
       });
       
@@ -134,20 +163,28 @@ class SPARouter {
       }
       
       // 5. Replace page content and update title
+      // Note: innerHTML from DOMParser on a same-origin fetch is acceptable here.
+      // The content is server-generated HTML from our own Flask templates.
       currentContent.innerHTML = newContent.innerHTML;
       document.title = newDoc.title;
 
+      // ── Double footer cleanup (P1.1 fix) ──
+      // _footer_nav.html is {% include %}'d in every template, so the fetched
+      // HTML may contain a #footer-bar inside #app-content. The canonical footer
+      // lives outside #app-content, so remove any duplicate that appeared inside.
+      const duplicateFooter = currentContent.querySelector('#footer-bar');
+      if (duplicateFooter) {
+        duplicateFooter.remove();
+      }
+
       // Remove page-specific stylesheets from the old page that are not in the new page
-      currentStyleLinks.forEach(curLink => {
+      Array.from(document.querySelectorAll('link[rel="stylesheet"]')).forEach(curLink => {
         const href = curLink.getAttribute('href');
         if (!href) return;
-        const resolvedUrl = new URL(href, globalThis.location.origin).pathname;
+        const resolvedUrl = SPARouter.normalizeHref(href);
         
-        if (pageSpecificCSSPattern.test(resolvedUrl)) {
-          const isNeeded = newCSSUrls.includes(resolvedUrl);
-          if (!isNeeded) {
-            curLink.remove();
-          }
+        if (pageSpecificCSSPattern.test(resolvedUrl) && !newCSSPaths.has(resolvedUrl)) {
+          curLink.remove();
         }
       });
       
@@ -160,6 +197,15 @@ class SPARouter {
       
       // 7. Fade-in new content
       currentContent.style.opacity = '1';
+
+      // ── Focus management for accessibility (P2.26 fix) ──
+      // Move focus to the main content container so keyboard and screen-reader
+      // users are aware of the page change.
+      currentContent.setAttribute('tabindex', '-1');
+      currentContent.focus({ preventScroll: true });
+
+      // Announce route change via aria-live region
+      this.announceRouteChange(document.title);
       
       // 8. Execute page-specific scripts
       this.executePageScripts(newDoc);
@@ -178,6 +224,23 @@ class SPARouter {
       }
       this.isTransitioning = false;
     }
+  }
+
+  /**
+   * Announce a route change to assistive technology via an aria-live region.
+   * @param {string} pageTitle The new page title
+   */
+  announceRouteChange(pageTitle) {
+    let announcer = document.getElementById('spa-route-announcer');
+    if (!announcer) {
+      announcer = document.createElement('div');
+      announcer.id = 'spa-route-announcer';
+      announcer.setAttribute('aria-live', 'assertive');
+      announcer.setAttribute('aria-atomic', 'true');
+      announcer.className = 'sr-only';
+      document.body.appendChild(announcer);
+    }
+    announcer.textContent = `Page chargée : ${pageTitle}`;
   }
 
   /**
@@ -209,7 +272,9 @@ class SPARouter {
   }
 
   /**
-   * Execute scripts of the newly loaded page
+   * Execute scripts of the newly loaded page.
+   * Global scripts are identified by matching the URL pathname (ignoring
+   * query strings like ?v=123) against the globalScripts list.
    * @param {Document} newDoc Parsed HTML Document
    */
   executePageScripts(newDoc) {
@@ -219,8 +284,9 @@ class SPARouter {
       const src = script.getAttribute('src');
       
       if (src) {
-        // Skip global scripts that are already running on the globalThis level
-        const isGlobal = this.globalScripts.some(globalScript => src.endsWith(globalScript));
+        // Strip query strings before checking against globalScripts (P1.1 fix)
+        const srcPath = SPARouter.normalizeHref(src);
+        const isGlobal = this.globalScripts.some(globalScript => srcPath.endsWith(globalScript));
         if (isGlobal) {
           return;
         }
@@ -235,15 +301,32 @@ class SPARouter {
   }
 
   /**
-   * Dynamically loads and runs a JS script file
+   * Dynamically loads and runs a JS script file.
+   * Validates same-origin before injection to prevent cross-origin script loading.
+   * Uses a safe DOM traversal instead of querySelector with string interpolation
+   * to avoid CSS selector injection.
    * @param {string} src Script source URL
    */
   loadScriptDynamic(src) {
-    // Remove existing script element with same src to avoid cluttering DOM
-    const existing = document.querySelector(`script[src="${src}"]`);
-    if (existing) {
-      existing.remove();
+    // Validate same-origin (P2.43 security fix)
+    try {
+      const url = new URL(src, globalThis.location.origin);
+      if (url.origin !== globalThis.location.origin) {
+        console.warn('[SPARouter] Blocked cross-origin script:', src);
+        return;
+      }
+    } catch {
+      console.warn('[SPARouter] Invalid script URL:', src);
+      return;
     }
+
+    // Remove existing script with same src using safe comparison
+    // instead of querySelector with string interpolation (CSS selector injection)
+    document.querySelectorAll('script[src]').forEach(s => {
+      if (s.getAttribute('src') === src) {
+        s.remove();
+      }
+    });
     
     const newScript = document.createElement('script');
     newScript.src = src;

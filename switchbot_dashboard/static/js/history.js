@@ -8,6 +8,7 @@ class HistoryDashboard {
     constructor() {
         this.charts = {};
         this.updateInterval = null;
+        this.activeController = null; // AbortController for fetch cancellation (P3.6)
         this.isSmallMobile = globalThis.innerWidth <= 480;
         this.defaultGranularity = this.isSmallMobile ? '5min' : 'minute';
         this.currentFilters = {
@@ -283,10 +284,10 @@ class HistoryDashboard {
         // Page Visibility API to pause updates when tab is hidden
         this.visibilityHandler = () => {
             if (document.hidden) {
-                console.log('[history] Page hidden: pausing network polling.');
+                console.debug('[history] Page hidden: pausing network polling.');
                 this.stopRealTimeUpdates();
             } else {
-                console.log('[history] Page visible: resuming network polling and refreshing data.');
+                console.debug('[history] Page visible: resuming network polling and refreshing data.');
                 this.startRealTimeUpdates();
                 this.loadInitialData();
             }
@@ -318,20 +319,36 @@ class HistoryDashboard {
     }
 
     showMockDataWarning() {
-        // Add a warning banner for mock data
+        // Add a warning banner for mock data (DOM API instead of innerHTML)
         const banner = document.createElement('div');
         banner.className = 'alert alert-warning alert-dismissible fade show mb-3';
-        banner.innerHTML = `
-            <strong>⚠️ Mode démonstration</strong><br>
-            Le service d'historique n'est pas disponible. Données simulées affichées.
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
+
+        const strong = document.createElement('strong');
+        strong.textContent = '\u26a0\ufe0f Mode d\u00e9monstration';
+        banner.appendChild(strong);
+        banner.appendChild(document.createElement('br'));
+        banner.appendChild(document.createTextNode(
+            "Le service d'historique n'est pas disponible. Donn\u00e9es simul\u00e9es affich\u00e9es."
+        ));
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn-close';
+        closeBtn.setAttribute('data-bs-dismiss', 'alert');
+        banner.appendChild(closeBtn);
         
         const container = document.querySelector('.container');
         container.insertBefore(banner, container.firstChild);
     }
 
     async loadHistoryData() {
+        // Cancel any previous in-flight request (P3.6 AbortController)
+        if (this.activeController) {
+            this.activeController.abort();
+        }
+        this.activeController = new AbortController();
+        const signal = this.activeController.signal;
+        const timeoutId = setTimeout(() => this.activeController.abort(), 10000);
+
         const params = new URLSearchParams({
             start: this.getTimeRangeStart(),
             end: new Date().toISOString(),
@@ -340,31 +357,46 @@ class HistoryDashboard {
         });
 
         try {
-            const response = await fetch(`/history/api/data?${params}`);
+            const response = await fetch(`/history/api/data?${params}`, { signal });
+            clearTimeout(timeoutId);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json();
             this.updateCharts(data.data || []);
-            return data; // Return the full response for mock checking
+            return data;
         } catch (error) {
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+                console.warn('[History] Request aborted (timeout or new request)');
+                return;
+            }
             console.error('Failed to load history data:', error);
-            this.updateStatus('error', 'Erreur de chargement des données');
+            this.updateStatus('error', 'Erreur de chargement des donn\u00e9es');
             this.renderChartErrorState(error);
             throw error;
+        } finally {
+            this.activeController = null;
         }
     }
 
     renderChartErrorState(error) {
         document.querySelectorAll('.chart-container').forEach((container) => {
-            container.innerHTML = `
-                <div class="d-flex flex-column align-items-center justify-content-center text-muted py-4">
-                    <div class="fs-3 mb-2">⚠️</div>
-                    <div class="text-center">Impossible de charger les données</div>
-                    <small class="d-block mt-2">${error.message}</small>
-                </div>
-            `;
+            container.textContent = '';
+            const wrapper = document.createElement('div');
+            wrapper.className = 'd-flex flex-column align-items-center justify-content-center text-muted py-4';
+            const icon = document.createElement('div');
+            icon.className = 'fs-3 mb-2';
+            icon.textContent = '\u26a0\ufe0f';
+            const msg = document.createElement('div');
+            msg.className = 'text-center';
+            msg.textContent = 'Impossible de charger les donn\u00e9es';
+            const detail = document.createElement('small');
+            detail.className = 'd-block mt-2';
+            detail.textContent = error.message;
+            wrapper.append(icon, msg, detail);
+            container.appendChild(wrapper);
         });
     }
 
@@ -476,8 +508,6 @@ class HistoryDashboard {
         const tempElement = document.getElementById('avgTemp');
         const humidityElement = document.getElementById('avgHumidity');
         
-        console.log('Elements found:', !!tempElement, !!humidityElement);
-        
         if (tempElement) tempElement.textContent = avgTemp;
         if (humidityElement) humidityElement.textContent = avgHumidity;
     }
@@ -486,22 +516,22 @@ class HistoryDashboard {
         const tbody = document.getElementById('latestTableBody');
         
         if (!latestRecords || latestRecords.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="text-center text-muted">
-                        Aucun enregistrement trouvé
-                    </td>
-                </tr>
-            `;
+            tbody.textContent = '';
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = 5;
+            td.className = 'text-center text-muted';
+            td.textContent = 'Aucun enregistrement trouv\u00e9';
+            tr.appendChild(td);
+            tbody.appendChild(tr);
             return;
         }
 
-        tbody.innerHTML = '';
+        tbody.textContent = '';
         latestRecords.forEach(record => {
             const timestamp = new Date(record.timestamp).toLocaleString('fr-FR');
-            const temp = record.temperature ? `${record.temperature}°C` : '--';
+            const temp = record.temperature ? `${record.temperature}\u00b0C` : '--';
             const humidity = record.humidity ? `${record.humidity}%` : '--';
-            const airconStateHTML = this.formatAirconState(record.assumed_aircon_power);
             const action = record.last_action || '--';
             
             const tr = document.createElement('tr');
@@ -516,7 +546,7 @@ class HistoryDashboard {
             tdHum.textContent = humidity;
             
             const tdState = document.createElement('td');
-            tdState.innerHTML = airconStateHTML;
+            tdState.appendChild(this.formatAirconState(record.assumed_aircon_power));
             
             const tdAction = document.createElement('td');
             tdAction.textContent = action;
@@ -527,12 +557,16 @@ class HistoryDashboard {
     }
 
     formatAirconState(state) {
-        const stateMap = {
-            'on': '<span class="badge bg-success">ON</span>',
-            'off': '<span class="badge bg-danger">OFF</span>',
-            'unknown': '<span class="badge bg-secondary">?</span>'
+        const stateConfig = {
+            'on':      { text: 'ON',  cls: 'bg-success' },
+            'off':     { text: 'OFF', cls: 'bg-danger' },
+            'unknown': { text: '?',   cls: 'bg-secondary' }
         };
-        return stateMap[state] || stateMap['unknown'];
+        const config = stateConfig[state] || stateConfig['unknown'];
+        const badge = document.createElement('span');
+        badge.className = `badge ${config.cls}`;
+        badge.textContent = config.text;
+        return badge;
     }
 
     getTimeRangeStart() {
