@@ -237,7 +237,12 @@ class TestPostgresStore:
                 conninfo=test_postgres_url,
                 min_size=1,
                 max_size=5,
-                kwargs={"sslmode": "verify-full"},
+                timeout=5.0,
+                kwargs={
+                    "sslmode": "verify-full",
+                    "connect_timeout": 5,
+                    "options": "-c statement_timeout=5000",
+                },
             )
 
     def test_table_creation(self, postgres_store):

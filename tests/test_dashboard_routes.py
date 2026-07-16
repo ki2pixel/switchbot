@@ -14,6 +14,7 @@ from flask_wtf.csrf import CSRFProtect
 from switchbot_dashboard.config_store import StoreError
 from switchbot_dashboard.quota import ApiQuotaTracker
 from switchbot_dashboard.routes import dashboard_bp
+from switchbot_dashboard.extensions import limiter
 
 
 class MemoryStore:
@@ -105,7 +106,9 @@ def _build_app(
     app = Flask(__name__, template_folder=str(template_folder), static_folder=str(static_folder))
     app.secret_key = "test"
     app.config["WTF_CSRF_ENABLED"] = False
+    app.config["RATELIMIT_ENABLED"] = False
     CSRFProtect(app)
+    limiter.init_app(app)
 
 
     settings_store = MemoryStore(initial_settings)
@@ -839,3 +842,169 @@ def test_aircon_on_fan_runs_scene_and_updates_state_with_mode() -> None:
     assert state["assumed_aircon_mode"] == 4
     assert state["last_action"].startswith("scene(scene-fan)")
 
+
+# ──────────────────────────────────────────────────────────────
+# SEC-02 / SEC-03 Input Validation Tests
+# ──────────────────────────────────────────────────────────────
+
+def _default_form() -> dict[str, str]:
+    """Base valid form payload for /settings POST."""
+    return {
+        "automation_enabled": "on",
+        "mode": "winter",
+        "poll_interval_seconds": "120",
+        "adaptive_polling_enabled": "on",
+        "idle_poll_interval_seconds": "600",
+        "poll_warmup_minutes": "15",
+        "hysteresis_celsius": "0.3",
+        "command_cooldown_seconds": "180",
+        "action_on_cooldown_seconds": "0",
+        "action_off_cooldown_seconds": "0",
+        "turn_off_outside_windows": "",
+        "meter_device_id": "meter123",
+        "aircon_device_id": "aircon456",
+        "winter_min_temp": "18",
+        "winter_max_temp": "24",
+        "winter_target_temp": "21",
+        "winter_ac_mode": "5",
+        "winter_fan_speed": "3",
+        "summer_min_temp": "20",
+        "summer_max_temp": "28",
+        "summer_target_temp": "23",
+        "summer_ac_mode": "2",
+        "summer_fan_speed": "3",
+        "scene_winter_id": "sceneW",
+        "scene_summer_id": "sceneS",
+        "scene_fan_id": "sceneFan",
+        "scene_off_id": "sceneOff",
+        "timezone": "Europe/Paris",
+        "api_quota_warning_threshold": "250",
+        "aircon_poll_cooldown_minutes": "10",
+    }
+
+
+def _build_settings_app() -> tuple:
+    initial = {
+        "automation_enabled": False,
+        "mode": "winter",
+        "poll_interval_seconds": 120,
+        "meter_device_id": "meter",
+        "aircon_device_id": "aircon",
+        "winter": {"min_temp": 18.0, "max_temp": 24.0, "target_temp": 20.0, "fan_speed": 3, "ac_mode": 5},
+        "summer": {"min_temp": 20.0, "max_temp": 28.0, "target_temp": 24.0, "fan_speed": 2, "ac_mode": 2},
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
+    }
+    return _build_app(initial)
+
+
+def test_sec02_rejects_invalid_scene_id() -> None:
+    """SEC-02: Scene IDs with special characters are rejected."""
+    app, settings_store, _state, _sched, _qt = _build_settings_app()
+    form = _default_form()
+    form["scene_winter_id"] = "scene<script>alert(1)</script>"
+
+    with app.test_client() as client:
+        response = client.post("/settings", data=form, follow_redirects=True)
+
+    assert response.status_code == 200
+    # Scene should NOT be persisted
+    persisted = settings_store.read()
+    assert persisted["aircon_scenes"]["winter"] == ""
+
+
+def test_sec02_rejects_overlength_scene_id() -> None:
+    """SEC-02: Scene IDs longer than 50 characters are rejected."""
+    app, settings_store, _state, _sched, _qt = _build_settings_app()
+    form = _default_form()
+    form["scene_winter_id"] = "a" * 51
+
+    with app.test_client() as client:
+        response = client.post("/settings", data=form, follow_redirects=True)
+
+    assert response.status_code == 200
+    persisted = settings_store.read()
+    assert persisted["aircon_scenes"]["winter"] == ""
+
+
+def test_sec02_temp_bounds_auto_swap() -> None:
+    """SEC-02: min_temp > max_temp is auto-swapped with a flash warning."""
+    app, settings_store, _state, _sched, _qt = _build_settings_app()
+    form = _default_form()
+    form["winter_min_temp"] = "28"
+    form["winter_max_temp"] = "18"
+
+    with app.test_client() as client:
+        response = client.post("/settings", data=form, follow_redirects=True)
+
+    assert response.status_code == 200
+    persisted = settings_store.read()
+    # Values should be swapped
+    assert persisted["winter"]["min_temp"] <= persisted["winter"]["max_temp"]
+
+
+def test_sec02_temp_clamped_to_range() -> None:
+    """SEC-02: temperatures outside 10-35 range are clamped."""
+    app, settings_store, _state, _sched, _qt = _build_settings_app()
+    form = _default_form()
+    form["winter_min_temp"] = "5"   # below 10
+    form["winter_max_temp"] = "40"  # above 35
+
+    with app.test_client() as client:
+        response = client.post("/settings", data=form, follow_redirects=True)
+
+    assert response.status_code == 200
+    persisted = settings_store.read()
+    assert persisted["winter"]["min_temp"] >= 10.0
+    assert persisted["winter"]["max_temp"] <= 35.0
+
+
+def test_sec03_rejects_invalid_hhmm_format() -> None:
+    """SEC-03: Non-HH:MM time strings are rejected."""
+    app, settings_store, _state, _sched, _qt = _build_settings_app()
+    form = _default_form()
+    form["time_window_days"] = "1"
+    form["time_window_start"] = "8:30"   # Invalid: single-digit hour
+    form["time_window_end"] = "22:00"
+
+    with app.test_client() as client:
+        response = client.post("/settings", data=form, follow_redirects=True)
+
+    assert response.status_code == 200
+    persisted = settings_store.read()
+    # Time window should NOT be persisted
+    assert persisted.get("time_windows", []) == []
+
+
+def test_sec03_rejects_out_of_range_hhmm() -> None:
+    """SEC-03: HH:MM with hours > 23 or minutes > 59 are rejected."""
+    app, settings_store, _state, _sched, _qt = _build_settings_app()
+    form = _default_form()
+    form["time_window_days"] = "1"
+    form["time_window_start"] = "08:30"
+    form["time_window_end"] = "25:00"  # Invalid hour
+
+    with app.test_client() as client:
+        response = client.post("/settings", data=form, follow_redirects=True)
+
+    assert response.status_code == 200
+    persisted = settings_store.read()
+    assert persisted.get("time_windows", []) == []
+
+
+def test_sec03_accepts_valid_hhmm() -> None:
+    """SEC-03: Valid HH:MM times are accepted."""
+    app, settings_store, _state, _sched, _qt = _build_settings_app()
+    form = _default_form()
+    form["time_window_days"] = "1"
+    form["time_window_start"] = "08:30"
+    form["time_window_end"] = "22:00"
+
+    with app.test_client() as client:
+        response = client.post("/settings", data=form, follow_redirects=True)
+
+    assert response.status_code == 200
+    persisted = settings_store.read()
+    windows = persisted.get("time_windows", [])
+    assert len(windows) == 1
+    assert windows[0]["start"] == "08:30"
+    assert windows[0]["end"] == "22:00"

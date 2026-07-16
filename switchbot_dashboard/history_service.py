@@ -73,6 +73,8 @@ class HistoryService:
             with self._pool.connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute(create_table_query)
+                    # Dynamically alter column size in case the table was created by the old script (DATA-02)
+                    cur.execute("ALTER TABLE state_history ALTER COLUMN last_action TYPE VARCHAR(255);")
                     conn.commit()
                     self._logger.info("[history] Table state_history ensured")
         except Exception as exc:

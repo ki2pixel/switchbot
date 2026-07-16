@@ -1,6 +1,6 @@
 # Carte de la Documentation SwitchBot Dashboard v2
 
-**TL;DR** : SwitchBot Dashboard transforme vos appareils SwitchBot en hub domotique avec automatisation locale, persistance PostgreSQL et intégration IFTTT — commencez dans `core/`, explorez dans `guides/`, comprenez dans `architecture/`, réparez dans `ops/`.
+**TL;DR** : SwitchBot Dashboard transforme vos appareils SwitchBot en hub domotique avec automatisation locale, persistance PostgreSQL et contrôle à 2 niveaux (Scènes / Direct) : commencez dans `core/`, explorez dans `guides/`, comprenez dans `architecture/`, réparez dans `ops/`.
 
 ---
 
@@ -21,7 +21,7 @@ Chaque article suit le pattern SKILL : problème → solution → implémentatio
 
 ### ❌ Documentation Monolithique / ✅ Guides Thématiques
 
-❌ **Ancienne approche** : Un README.md de 200 lignes mélangeant installation, architecture, dépannage et déploiement. Impossible de trouver rapidement "Comment configurer IFTTT ?" sans lire tout le document.
+❌ **Ancienne approche** : Un README.md de 200 lignes mélangeant installation, architecture, dépannage et déploiement. Impossible de trouver rapidement "Comment configurer les scènes ?" sans lire tout le document.
 
 ✅ **Nouvelle approche** : Guides thématiques ciblés avec navigation par cas d'usage. Chaque fichier répond à une question spécifique avec des exemples concrets et des pièges évités.
 
@@ -31,7 +31,7 @@ Au fond, c'est une application Flask qui :
 
 1. **Lit les capteurs SwitchBot Meter** toutes les 15 secondes (configurable)
 2. **Prend des décisions intelligentes** sur chauffage/climatisation avec hystérésis, fenêtres horaires et logique timezone-aware
-3. **Exécute les actions via une cascade à trois niveaux** : webhooks IFTTT → scènes SwitchBot → commandes directes
+3. **Exécute les actions via une cascade à deux niveaux** : scènes SwitchBot → commandes directes
 4. **Stocke tout dans PostgreSQL** avec fallback automatique vers des fichiers JSON
 5. **Suit les quotas API** via une approche hybride (comptage local + synchronisation des en-têtes SwitchBot `X-RateLimit`)
 6. **Surveille l'historique** avec des dashboards Chart.js et rétention de 6 heures
@@ -45,7 +45,6 @@ La magie est dans les détails : le polling adaptatif réduit la charge base de 
 | **Installer localement** | `core/` | [Démarrage rapide](core/quickstart.md), [Configuration](core/configuration.md) |
 | **Déployer en production** | `core/` | [Déploiement](core/deployment.md) |
 | **Utiliser le dashboard** | `guides/` | [Navigation UI](guides/ui-navigation.md), [Monitoring](guides/monitoring-dashboard.md) |
-| **Configurer IFTTT** | `guides/` | [Configuration IFTTT](guides/ifttt-setup.md) |
 | **Comprendre l'automatisation** | `architecture/` | [Moteur d'automatisation](architecture/automation-engine.md), [Scheduler](architecture/scheduler.md) |
 | **Apprendre le stockage** | `architecture/` | [Couche de stockage](architecture/storage-layer.md) |
 | **Gérer les quotas** | `architecture/` | [Gestion des quotas](architecture/quota-management.md) |
@@ -66,12 +65,11 @@ La magie est dans les détails : le polling adaptatif réduit la charge base de 
 Nous utilisons **PostgreSQL Neon** comme store principal avec un **fallback JsonStore**. Le `PostgresStore` implémente le connection pooling, les schémas JSONB et la création automatique de tables. Si Neon tombe, nous retombons proprement sur des fichiers JSON locaux sans perdre la logique d'automatisation.
 
 ### La Cascade d'Automatisation
-Chaque action essaie trois chemins dans l'ordre :
-1. **Webhooks IFTTT** (aucun coût de quota SwitchBot)
-2. **Scènes SwitchBot** (configurations natives de l'app)  
-3. **Commandes directes** (`setAll`/`turnOff` en dernier recours)
+Chaque action essaie deux chemins dans l'ordre :
+1. **Scènes SwitchBot** (configurations natives de l'app)
+2. **Commandes directes** (`setAll`/`turnOff` en dernier recours si aucune scène n'est définie)
 
-Ça signifie la fiabilité des webhooks avec la sécurité des commandes directes comme backup.
+Cette cascade allie la flexibilité des scènes à la résilience des commandes directes comme solution de secours.
 
 ### Le Polling Adaptatif
 Le `SchedulerService` ne pollue pas toutes les 15 secondes. Il calcule les intervalles effectifs selon :

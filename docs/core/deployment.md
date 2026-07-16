@@ -6,7 +6,7 @@
 
 Vous avez un dashboard qui doit tourner 24/7 sans intervention manuelle. Chaque push sur main doit déclencher un déploiement immédiat, et vous voulez surveiller la santé de l'application sans vous connecter à Render.
 
-Le problème classique ? Les déploiements manuels oublient des variables d'environnement. Les webhooks IFTTT tombent en silence. Le quota API s'épuise sans alerte. Vous perdez des heures à diagnostiquer pourquoi l'automatisation ne fonctionne plus.
+Le problème classique ? Les déploiements manuels oublient des variables d'environnement. Le réseau ou l'API échoue en silence. Le quota API s'épuise sans alerte. Vous perdez des heures à diagnostiquer pourquoi l'automatisation ne fonctionne plus.
 
 ## L'architecture : Docker + GHCR + Render
 
@@ -181,7 +181,6 @@ curl https://votre-app.onrender.com/healthz
 Les logs utilisent des préfixes pour faciliter le diagnostic :
 
 ```bash
-[ifttt] IFTTT webhook triggered successfully | status_code=200
 [automation] Automation tick started | trigger=scheduler, interval=60s
 [health] Health check completed | status=ok, scheduler_running=true
 [store] PostgreSQL connection established | pool_size=5
@@ -189,9 +188,6 @@ Les logs utilisent des préfixes pour faciliter le diagnostic :
 
 **Commandes de diagnostic Render** :
 ```bash
-# Filtrer les logs IFTTT
-grep "\[ifttt\]" logs
-
 # Rechercher les fallbacks
 grep "fallback" logs
 
@@ -233,32 +229,7 @@ WEB_CONCURRENCY=1  # Un seul worker, 2 threads pour les requêtes
 
 **Résultat** : Un tick par minute, état cohérent, quota prévisible.
 
-### ❌ Le piège des webhooks IFTTT
 
-HTTP non sécurisé ou timeout trop court :
-
-```bash
-# Configuration incorrecte
-IFTTT_WEBHOOK_URL=http://example.com/webhook  # HTTP refusé
-IFTTT_TIMEOUT_SECONDS=2  # Timeout trop court
-```
-
-**Logs observés** :
-```
-[ifttt] HTTPS required for IFTTT webhooks | url=http://example.com
-[ifttt] Webhook timeout after 2s | action_key=winter
-```
-
-### ✅ La solution IFTTT robuste
-
-```bash
-# Configuration correcte
-IFTTT_WEBHOOK_URL=https://maker.ifttt.com/trigger/winter/with/key/xxx
-IFTTT_TIMEOUT_SECONDS=10
-IFTTT_RETRY_ATTEMPTS=1
-```
-
-**Résultat** : Webhooks fiables, fallbacks uniquement quand nécessaire.
 
 ### ❌ Le piège Redis legacy
 
@@ -344,10 +315,7 @@ curl http://localhost:8000/healthz
 # Tests post-déploiement
 curl -s https://votre-app.onrender.com/healthz | jq '.status'
 
-# Test IFTTT
-curl -X POST https://maker.ifttt.com/trigger/test/with/key/YOUR_KEY \
-  -H "Content-Type: application/json" \
-  -d '{"test": "deployment"}'
+
 ```
 
 ## La Règle d'Or : Un Worker, Une Source de Vérité

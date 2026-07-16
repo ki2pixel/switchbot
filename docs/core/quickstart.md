@@ -12,11 +12,10 @@ Le SwitchBot Dashboard résout ce problème avec une automatisation basée sur d
 
 ## La Solution : Aperçu de l'Architecture
 
-Le dashboard implémente une cascade d'automatisation à trois niveaux :
+Le dashboard implémente une cascade d'automatisation à deux niveaux :
 
-1. **Webhooks IFTTT** (zéro consommation de quota) - Déclencheur d'automatisation primaire
-2. **Scènes SwitchBot** (basées API) - Fallback fiable avec configurations prédéfinies  
-3. **Commandes Directes** (au niveau device) - Dernier recours quand les scènes échouent
+1. **Scènes SwitchBot** (basées API) - Déclencheur d'automatisation primaire via des scènes prédéfinies dans votre application SwitchBot
+2. **Commandes Directes** (au niveau device) - Fallback quand aucune scène n'est configurée ou si l'exécution de la scène échoue
 
 Cette cascade s'exécute sur un scheduler qui respecte les fenêtres horaires, implémente des commandes OFF idempotentes, et traite chaque appel API contre votre quota quotidien. Le système stocke l'état dans PostgreSQL (recommandé) avec fallback filesystem pour la résilience.
 
@@ -95,12 +94,6 @@ Configurez vos appareils via l'interface web à `http://127.0.0.1:5000/settings`
     "meter_device_id": "VOTRE_ID_DEVICE_METRE",
     "aircon_device_id": "VOTRE_ID_DEVICE_CLIMATISEUR"
   },
-  "ifttt_webhooks": {
-    "winter": "https://maker.ifttt.com/trigger/switchbot_winter/with/key/VOTRE_CLE",
-    "summer": "https://maker.ifttt.com/trigger/switchbot_summer/with/key/VOTRE_CLE",
-    "fan": "https://maker.ifttt.com/trigger/switchbot_fan/with/key/VOTRE_CLE",
-    "off": "https://maker.ifttt.com/trigger/switchbot_off/with/key/VOTRE_CLE"
-  },
   "aircon_scenes": {
     "winter": "1234567890abcdef1234567890abcdef",
     "summer": "abcdef1234567890abcdef1234567890",
@@ -158,7 +151,7 @@ STORE_BACKEND=filesystem
 ### Épuisement du Quota API
 
 **Problème** : Quota API quotidien épuisé prématurément
-**Solution** : Implémentez les webhooks IFTTT comme déclencheurs primaires (zéro consommation de quota) et surveillez l'utilisation via la bannière de quota du dashboard.
+**Solution** : Configurez des scènes favorites pour contrôler vos climatiseurs de manière groupée ou utilisez les commandes API directes, et surveillez l'utilisation via la bannière de quota du dashboard.
 
 ### Scheduler Non Démarré
 
@@ -199,7 +192,7 @@ Toujours tester l'endpoint `/healthz` après chaque déploiement ou changement d
 Une fois en fonctionnement :
 
 1. **Configurez les fenêtres horaires** dans l'interface des paramètres pour les périodes de contrôle automatisé
-2. **Testez la cascade** en déclenchant les webhooks IFTTT et en vérifiant le comportement de fallback
+2. **Testez la cascade** en déclenchant les scènes SwitchBot et en vérifiant le comportement de fallback vers les commandes directes
 3. **Surveillez les quotas** via le suivi temps réel du dashboard
 4. **Consultez l'historique** via le dashboard de monitoring Chart.js
 5. **Personnalisez les thèmes** si le glassmorphism sombre par défaut nécessite des ajustements

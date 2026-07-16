@@ -8,7 +8,7 @@ import datetime as dt
 from unittest.mock import MagicMock, patch
 from zoneinfo import ZoneInfo
 
-from switchbot_dashboard.automation import AutomationService, _is_now_in_windows
+from switchbot_dashboard.automation import AutomationService, _is_now_in_windows, LockLostError
 from switchbot_dashboard.quota import ApiQuotaTracker
 
 
@@ -795,5 +795,41 @@ def test_poll_aircon_status_virtual_bypass() -> None:
             "temperature": 24.0,
             "fanSpeed": 2,
         }
+
+
+def test_automation_lock_lost_fencing_token_raised_and_handled() -> None:
+    """Test that if the lock token is stolen during run_once, LockLostError is raised and caught."""
+    settings = _default_settings()
+    settings["automation_enabled"] = True
+    settings["time_windows"] = [
+        {"days": [0, 1, 2, 3, 4, 5, 6], "start": "00:00", "end": "23:59"}
+    ]
+    service, client, settings_store, state_store = _build_service(
+        settings=settings,
+        temperature=16.0,
+    )
+    
+    # We monkeypatch self._run_once_impl to simulate lock theft mid-execution.
+    # In _run_once_impl, we change the token in the state store directly behind the service's back.
+    original_run_once_impl = service._run_once_impl
+    
+    def mock_run_once_impl():
+        # Someone steals the lock! They increment the token.
+        state = state_store.read()
+        state["automation_lock_token"] = int(state.get("automation_lock_token", 0)) + 1
+        state_store.write(state)
+        # Call the original method which will try to write state (e.g. updating last_tick or recording outcomes)
+        original_run_once_impl()
+        
+    service._run_once_impl = mock_run_once_impl
+    
+    # Execute run_once. It should not raise an unhandled exception, but it should log a warning
+    # and abort safely without throwing an error to the scheduler.
+    with patch.object(service, "_warning") as mock_warning:
+        service.run_once()
+        assert mock_warning.call_count >= 1
+        warning_msg = mock_warning.call_args_list[0][0][0]
+        assert "lock was lost or stolen" in warning_msg
+
 
 

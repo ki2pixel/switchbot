@@ -222,7 +222,10 @@ def test_switchbot_client_retry_delay_cap():
         except Exception:
             pass
         
-        mock_sleep.assert_called_once_with(3)
+        assert mock_sleep.call_count == 1
+        args, _ = mock_sleep.call_args
+        # With exponential backoff (min(10 * 2^0, 5) = 5) + jitter (0-0.5), delay should be between 5.0 and 5.5
+        assert 5.0 <= args[0] <= 5.5
 
 
 def test_settings_validation_mode_error():

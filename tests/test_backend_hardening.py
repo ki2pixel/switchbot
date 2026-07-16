@@ -282,13 +282,44 @@ class TestDashboardAuthentication:
             assert response.status_code == 200
 
             # Logout redirects to login
-            response = client.get("/logout")
+            response = client.post("/logout")
             assert response.status_code == 302
             assert response.headers["Location"].endswith("/login")
 
             # Accessing protected page again redirects to login
             response = client.get("/")
             assert response.status_code == 302
+
+    def test_routes_require_authentication_with_hashed_password(self, monkeypatch, tmp_path) -> None:
+        from werkzeug.security import generate_password_hash
+        
+        settings_path = tmp_path / "settings.json"
+        state_path = tmp_path / "state.json"
+        settings_path.write_text("{}", encoding="utf-8")
+        state_path.write_text("{}", encoding="utf-8")
+
+        monkeypatch.setenv("SWITCHBOT_SETTINGS_PATH", str(settings_path))
+        monkeypatch.setenv("SWITCHBOT_STATE_PATH", str(state_path))
+        
+        hashed_pw = generate_password_hash("securepassword", method="scrypt")
+        monkeypatch.setenv("DASHBOARD_PASSWORD", hashed_pw)
+
+        from switchbot_dashboard import create_app
+        app = create_app()
+        app.config["TESTING"] = True
+        app.config["RATELIMIT_ENABLED"] = False
+        app.config["WTF_CSRF_ENABLED"] = False
+
+        with app.test_client() as client:
+            # Login with wrong password fails
+            response = client.post("/login", data={"password": "wrongpassword"})
+            assert response.status_code == 200
+            assert b"Mot de passe incorrect." in response.data
+
+            # Login with correct password succeeds and redirects to index
+            response = client.post("/login", data={"password": "securepassword"})
+            assert response.status_code == 302
+            assert response.headers["Location"].endswith("/")
 
     def test_debug_state_authorization_bearer_token(self, monkeypatch, tmp_path) -> None:
         settings_path = tmp_path / "settings.json"

@@ -82,7 +82,6 @@ if isinstance(settings_store, PostgresStore):
         settings_store=settings_store,
         state_store=state_store,
         switchbot_client=switchbot_client,
-        ifttt_client=ifttt_client,
         history_service=history_service,  # ← Le passage clé
         logger=app.logger,
     )

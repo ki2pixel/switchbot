@@ -219,9 +219,16 @@ def main() -> None:
     logger = setup_logging(args.verbose)
 
     logger.info("Starting migration from Redis/JSON to PostgreSQL")
-    logger.info(f"PostgreSQL URL: {args.postgres_url[:20]}...")
+    
+    def mask_url(url: str | None) -> str:
+        if not url:
+            return "None"
+        import re
+        return re.sub(r'(?<=://)[^:]+:[^@]+(?=@)', '***:***', url)
+
+    logger.info(f"PostgreSQL URL: {mask_url(args.postgres_url)}")
     if args.redis_url:
-        logger.info(f"Redis URL: {args.redis_url[:20]}...")
+        logger.info(f"Redis URL: {mask_url(args.redis_url)}")
     logger.info(f"Settings path: {args.settings_path}")
     logger.info(f"State path: {args.state_path}")
     logger.info(f"Dry run: {args.dry_run}")

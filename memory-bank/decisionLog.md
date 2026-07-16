@@ -1,3 +1,31 @@
+[2026-07-16 20:47:00] - Remédiation backend complète : Phases P1 (Robustesse) et P2 (Durcissement)
+- Décision :
+  1. PERF-01/REL-03 — Parallélisme + Cache thread-safe : Les appels d'enrichissement des devices sont parallélisés via `ThreadPoolExecutor`. Le cache interne de `SwitchBotClient` est protégé par un `threading.Lock`. Les actions manuelles (`/actions/run_once`) retournent immédiatement 202 et s'exécutent en daemon thread. Rate-limit ajouté sur `/devices` (10/min).
+  2. SEC-02/SEC-03 — Validation stricte des inputs : `scene_id` limité à 50 caractères alphanumériques. Températures bornées 10–35°C avec auto-swap si `min > max`. Format `HH:MM` validé par regex.
+  3. REL-04/REL-05 — Retries robustes + timeouts Postgres : Retries exponentiels avec jitter uniquement sur GET ou erreurs 429/5xx/transport. Parsing du header `Retry-After`. Pool psycopg configuré avec `timeout=5.0` (checkout) et `statement_timeout=5000ms` (query).
+  4. SEC-04/05/07 — TLS, logs, /debug/state : `sslmode=verify-full` activé depuis l'env. Masquage regex des credentials dans les logs de migration. `/debug/state` limité à 5 req/min.
+  5. SEC-06 — Logout durci : Route `/logout` passée en POST-only. Bouton de déconnexion avec CSRF token dans `settings.html`. Support hachages Werkzeug (`pbkdf2:`, `scrypt:`, `argon2:`) pour `DASHBOARD_PASSWORD` via `check_password_hash`.
+  6. MAIN-01/02 — Nettoyage : Suppression de la classe morte `SimpleTransactionContext`. `AGENTS.md` mis à jour pour clarifier la suppression définitive d'IFTTT.
+- Motivation : Achever la totalité de la remédiation de l'audit backend. Prévenir les conditions de course sur le cache, les injections via inputs non validés, les fuites de connexions Postgres et les attaques CSRF sur le logout.
+- Implémentation : Validée par 206 tests unitaires (dont 7 nouveaux couvrant les nouvelles validations et le support hachages).
+- Implication : Le backend est entièrement durci (P0+P1+P2). La seule action restante côté déploiement est d'ajouter `PROXY_FIX_FOR=1` dans les variables Render.
+
+[2026-07-16 20:45:00] - Décision : RATELIMIT_STORAGE_URI non nécessaire sur Render
+- Contexte : L'utilisateur souhaitait vérifier si Redis était nécessaire pour le rate-limiting en production.
+- Décision : `RATELIMIT_STORAGE_URI` est inutile car `gunicorn.conf.py` force `workers=1` quand `SCHEDULER_ENABLED=true`. Le stockage mémoire par défaut est donc suffisant et précis.
+- `PROXY_FIX_FOR=1` reste indispensable sur Render pour résoudre correctement les IPs clientes derrière le proxy Render.
+
+[2026-07-16 18:15:00] - Exécution des correctifs de la phase P0 (Concurrence, Verrous, Boot, Schéma, ProxyFix)
+- Décision :
+  1. Transactionnalité : Envelopper toutes les lectures/écritures d'état dans des blocs de transaction SQL (quota, routes directes, automation) et vider les caches CachedStoreWrapper à la fin de chaque tick pour éviter toute incohérence mémoire.
+  2. SQL DDL automatique : Ajouter un ALTER TABLE idempotent au boot dans history_service.py pour passer last_action à VARCHAR(255).
+  3. Fencing Token : Implémenter un jeton de verrou logique (automation_lock_token) dans le store d'état pour invalider et avorter proprement (via LockLostError) tout tick d'automatisation dont le verrou a expiré ou a été repris par un autre processus. Porter l'expiration du verrou à 5 minutes.
+  4. Boot non bloquant : Lancer le premier poll_meter de boot et le premier tick du planificateur dans des threads daemon asynchrones en production pour éviter de bloquer le worker Gunicorn.
+  5. ProxyFix : Appliquer le middleware Werkzeug ProxyFix conditionnellement derrière les proxys inverses (Render) configurés via la variable PROXY_FIX_FOR.
+- Motivation : Résoudre les vulnérabilités de lost updates, de dépassement de capacité SQL, de dérives ou vols de verrous d'automatisation concurrents, de blocage des serveurs de production au démarrage, et de spoofing d'IPs clientes pour les limites de taux.
+- Implémentation : Effectuée dans switchbot_dashboard/__init__.py, routes.py, automation.py, scheduler.py, et Dockerfile. Validée par 199 tests unitaires et d'intégration verts.
+- Implication : Le backend est dorénavant à l'abri des conflits d'écritures concurrentes et des chevauchements d'exécution d'automatisation, démarre de façon fluide et fiable en production, et résout proprement ses IP clientes pour le rate limiting.
+
 [2026-07-12 12:41:00] - Optimisation des performances, cache d'API et transactionnalité des routes (Phases 3-5)
 - Décision : Centraliser les convertisseurs de types dans `utils.py`, utiliser un proxy contextuel de store `CachedStoreWrapper` pour éliminer les requêtes DB redondantes et garder la cohérence du quota tracker, implémenter un cache de 60s pour les requêtes d'appareils, conditionner l'enveloppement transactionnel pour supporter les MemoryStore de test, et intégrer PostgreSQL dans le workflow CI GitHub Actions.
 - Motivation : Les requêtes d'appareils sur la page `/devices` engendraient un problème de requête N+1 surchargeant l'API SwitchBot. L'appel fréquent de quota snapshot dans la boucle d'automatisation lisait à chaque fois l'état depuis le store, provoquant des requêtes DB superflues. Les environnements de test utilisaient des instances MemoryStore simples sans support de transaction, et le workflow CI n'exécutait aucun test automatisé avec PostgreSQL.

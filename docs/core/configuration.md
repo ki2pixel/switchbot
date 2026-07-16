@@ -1,12 +1,12 @@
 # Configuration du SwitchBot Dashboard v2
 
-**TL;DR** : Le Dashboard utilise PostgreSQL par défaut avec fallback automatique vers JSON, implémente une cascade IFTTT→Scènes→Commandes directes pour la résilience, et suit les quotas API SwitchBot avec alertes configurables. Toute la configuration persiste dans `settings.json` sauf les secrets qui restent en `.env`.
+**TL;DR** : Le Dashboard utilise PostgreSQL par défaut avec fallback automatique vers JSON, implémente une cascade Scènes→Commandes directes pour la résilience, et suit les quotas API SwitchBot avec alertes configurables. Toute la configuration persiste dans `settings.json` sauf les secrets qui restent en `.env`.
 
 ## Le problème : Pourquoi une configuration complexe ?
 
-Vous déployez un dashboard de climatisation qui doit tourner 24/7. Entre les redéploy Render qui réinitialisent les fichiers, les quotas SwitchBot qui limitent les appels, et les webhooks IFTTT qui parfois tombent, vous vous retrouvez avec un système qui perd son état à chaque restart.
+Vous déployez un dashboard de climatisation qui doit tourner 24/7. Entre les redéploy Render qui réinitialisent les fichiers, les quotas SwitchBot qui limitent les appels, et les commandes directes qui échouent parfois, vous vous retrouvez avec un système qui perd son état à chaque restart.
 
-La configuration devient un casse-tête : les IDs de devices changent, les scènes SwitchBug ne s'exécutent pas, et vous perdez le suivi du quota API au milieu de la journée. Pire encore, le scheduler continue de tourner avec des paramètres obsolètes.
+La configuration devient un casse-tête : les IDs de devices changent, les scènes ne s'exécutent pas, et vous perdez le suivi du quota API au milieu de la journée. Pire encore, le scheduler continue de tourner avec des paramètres obsolètes.
 
 ## La solution : Une architecture à trois couches
 
@@ -85,12 +85,6 @@ Ce fichier contient tous les réglages qui survivent aux redeploys :
     "fan_speed": 2
   },
   "api_quota_warning_threshold": 250,
-  "ifttt_webhooks": {
-    "winter": "https://maker.ifttt.com/trigger/switchbot_winter/with/key/YOUR_KEY",
-    "summer": "https://maker.ifttt.com/trigger/switchbot_summer/with/key/YOUR_KEY",
-    "fan": "https://maker.ifttt.com/trigger/switchbot_fan/with/key/YOUR_KEY",
-    "off": "https://maker.ifttt.com/trigger/switchbot_off/with/key/YOUR_KEY"
-  },
   "aircon_scenes": {
     "winter": "SCENE_WINTER_UUID",
     "summer": "SCENE_SUMMER_UUID",
@@ -104,27 +98,21 @@ Ce fichier contient tous les réglages qui survivent aux redeploys :
 }
 ```
 
-### 3. Cascade de résilience IFTTT → Scènes → Commandes
+### 3. Cascade de résilience Scènes → Commandes
 
-Le système implémente trois niveaux de fallback pour garantir l'exécution :
+Le système implémente deux niveaux de fallback pour garantir l'exécution :
 
 ```python
-# 1. Webhook IFTTT (priorité)
-if webhooks.get(action):
-    response = requests.post(webhook_url, timeout=10)
-    
-# 2. Scène SwitchBot (fallback 1)
-elif scenes.get(action):
+# 1. Scène SwitchBot (priorité)
+if scenes.get(action):
     response = switchbot_client.execute_scene(scene_id)
     
-# 3. Commande directe (fallback 2)
+# 2. Commande directe (fallback)
 elif action == "off":
     response = switchbot_client.turn_off(device_id)
 else:
     response = switchbot_client.set_all(device_id, params)
 ```
-
-**Validation des URLs IFTTT** : Les URLs doivent commencer par `https://`, validation automatique dans `ifttt.py:17-27`.
 
 ### 4. Stockage PostgreSQL avec fallback
 
@@ -278,7 +266,6 @@ Les fenêtres horaires sont évaluées dans le fuseau configuré :
 [automation] Time window evaluation | windows=[0,1,2] 08:00-22:00, in_window=true
 [automation] Cooldown active (ON action) | remaining_time='4m0s'
 [automation] Executing scheduled off repeat | trigger=scheduler, remaining_before=1
-[ifttt] Triggering IFTTT webhook | action=winter, url=https://maker.ifttt.com/...
 [api] Quota snapshot updated | used=150, remaining=9850, limit=10000
 ```
 
@@ -307,4 +294,4 @@ Les réglages métier survivent aux redeploys, les secrets restent en environnem
 
 ---
 
-*Voir aussi [Guide d'intégration IFTTT](../guides/ifttt.md) pour la configuration des webhooks, [Migration PostgreSQL](../ops/postgresql-migration.md) pour le guide de migration, et [Référence des standards](../../../.clinerules/codingstandards.md) pour les patterns de développement.*
+*Voir aussi [Migration PostgreSQL](../ops/postgresql-migration.md) pour le guide de migration, et [Référence des standards](../../../.clinerules/codingstandards.md) pour les patterns de développement.*

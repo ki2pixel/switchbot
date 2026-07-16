@@ -6,6 +6,7 @@ import logging
 import os
 from pathlib import Path
 import sys
+import threading
 
 from dotenv import load_dotenv
 
@@ -314,10 +315,22 @@ def create_app() -> Flask:
         return response
 
     _mark_temperature_stale(app, state_store, reason="app_start")
-    try:
-        automation_service.poll_meter()
-    except Exception as exc:  # pragma: no cover - defensive safeguard
-        app.logger.warning("Initial meter poll failed: %s", exc)
+    
+    # Run the initial poll in a background thread to make startup non-blocking (REL-02)
+    is_testing = app.testing or os.environ.get("FLASK_ENV") == "testing" or "pytest" in sys.modules
+    if is_testing:
+        try:
+            automation_service.poll_meter()
+        except Exception as exc:  # pragma: no cover
+            app.logger.warning("Initial meter poll failed (sync testing): %s", exc)
+    else:
+        def run_initial_poll_async():
+            with app.app_context():
+                try:
+                    automation_service.poll_meter()
+                except Exception as exc:  # pragma: no cover
+                    app.logger.warning("Initial meter poll failed (async): %s", exc)
+        threading.Thread(target=run_initial_poll_async, name="initial_meter_poll", daemon=True).start()
 
     scheduler_enabled = os.environ.get("SCHEDULER_ENABLED", "true").strip().lower()
 
@@ -348,5 +361,23 @@ def create_app() -> Flask:
                     app.logger.info("[scheduler] Registered hourly history cleanup job")
     else:
         app.logger.info("[scheduler] APScheduler disabled via SCHEDULER_ENABLED=false")
+
+    # Apply Werkzeug ProxyFix behind reverse proxies if configured (SEC-01)
+    proxy_fix_for = os.environ.get("PROXY_FIX_FOR", "").strip()
+    if proxy_fix_for:
+        try:
+            num_proxies = int(proxy_fix_for)
+        except ValueError:
+            num_proxies = 1
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app,
+            x_for=num_proxies,
+            x_proto=num_proxies,
+            x_host=num_proxies,
+            x_port=num_proxies,
+            x_prefix=num_proxies,
+        )
+        app.logger.info("[security] ProxyFix middleware applied (trusted proxies: %d)", num_proxies)
 
     return app

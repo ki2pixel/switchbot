@@ -15,6 +15,11 @@ from .switchbot_api import SwitchBotApiError, SwitchBotClient
 from .utils import _safe_int, _utc_now_iso
 
 
+class LockLostError(RuntimeError):
+    """Raised when the automation lock has been acquired by another worker/process."""
+    pass
+
+
 def _parse_hhmm(value: str) -> dt.time:
     parts = value.strip().split(":")
     if len(parts) != 2:
@@ -181,9 +186,16 @@ class AutomationService:
                 self._client._quota_tracker._state_store = self._state_store
 
     def _update_state(self, **updates: Any) -> None:
-        state = self._state_store.read()
-        state.update(updates)
-        self._state_store.write(state)
+        with self._state_store.transaction():
+            state = self._state_store.read()
+            if hasattr(self, "_current_lock_token") and self._current_lock_token is not None:
+                db_token = state.get("automation_lock_token")
+                if db_token != self._current_lock_token:
+                    raise LockLostError(
+                        f"State update rejected: lock token mismatch (local={self._current_lock_token}, db={db_token})"
+                    )
+            state.update(updates)
+            self._state_store.write(state)
 
     def _log(self, level: int, message: str, **details: Any) -> None:
         payload = "[automation] " + message
@@ -909,8 +921,14 @@ class AutomationService:
                     if locked_at.tzinfo is None:
                         locked_at = locked_at.replace(tzinfo=dt.timezone.utc)
                     now_utc = dt.datetime.now(dt.timezone.utc)
-                    if now_utc - locked_at > dt.timedelta(minutes=2):
+                    if now_utc - locked_at > dt.timedelta(minutes=5):
                         is_expired = True
+                        self._warning(
+                            "Automation lock acquired by expiration (stale lock detected)",
+                            locked_at=locked_at_str,
+                            locked_by=state.get("automation_lock_owner"),
+                            now=now_utc.isoformat(),
+                        )
                 except Exception as exc:
                     self._warning("Failed to parse automation_locked_at", error=str(exc))
                     is_expired = True
@@ -918,10 +936,13 @@ class AutomationService:
             if is_locked and not is_expired:
                 return False
                 
+            lock_token = int(state.get("automation_lock_token", 0)) + 1
             state["automation_in_progress"] = True
             state["automation_locked_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
             state["automation_lock_owner"] = owner_label
+            state["automation_lock_token"] = lock_token
             self._state_store.write(state)
+            self._current_lock_token = lock_token
             return True
 
         if hasattr(self._state_store, "transaction"):
@@ -936,15 +957,23 @@ class AutomationService:
 
     def _release_lock(self) -> None:
         """Release the concurrency lock in the state store."""
-        owner_label = "scheduler" if not has_request_context() else f"http:{request.endpoint}"
         
         def _clear_lock() -> None:
             state = self._state_store.read()
-            if state.get("automation_lock_owner") == owner_label or not state.get("automation_in_progress"):
+            current_token = getattr(self, "_current_lock_token", None)
+            db_token = state.get("automation_lock_token")
+            # Only release if we are still the owner and the token matches (or if it is not locked)
+            if not state.get("automation_in_progress") or (db_token == current_token and current_token is not None):
                 state["automation_in_progress"] = False
                 state["automation_locked_at"] = None
                 state["automation_lock_owner"] = None
                 self._state_store.write(state)
+            else:
+                self._warning(
+                    "Skipping lock release: token mismatch or not owned",
+                    local_token=current_token,
+                    db_token=db_token,
+                )
 
         if hasattr(self._state_store, "transaction"):
             try:
@@ -957,6 +986,7 @@ class AutomationService:
 
     def run_once(self) -> None:
         start_time = time.perf_counter()
+        self._current_lock_token = None
         
         # Clear store caches for this tick (P-04)
         if hasattr(self._settings_store, "clear_cache"):
@@ -970,11 +1000,19 @@ class AutomationService:
 
         try:
             self._run_once_impl()
+        except LockLostError as exc:
+            self._warning("Aborted automation tick: lock was lost or stolen", error=str(exc))
         finally:
             try:
                 self._release_lock()
             except Exception as exc:
                 self._error("Error releasing lock", error=str(exc))
+            finally:
+                self._current_lock_token = None
+                if hasattr(self._settings_store, "clear_cache"):
+                    self._settings_store.clear_cache()
+                if hasattr(self._state_store, "clear_cache"):
+                    self._state_store.clear_cache()
                 
             duration = time.perf_counter() - start_time
             self._tick_durations.append(duration)

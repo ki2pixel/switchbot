@@ -57,7 +57,7 @@ USER appuser
 EXPOSE 8000
 
 # Continuous health monitoring of the application using the Flask diagnostic endpoint
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:$PORT/healthz || exit 1
 
 CMD ["sh", "-c", "exec gunicorn 'switchbot_dashboard:create_app()' --config gunicorn.conf.py"]

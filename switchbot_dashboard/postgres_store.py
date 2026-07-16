@@ -141,11 +141,17 @@ class PostgresStore:
             if not connection_string:
                 raise PostgresStoreError("Either connection_string or pool must be provided")
             # Configure connection parameters for Neon
+            # REL-05: connection timeout + statement_timeout for bounded query execution
             self._connection_params: dict[str, Any] = {
                 "conninfo": connection_string,
                 "min_size": 1,
                 "max_size": max_connections,
-                "kwargs": {"sslmode": ssl_mode},
+                "timeout": 5.0,  # pool checkout timeout
+                "kwargs": {
+                    "sslmode": ssl_mode,
+                    "connect_timeout": 5,
+                    "options": "-c statement_timeout=5000",
+                },
             }
             self._initialize_pool()
         else:

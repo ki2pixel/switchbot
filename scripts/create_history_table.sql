@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS state_history (
     temperature DECIMAL(4,1),              -- Temperature in Celsius (e.g., 23.5)
     humidity DECIMAL(4,1),                 -- Humidity percentage (e.g., 45.0)
     assumed_aircon_power VARCHAR(10),      -- 'on', 'off', or 'unknown'
-    last_action VARCHAR(50),               -- Last automation action taken
+    last_action VARCHAR(255),              -- Last automation action taken
     api_requests_today INTEGER DEFAULT 0, -- Daily API quota usage
     error_count INTEGER DEFAULT 0,         -- Number of errors in this tick
     last_temperature_stale BOOLEAN DEFAULT FALSE, -- Temperature freshness flag

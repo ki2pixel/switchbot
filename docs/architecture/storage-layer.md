@@ -85,7 +85,6 @@ POSTGRES_SSL_MODE=require
 {
     "automation_enabled": true,
     "poll_interval_seconds": 30,
-    "ifttt_webhooks": [...],
     "aircon_scenes": [...]
 }
 ```

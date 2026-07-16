@@ -4,6 +4,7 @@ import base64
 import hashlib
 import hmac
 import time
+import threading
 import uuid
 import logging
 from dataclasses import dataclass
@@ -55,6 +56,7 @@ class SwitchBotClient:
         # Caches for API calls (P-01)
         self._status_cache: dict[str, tuple[float, Any]] = {}
         self._devices_cache: tuple[float, Any] | None = None
+        self._cache_lock = threading.Lock()
 
     def _build_headers(self) -> dict[str, str]:
         if not self._token or not self._secret:
@@ -116,9 +118,12 @@ class SwitchBotClient:
 
         raise SwitchBotApiError(f"SwitchBot API error: {data!r}")
 
-    def _request(self, method: str, path: str, json_body: dict[str, Any] | None = None) -> Any:
+    def _request(self, method: str, path: str, json_body: dict[str, Any] | None = None, *, timeout: float = 15) -> Any:
+        import random as _rand
+
         url = f"{self._base_url}{path}"
         last_error: Exception | None = None
+        is_get = method.upper() == "GET"
 
         for attempt_index in range(self._retry_attempts):
             headers = self._build_headers()
@@ -128,12 +133,15 @@ class SwitchBotClient:
                     url=url,
                     headers=headers,
                     json=json_body,
-                    timeout=15,
+                    timeout=timeout,
                 )
             except requests.RequestException as exc:
+                # REL-04: Transport errors are always retryable
                 last_error = exc
                 if attempt_index < (self._retry_attempts - 1) and self._retry_delay_seconds > 0:
-                    time.sleep(min(self._retry_delay_seconds, 3))
+                    delay = min(self._retry_delay_seconds * (2 ** attempt_index), 5)
+                    delay += _rand.uniform(0, 0.5)  # jitter
+                    time.sleep(delay)
                     continue
 
                 raise SwitchBotApiError(f"SwitchBot request failed: {exc}") from exc
@@ -146,18 +154,19 @@ class SwitchBotClient:
                 dict(response.headers),
             )
 
+            # REL-04: Only retry on GETs for HTTP-level errors (429, 5xx)
             retryable_http = response.status_code == 429 or 500 <= response.status_code <= 599
-            if retryable_http and attempt_index < (self._retry_attempts - 1):
-                if self._retry_delay_seconds > 0:
-                    time.sleep(min(self._retry_delay_seconds, 3))
+            if retryable_http and is_get and attempt_index < (self._retry_attempts - 1):
+                delay = self._parse_retry_after(response, attempt_index)
+                time.sleep(delay)
                 continue
 
             tracker_updated = self._capture_quota_metadata(response)
 
             retry_needed, data = self._process_response(response, path, tracker_updated)
-            if retry_needed and attempt_index < (self._retry_attempts - 1):
-                if self._retry_delay_seconds > 0:
-                    time.sleep(min(self._retry_delay_seconds, 3))
+            if retry_needed and is_get and attempt_index < (self._retry_attempts - 1):
+                delay = self._parse_retry_after(response, attempt_index)
+                time.sleep(delay)
                 continue
                 
             if not retry_needed:
@@ -168,15 +177,32 @@ class SwitchBotClient:
 
         raise SwitchBotApiError("SwitchBot request failed")
 
+    def _parse_retry_after(self, response: Response, attempt_index: int) -> float:
+        """Parse Retry-After header with exponential backoff and jitter (REL-04)."""
+        import random as _rand
+
+        retry_after = response.headers.get("Retry-After")
+        if retry_after:
+            try:
+                delay = min(float(retry_after), 5.0)
+            except (ValueError, TypeError):
+                delay = min(self._retry_delay_seconds * (2 ** attempt_index), 5.0)
+        else:
+            delay = min(self._retry_delay_seconds * (2 ** attempt_index), 5.0)
+        delay += _rand.uniform(0, 0.5)  # jitter
+        return delay
+
     def get_devices(self) -> Any:
         now = time.monotonic()
-        if self._devices_cache is not None:
-            cached_time, cached_val = self._devices_cache
-            if now - cached_time < 60.0:
-                return cached_val
+        with self._cache_lock:
+            if self._devices_cache is not None:
+                cached_time, cached_val = self._devices_cache
+                if now - cached_time < 60.0:
+                    return cached_val
 
         devices = self._request("GET", "/v1.1/devices")
-        self._devices_cache = (now, devices)
+        with self._cache_lock:
+            self._devices_cache = (now, devices)
         return devices
 
     def get_scenes(self) -> Any:
@@ -189,13 +215,15 @@ class SwitchBotClient:
 
         # 60s cache to avoid N+1 API abuse on /devices page (P-01)
         now = time.monotonic()
-        if device_id in self._status_cache:
-            cached_time, cached_val = self._status_cache[device_id]
-            if now - cached_time < 60.0:
-                return cached_val
+        with self._cache_lock:
+            if device_id in self._status_cache:
+                cached_time, cached_val = self._status_cache[device_id]
+                if now - cached_time < 60.0:
+                    return cached_val
 
         status = self._request("GET", f"/v1.1/devices/{device_id}/status")
-        self._status_cache[device_id] = (now, status)
+        with self._cache_lock:
+            self._status_cache[device_id] = (now, status)
         return status
 
     def send_command(

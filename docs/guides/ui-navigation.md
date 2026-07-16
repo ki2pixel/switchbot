@@ -49,13 +49,7 @@ TZ=Europe/Paris
   "timezone": "Europe/Paris",
   "aircon_device_id": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
   "meter_device_id": "YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY",
-  "ifttt_webhooks": {
-    "winter_on": "https://maker.ifttt.com/trigger/winter_on/with/key/...",
-    "summer_on": "https://maker.ifttt.com/trigger/summer_on/with/key/...",
-    "fan_on": "https://maker.ifttt.com/trigger/fan_on/with/key/...",
-    "off": "https://maker.ifttt.com/trigger/off/with/key/..."
-  },
-  "scenes": {
+  "aircon_scenes": {
     "winter": "UUID_SCENE_WINTER",
     "summer": "UUID_SCENE_SUMMER", 
     "fan": "UUID_SCENE_FAN",
@@ -160,39 +154,34 @@ TZ=Europe/Paris
 
 ```python
 # routes.py - Construction du contexte actions
-@app.route('/actions')
-def actions_page():
-    settings = current_app.extensions['settings_store'].load()
-    state = current_app.extensions['state_store'].load()
+@dashboard_bp.get("/actions")
+def actions_page() -> str:
+    settings_store = current_app.extensions["settings_store"]
+    state_store = current_app.extensions["state_store"]
     
-    actions_context = {}
-    for action in ['winter_on', 'summer_on', 'fan_on', 'off']:
-        webhook_url = settings.get('ifttt_webhooks', {}).get(action, '')
-        scene_uuid = settings.get('scenes', {}).get(action.replace('_on', ''), '')
-        
-        if webhook_url and webhook_url.startswith('https://'):
-            status = 'webhook'
-            badge = 'badge-success'
-            text = 'Webhook configuré'
-        elif scene_uuid:
-            status = 'scene'
-            badge = 'badge-warning'
-            text = 'Scène uniquement'
-        else:
-            status = 'missing'
-            badge = 'badge-danger'
-            text = 'Configuration manquante'
-            
-        actions_context[action] = {
-            'status': status,
-            'badge': badge,
-            'text': text
-        }
+    try:
+        settings = settings_store.read()
+    except StoreError:
+        settings = {}
     
-    return render_template('actions.html', 
-                         actions_context=actions_context,
-                         settings=settings, 
-                         state=state)
+    try:
+        state = state_store.read()
+    except StoreError:
+        state = {}
+    
+    # Récupération des scènes configurées pour affichage de statut
+    aircon_scenes = settings.get("aircon_scenes", {})
+    missing_scenes = {
+        key: not aircon_scenes.get(key)
+        for key in ["winter", "summer", "fan", "off"]
+    }
+    
+    return render_template(
+        "actions.html",
+        settings=settings,
+        state=state,
+        missing_scenes=missing_scenes,
+    )
 ```
 
 ### Alertes quota avec monitoring temps réel
@@ -325,18 +314,22 @@ Placer les boutons d'action critiques en haut de l'écran sur mobile force l'uti
 
 ### ❌ Ignorer les états visuels des actions
 
-Ne pas montrer si une action utilisera un webhook IFTTT, une scène SwitchBot, ou une commande directe crée de l'incertité pour l'utilisateur.
+Ne pas montrer si une scène SwitchBot est correctement configurée crée de l'incertité pour l'utilisateur.
 
-```python
-# ❌ Éviter : bouton sans contexte
+```html
+# ❌ Éviter : bouton sans contexte de statut de configuration
 <button onclick="execute_action('winter_on')">Hiver</button>
 
-# ✅ Préférer : bouton avec état visuel
-<div class="action-card">
-  <span class="badge badge-success">Webhook configuré</span>
-  <button data-loader="card" onclick="execute_action('winter_on')">
-    <i class="fas fa-snowflake"></i> Hiver
-  </button>
+# ✅ Préférer : bouton avec affichage du statut de la scène
+<div class="scene-info">
+  <div class="scene-title">Climatisation ON – Hiver</div>
+  <div class="scene-status small {% if missing_scenes['winter'] %}text-warning{% else %}text-muted{% endif %}">
+    {% if missing_scenes['winter'] %}
+      Scène manquante
+    {% else %}
+      Scène configurée
+    {% endif %}
+  </div>
 </div>
 ```
 
@@ -378,25 +371,7 @@ Les animations CSS doivent être GPU-optimisées pour éviter la latence sur mob
 }
 ```
 
-### ❌ Configurer les webhooks HTTP
 
-Les webhooks IFTTT doivent impérativement utiliser HTTPS pour la sécurité.
-
-```json
-// ❌ Éviter : webhook HTTP non sécurisé
-{
-  "ifttt_webhooks": {
-    "winter_on": "http://maker.ifttt.com/trigger/..."
-  }
-}
-
-// ✅ Préférer : webhook HTTPS sécurisé
-{
-  "ifttt_webhooks": {
-    "winter_on": "https://maker.ifttt.com/trigger/..."
-  }
-}
-```
 
 ## Monitoring et maintenance
 
@@ -433,10 +408,7 @@ with app.app_context():
     print('Automation enabled:', settings.get('automation_enabled', False))
 "
 
-# Test des webhooks IFTTT
-curl -X POST "https://maker.ifttt.com/trigger/winter_on/with/key/VOTRE_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{"value1":"Test depuis dashboard"}'
+
 ```
 
 ### Surveillance des performances

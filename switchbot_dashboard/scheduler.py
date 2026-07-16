@@ -203,8 +203,16 @@ class SchedulerService:
             self._logger.info("[scheduler] BackgroundScheduler started successfully")
             self._schedule_or_reschedule_locked()
 
-        self._logger.info("[scheduler] Triggering immediate first tick")
-        self._run_tick_safe()
+        import sys
+        import os
+        is_testing = "pytest" in sys.modules or os.environ.get("FLASK_ENV") == "testing"
+
+        if is_testing:
+            self._logger.info("[scheduler] Triggering immediate first tick (sync for testing)")
+            self._run_tick_safe()
+        else:
+            self._logger.info("[scheduler] Triggering immediate first tick in background thread")
+            threading.Thread(target=self._run_tick_safe, name="first_scheduler_tick", daemon=True).start()
 
     def _schedule_or_reschedule_locked(self) -> None:
         if self._scheduler is None:

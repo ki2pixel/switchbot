@@ -6,6 +6,8 @@ import json
 import os
 import random
 import re
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -335,9 +337,20 @@ def login() -> Any:
         return redirect(url_for(ROUTE_INDEX))
 
     if request.method == "POST":
-        provided_password = request.form.get("password")
-        expected_password = current_app.config.get("DASHBOARD_PASSWORD")
-        if provided_password and hmac.compare_digest(provided_password, expected_password):
+        from werkzeug.security import check_password_hash
+        provided_password = request.form.get("password", "")
+        expected_password = current_app.config.get("DASHBOARD_PASSWORD", "")
+        
+        # SEC-06: Support Werkzeug hashes (pbkdf2, scrypt, argon2)
+        is_hashed = expected_password.startswith(("pbkdf2:", "scrypt:", "argon2:"))
+        
+        is_valid = False
+        if is_hashed:
+            is_valid = check_password_hash(expected_password, provided_password)
+        elif provided_password and expected_password:
+            is_valid = hmac.compare_digest(provided_password, expected_password)
+
+        if is_valid:
             # Session rotation to prevent session fixation (S-07)
             old_session = dict(session)
             session.clear()
@@ -353,7 +366,7 @@ def login() -> Any:
     return render_template("login.html")
 
 
-@dashboard_bp.route("/logout")
+@dashboard_bp.post("/logout")
 def logout() -> Any:
     session.pop("logged_in", None)
     flash("Déconnexion réussie.", "success")
@@ -361,6 +374,7 @@ def logout() -> Any:
 
 
 @dashboard_bp.get("/debug/state")
+@limiter.limit("5 per minute")
 def debug_state() -> Any:
     expected_token = current_app.config.get("STATE_DEBUG_TOKEN")
     
@@ -512,6 +526,21 @@ def _update_time_windows(request_form: Any, settings: dict[str, Any]) -> None:
         settings["time_windows"] = []
         return
 
+    # SEC-03: Strict HH:MM format validation
+    hhmm_pattern = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+    if time_window_start and not hhmm_pattern.match(time_window_start):
+        flash(
+            "L'heure de début est invalide : utilisez le format HH:MM (ex: 08:30).",
+            "error",
+        )
+        return
+    if time_window_end and not hhmm_pattern.match(time_window_end):
+        flash(
+            "L'heure de fin est invalide : utilisez le format HH:MM (ex: 22:00).",
+            "error",
+        )
+        return
+
     try:
         parsed_days = [
             int(token.strip())
@@ -543,9 +572,18 @@ def _update_profiles(request_form: Any, settings: dict[str, Any]) -> None:
         if not isinstance(profile, dict):
             profile = {}
 
-        profile["min_temp"] = _as_float(request_form.get(f"{key}_min_temp"), default=float(profile.get("min_temp", 0.0) or 0.0))
-        profile["max_temp"] = _as_float(request_form.get(f"{key}_max_temp"), default=float(profile.get("max_temp", 0.0) or 0.0))
-        profile["target_temp"] = _as_float(request_form.get(f"{key}_target_temp"), default=float(profile.get("target_temp", 0.0) or 0.0))
+        # SEC-02: Temperature bounds (10-35°C) and min <= max validation
+        profile["min_temp"] = _as_float(request_form.get(f"{key}_min_temp"), default=float(profile.get("min_temp", 0.0) or 0.0), minimum=10.0, maximum=35.0)
+        profile["max_temp"] = _as_float(request_form.get(f"{key}_max_temp"), default=float(profile.get("max_temp", 0.0) or 0.0), minimum=10.0, maximum=35.0)
+        profile["target_temp"] = _as_float(request_form.get(f"{key}_target_temp"), default=float(profile.get("target_temp", 0.0) or 0.0), minimum=10.0, maximum=35.0)
+
+        if profile["min_temp"] > profile["max_temp"]:
+            flash(
+                f"Profil {key} : la température minimale ne peut pas dépasser la maximale. Valeurs inversées automatiquement.",
+                "error",
+            )
+            profile["min_temp"], profile["max_temp"] = profile["max_temp"], profile["min_temp"]
+
         profile["fan_speed"] = _as_int(request_form.get(f"{key}_fan_speed"), default=int(profile.get("fan_speed", 3) or 3), minimum=1, maximum=4)
         profile["ac_mode"] = _as_int(request_form.get(f"{key}_ac_mode"), default=int(profile.get("ac_mode", 5 if key == "winter" else 2) or 0), minimum=0, maximum=5)
 
@@ -681,11 +719,20 @@ def update_settings() -> Any:
         _update_time_windows(request.form, settings)
         _update_profiles(request.form, settings)
 
+        # SEC-02: Scene ID regex validation
+        scene_id_pattern = re.compile(r"^[a-zA-Z0-9\-]*$")
         updated_aircon_scenes: dict[str, str] = {}
         for key in AIRCON_SCENE_KEYS:
-            updated_aircon_scenes[key] = str(
+            raw_scene_id = str(
                 request.form.get(f"scene_{key}_id", current_aircon_scenes.get(key, ""))
             ).strip()
+            if raw_scene_id and (len(raw_scene_id) > 50 or not scene_id_pattern.match(raw_scene_id)):
+                flash(
+                    f"L'ID de scène '{key}' est invalide (alphanumérique et tirets uniquement, max 50 caractères).",
+                    "error",
+                )
+                return redirect(url_for("dashboard.settings_page"))
+            updated_aircon_scenes[key] = raw_scene_id
 
         settings["aircon_scenes"] = updated_aircon_scenes
 
@@ -704,14 +751,23 @@ def run_once() -> Any:
 
     Triggers the automation service to run one complete cycle
     of temperature monitoring and device control.
+    The tick runs in a background thread to avoid blocking the HTTP response.
 
     Returns:
         Redirect to home page with success flash message
     """
     automation_service = current_app.extensions["automation_service"]
+    app = current_app._get_current_object()  # type: ignore[attr-defined]
 
-    automation_service.run_once()
-    flash("Cycle d'automatisation exécuté.")
+    def _run_async() -> None:
+        with app.app_context():
+            try:
+                automation_service.run_once()
+            except Exception as exc:
+                app.logger.warning("[run_once] async tick failed: %s", exc)
+
+    threading.Thread(target=_run_async, name="manual_run_once", daemon=True).start()
+    flash("Cycle d'automatisation lancé en arrière-plan.")
     return redirect(url_for(ROUTE_INDEX))
 
 
@@ -729,22 +785,24 @@ def aircon_off() -> Any:
 def _update_state_on_success(
     state_store: Any, assumed_power: str, action_desc: str, assumed_mode: int | None = None
 ) -> None:
-    state = state_store.read()
-    state.update({
-        "assumed_aircon_power": assumed_power,
-        "assumed_aircon_mode": assumed_mode,
-        "assumed_aircon_parameter": None,
-        "last_action": action_desc,
-        "last_action_at": _utc_now_iso(),
-        "last_error": None
-    })
-    state_store.write(state)
+    with _transaction_context(state_store):
+        state = state_store.read()
+        state.update({
+            "assumed_aircon_power": assumed_power,
+            "assumed_aircon_mode": assumed_mode,
+            "assumed_aircon_parameter": None,
+            "last_action": action_desc,
+            "last_action_at": _utc_now_iso(),
+            "last_error": None
+        })
+        state_store.write(state)
 
 
 def _update_state_on_error(state_store: Any, error_msg: str) -> None:
-    state = state_store.read()
-    state["last_error"] = error_msg
-    state_store.write(state)
+    with _transaction_context(state_store):
+        state = state_store.read()
+        state["last_error"] = error_msg
+        state_store.write(state)
 
 
 def _handle_direct_action(
@@ -892,6 +950,7 @@ def _enrich_device_status(client: Any, device: dict[str, Any]) -> None:
 
 
 @dashboard_bp.get("/devices")
+@limiter.limit("10 per minute")
 def devices() -> str:
     client = current_app.extensions["switchbot_client"]
     data = None
@@ -903,8 +962,18 @@ def devices() -> str:
         device_list = body.get("deviceList") if isinstance(body, dict) else None
         
         if device_list:
-            for device in device_list:
-                _enrich_device_status(client, device)
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                futures = {
+                    executor.submit(_enrich_device_status, client, device): device
+                    for device in device_list
+                }
+                for future in as_completed(futures):
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        current_app.logger.warning(
+                            "[devices] status enrichment error: %s", exc
+                        )
     except SwitchBotApiError as exc:
         error = str(exc)
 

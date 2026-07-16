@@ -8,7 +8,18 @@ from .utils import _safe_int
 
 from .config_store import BaseStore
 
+import contextlib
+
 logger = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def _transaction_context(store: Any) -> Any:
+    if hasattr(store, "transaction"):
+        with store.transaction():
+            yield
+    else:
+        yield
 
 
 class ApiQuotaTracker:
@@ -23,16 +34,17 @@ class ApiQuotaTracker:
         if increment <= 0:
             return
 
-        state = self._normalize_state()
-        limit = self._extract_limit(state)
-        used = self._safe_int(state.get("api_requests_total"), fallback=0)
-        used = max(used, 0) + increment
-        remaining = max(limit - used, 0)
+        with _transaction_context(self._state_store):
+            state = self._normalize_state()
+            limit = self._extract_limit(state)
+            used = self._safe_int(state.get("api_requests_total"), fallback=0)
+            used = max(used, 0) + increment
+            remaining = max(limit - used, 0)
 
-        state["api_requests_total"] = used
-        state["api_requests_remaining"] = remaining
-        self._state_store.write(state)
-        logger.debug("[quota] fallback increment recorded: used=%s remaining=%s limit=%s", used, remaining, limit)
+            state["api_requests_total"] = used
+            state["api_requests_remaining"] = remaining
+            self._state_store.write(state)
+            logger.debug("[quota] fallback increment recorded: used=%s remaining=%s limit=%s", used, remaining, limit)
 
     def record_from_headers(self, *, limit: int | None, remaining: int | None) -> bool:
         """
@@ -43,29 +55,30 @@ class ApiQuotaTracker:
         if remaining is None:
             return False
 
-        state = self._normalize_state()
+        with _transaction_context(self._state_store):
+            state = self._normalize_state()
 
-        limit_value: int
-        if limit is not None:
-            limit_value = max(int(limit), 1)
-            state["api_requests_limit"] = limit_value
-        else:
-            limit_value = self._extract_limit(state)
+            limit_value: int
+            if limit is not None:
+                limit_value = max(int(limit), 1)
+                state["api_requests_limit"] = limit_value
+            else:
+                limit_value = self._extract_limit(state)
 
-        remaining_value = max(min(int(remaining), limit_value), 0)
-        used = max(limit_value - remaining_value, 0)
+            remaining_value = max(min(int(remaining), limit_value), 0)
+            used = max(limit_value - remaining_value, 0)
 
-        state["api_requests_total"] = used
-        state["api_requests_remaining"] = remaining_value
-        self._state_store.write(state)
+            state["api_requests_total"] = used
+            state["api_requests_remaining"] = remaining_value
+            self._state_store.write(state)
 
-        logger.debug(
-            "[quota] headers snapshot recorded: used=%s remaining=%s limit=%s",
-            used,
-            remaining_value,
-            limit_value,
-        )
-        return True
+            logger.debug(
+                "[quota] headers snapshot recorded: used=%s remaining=%s limit=%s",
+                used,
+                remaining_value,
+                limit_value,
+            )
+            return True
 
     def refresh_snapshot(self) -> dict[str, Any]:
         """
@@ -73,10 +86,11 @@ class ApiQuotaTracker:
 
         Returns the refreshed state for callers that want to reuse the values.
         """
-        state = self._normalize_state()
-        self._state_store.write(state)
-        logger.debug("[quota] snapshot refreshed: day=%s remaining=%s", state.get("api_quota_day"), state.get("api_requests_remaining"))
-        return state
+        with _transaction_context(self._state_store):
+            state = self._normalize_state()
+            self._state_store.write(state)
+            logger.debug("[quota] snapshot refreshed: day=%s remaining=%s", state.get("api_quota_day"), state.get("api_requests_remaining"))
+            return state
 
     def _normalize_state(self) -> dict[str, Any]:
         state = self._state_store.read()

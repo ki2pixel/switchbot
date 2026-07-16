@@ -12,8 +12,8 @@
 - **Pool Management**: Explicitly manage transaction contexts from `psycopg_pool`. Always ensure connections are released using `with self.pool.connection() as conn:` or equivalent.
 
 ## 3. Automation & API Integration
-- **Cascade**: Tick calls evaluate timezone windows, hysteresis, cooldowns, and execute cascade: IFTTT webhooks -> Scrapes -> Scenes -> Direct commands.
-- **IFTTT**: HTTPS only for external webhooks. Constant-time comparison (`hmac.compare_digest`) for signatures.
+- **Cascade**: Tick calls evaluate timezone windows, hysteresis, cooldowns, and execute cascade: Scrapes -> Scenes -> Direct commands.
+- **IFTTT**: (Deprecated/Removed) IFTTT integration is no longer part of this product. Ignore any legacy documentation or security expectations related to it.
 - **Quotas**: Track API quotas around every request using `ApiQuotaTracker`. Refresh quotas using `get_devices`.
 
 ## 4. Frontend & UX Standards
