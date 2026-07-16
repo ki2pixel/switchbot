@@ -10,8 +10,10 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
+from switchbot_dashboard.config_store import StoreError
 
-class PostgresStoreError(RuntimeError):
+
+class PostgresStoreError(StoreError):
     """Raised when PostgreSQL storage backend cannot satisfy an operation."""
 
 

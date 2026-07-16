@@ -179,6 +179,8 @@ class AutomationService:
         self._cached_timezone_key = None
         self._cached_timezone_value = None
         self._tick_durations: list[float] = []
+        import threading
+        self._local = threading.local()
 
         # Share the wrapped state store with the quota tracker to ensure cache coherency (P-04)
         if hasattr(self._client, "_quota_tracker") and self._client._quota_tracker:
@@ -188,11 +190,11 @@ class AutomationService:
     def _update_state(self, **updates: Any) -> None:
         with self._state_store.transaction():
             state = self._state_store.read()
-            if hasattr(self, "_current_lock_token") and self._current_lock_token is not None:
+            if getattr(self._local, "current_lock_token", None) is not None:
                 db_token = state.get("automation_lock_token")
-                if db_token != self._current_lock_token:
+                if db_token != self._local.current_lock_token:
                     raise LockLostError(
-                        f"State update rejected: lock token mismatch (local={self._current_lock_token}, db={db_token})"
+                        f"State update rejected: lock token mismatch (local={self._local.current_lock_token}, db={db_token})"
                     )
             state.update(updates)
             self._state_store.write(state)
@@ -614,10 +616,11 @@ class AutomationService:
         )
 
     def _clear_off_repeat_task(self) -> None:
-        state = self._state_store.read()
-        if state.pop(OFF_REPEAT_STATE_KEY, None) is not None:
-            self._state_store.write(state)
-            self._debug("Cleared pending off repeat task")
+        with self._state_store.transaction():
+            state = self._state_store.read()
+            if state.pop(OFF_REPEAT_STATE_KEY, None) is not None:
+                self._state_store.write(state)
+                self._debug("Cleared pending off repeat task")
 
     def _has_pending_off_repeat(self) -> bool:
         state = self._state_store.read()
@@ -641,14 +644,15 @@ class AutomationService:
         remaining = repeat_count - 1
         next_run_at = (_ensure_utc(now) + dt.timedelta(seconds=interval_seconds)).isoformat()
 
-        state = self._state_store.read()
-        state[OFF_REPEAT_STATE_KEY] = {
-            "remaining": remaining,
-            "interval_seconds": interval_seconds,
-            "next_run_at": next_run_at,
-            "state_reason": state_reason,
-        }
-        self._state_store.write(state)
+        with self._state_store.transaction():
+            state = self._state_store.read()
+            state[OFF_REPEAT_STATE_KEY] = {
+                "remaining": remaining,
+                "interval_seconds": interval_seconds,
+                "next_run_at": next_run_at,
+                "state_reason": state_reason,
+            }
+            self._state_store.write(state)
         self._debug(
             "Scheduled repeated off action",
             pending_repeats=remaining,
@@ -727,14 +731,15 @@ class AutomationService:
             return
 
         next_run_at = (now_utc + dt.timedelta(seconds=interval_seconds)).isoformat()
-        state = self._state_store.read()
-        state[OFF_REPEAT_STATE_KEY] = {
-            "remaining": remaining,
-            "interval_seconds": interval_seconds,
-            "next_run_at": next_run_at,
-            "state_reason": state_reason,
-        }
-        self._state_store.write(state)
+        with self._state_store.transaction():
+            state = self._state_store.read()
+            state[OFF_REPEAT_STATE_KEY] = {
+                "remaining": remaining,
+                "interval_seconds": interval_seconds,
+                "next_run_at": next_run_at,
+                "state_reason": state_reason,
+            }
+            self._state_store.write(state)
         self._debug(
             "Off repeat rescheduled",
             trigger=trigger,
@@ -942,7 +947,7 @@ class AutomationService:
             state["automation_lock_owner"] = owner_label
             state["automation_lock_token"] = lock_token
             self._state_store.write(state)
-            self._current_lock_token = lock_token
+            self._local.current_lock_token = lock_token
             return True
 
         if hasattr(self._state_store, "transaction"):
@@ -960,7 +965,7 @@ class AutomationService:
         
         def _clear_lock() -> None:
             state = self._state_store.read()
-            current_token = getattr(self, "_current_lock_token", None)
+            current_token = getattr(self._local, "current_lock_token", None)
             db_token = state.get("automation_lock_token")
             # Only release if we are still the owner and the token matches (or if it is not locked)
             if not state.get("automation_in_progress") or (db_token == current_token and current_token is not None):
@@ -986,7 +991,7 @@ class AutomationService:
 
     def run_once(self) -> None:
         start_time = time.perf_counter()
-        self._current_lock_token = None
+        self._local.current_lock_token = None
         
         # Clear store caches for this tick (P-04)
         if hasattr(self._settings_store, "clear_cache"):
@@ -1008,7 +1013,7 @@ class AutomationService:
             except Exception as exc:
                 self._error("Error releasing lock", error=str(exc))
             finally:
-                self._current_lock_token = None
+                self._local.current_lock_token = None
                 if hasattr(self._settings_store, "clear_cache"):
                     self._settings_store.clear_cache()
                 if hasattr(self._state_store, "clear_cache"):

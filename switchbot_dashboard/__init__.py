@@ -184,7 +184,12 @@ def create_app() -> Flask:
                     conninfo=postgres_url,
                     min_size=1,
                     max_size=10,
-                    kwargs={"sslmode": ssl_mode},
+                    timeout=5.0,
+                    kwargs={
+                        "sslmode": ssl_mode,
+                        "connect_timeout": 5,
+                        "options": "-c statement_timeout=5000",
+                    },
                 )
                 app.logger.info("[postgres] Shared connection pool initialized successfully")
                 
@@ -266,9 +271,17 @@ def create_app() -> Flask:
             history_service = HistoryService(
                 connection_pool=settings_store.pool,
                 logger=app.logger,
-                retention_hours=6,
+                retention_hours=24,
             )
             app.logger.info("[history] HistoryService initialized with PostgreSQL backend")
+            
+            @atexit.register
+            def flush_history_buffer() -> None:
+                try:
+                    history_service.flush_pending_records()
+                    logging.getLogger().info("[history] History buffer flushed via atexit")
+                except Exception as exc:
+                    logging.getLogger().warning("[history] Error flushing history buffer via atexit (%s)", exc)
         except Exception:
             app.logger.exception("[history] Failed to initialize HistoryService")
     else:
@@ -308,7 +321,8 @@ def create_app() -> Flask:
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; script-src 'self' 'unsafe-inline'; "
             "style-src 'self' 'unsafe-inline'; font-src 'self'; "
-            "img-src 'self' data:; connect-src 'self'"
+            "img-src 'self' data:; connect-src 'self'; "
+            "object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
         )
         if not app.debug and not app.testing:
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'

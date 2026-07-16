@@ -1,30 +1,31 @@
 # Contexte Actif
 
-## Session 2026-07-16 — Remédiation Backend Complète (P0 + P1 + P2)
-
+## Session 2026-07-16 — Remédiation Audit Frontend/Backend
 ### Derniers changements accomplis
 
-**Phase P1 (Robustesse & Sécurité) — TERMINÉE**
-- **PERF-01 / REL-03** : ThreadPoolExecutor pour l'enrichissement des devices, threading.Lock sur le cache SwitchBotClient, rate limit `/devices` (10/min), actions manuelles en arrière-plan (202 immédiat), timeouts HTTP (15s default, 5s actions).
-- **SEC-02 / SEC-03** : Validation regex `scene_id`, bornes températures 10–35°C avec auto-swap min/max, validation `HH:MM` stricte.
-- **REL-04 / REL-05** : Retries exponentiels avec jitter uniquement sur GET/429/5xx, parsing `Retry-After`, `timeout=5.0` + `statement_timeout=5000ms` sur le pool psycopg.
-- **SEC-04 / SEC-05 / SEC-07** : `sslmode=verify-full` via env, masquage des credentials DB dans les logs de migration, `@limiter.limit("5 per minute")` sur `/debug/state`.
+**Phase 1 (Frontend Resilience & Initialization) — TERMINÉE**
+- **F-01** : Fix récursion infinie dans `history.js` avec Chart.js.
+- **F-02** : Handling des erreurs via overlay UI.
+- **B-01** : Correction `PostgresStoreError` pour fallback `JsonStore`.
+- **B-02** : CSP stricte et token CSRF injecté via `spa-router.js`.
+- **B-08/B-09** : Validation des types booléens et bornes API.
+- **S-04** : Nettoyage `history_service.py` sur 24h et flush `atexit`.
 
-**Phase P2 (Durcissement & Cycle de vie) — TERMINÉE**
-- **SEC-06** : Route `/logout` passée en POST-only, bouton de déconnexion CSRF-protégé dans `settings.html`, support hachages Werkzeug (`pbkdf2:`, `scrypt:`, `argon2:`) pour `DASHBOARD_PASSWORD`.
-- **MAIN-01** : Suppression de la classe morte `SimpleTransactionContext` dans `config_store.py`.
-- **MAIN-02** : `AGENTS.md` mis à jour : IFTTT officiellement qualifié de retiré du produit.
+**Phase 2 (Core Backend Logic & Consistency) — TERMINÉE**
+- **B-05/B-06** : `threading.local()` pour token lock ; wrappage `off_repeat` dans `state_store.transaction()`.
+- **B-07/B-11** : Fallback manuel sur `setAll` et allowlist `/debug/state`.
+- **B-10** : `force=True` bypass de cache sur `get_devices()`.
+- **D-01** : Opération DDL sécurisée via `information_schema`.
+
+**Phase 3 (DevOps & Pipeline Validation) — TERMINÉE**
+- **S-05/O-01** : `redis` et `beautifulsoup4` séparés de `requirements.txt` en `requirements-dev.txt`.
+- **O-03** : Config `gunicorn.conf.py` optimisée (`worker_class = gthread`, 4 threads, timeout 30s).
 
 ### État de la base de tests
-- **206 tests passent** (+ 7 nouveaux : validation inputs, logout POST, hachage Werkzeug).
-- Aucun test rouge.
+- **207 tests passent**, aucun rouge.
 
 ## Objectifs actuels
-- **Aucune tâche active.** La remédiation backend complète est terminée.
-- Prochaine session possible : déploiement Render (ajouter `PROXY_FIX_FOR=1` dans les variables d'environnement Render) et suivi des métriques en production.
-
-## Bloqueurs actifs
-- Aucun.
+- **Terminé.** Toutes les phases de remédiation prévues dans `implementation_plan.md` ont été complétées avec succès.
 
 ## Note configuration Render
 - `PROXY_FIX_FOR=1` : **à configurer** dans l'interface Render (Render met un proxy devant l'app).

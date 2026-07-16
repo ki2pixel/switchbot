@@ -315,7 +315,7 @@ def test_aircon_on_winter_runs_scene_and_updates_state() -> None:
 
 
 
-def test_aircon_on_winter_reports_missing_scene_id() -> None:
+def test_aircon_on_winter_falls_back_to_setall_when_missing_scene() -> None:
     settings = {
         "mode": "winter",
         "aircon_device_id": "aircon",
@@ -332,8 +332,12 @@ def test_aircon_on_winter_reports_missing_scene_id() -> None:
 
     assert response.status_code == 200
     assert dummy_client.scene_calls == []
+    assert len(dummy_client.command_calls) == 1
+    call = dummy_client.command_calls[0]
+    assert call["device_id"] == "aircon"
+    assert call["command"] == "setAll"
     state = state_store.read()
-    assert state.get("last_action") is None
+    assert state.get("last_action") == "setAll(22.0,5,3,on) (manual_winter)"
 
 
 
@@ -723,7 +727,7 @@ def test_quota_refresh_normalizes_state_and_shows_flash() -> None:
 
 def test_debug_state_valid_token() -> None:
     settings = {"aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""}}
-    state = {"temperature": 22.5, "humidity": 50.0}
+    state = {"last_temperature": 22.5, "last_humidity": 50.0}
     app, _settings_store, _state_store, _scheduler, _tracker = _build_app(
         settings,
         initial_state=state,
@@ -735,8 +739,8 @@ def test_debug_state_valid_token() -> None:
 
     assert response.status_code == 200
     payload = response.get_json()
-    assert payload["temperature"] == 22.5
-    assert payload["humidity"] == 50.0
+    assert payload["last_temperature"] == 22.5
+    assert payload["last_humidity"] == 50.0
 
 
 def test_debug_state_invalid_token() -> None:

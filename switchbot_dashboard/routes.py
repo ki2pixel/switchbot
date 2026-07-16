@@ -395,18 +395,24 @@ def debug_state() -> Any:
     # State Allowlist Filtering (S-08)
     STATE_ALLOWLIST = {
         "api_requests_total",
-        "api_requests_today",
-        "last_api_request_timestamp",
-        "temperature",
-        "humidity",
-        "last_meter_timestamp",
+        "api_requests_remaining",
+        "api_requests_limit",
+        "api_quota_day",
+        "api_quota_reset_at",
+        "last_temperature",
+        "last_humidity",
+        "last_read_at",
+        "last_temperature_stale",
+        "last_temperature_stale_reason",
         "assumed_aircon_power",
-        "last_aircon_control_timestamp",
-        "last_cooldown_timestamp",
-        "automation_last_run_timestamp",
-        "automation_last_status",
-        "automation_disabled_until",
-        "temperature_stale",
+        "assumed_aircon_mode",
+        "assumed_aircon_parameter",
+        "last_action",
+        "last_action_at",
+        "last_error",
+        "last_tick",
+        "last_aircon_poll_at",
+        "pending_off_repeat",
     }
     filtered_state = {k: v for k, v in state.items() if k in STATE_ALLOWLIST}
 
@@ -629,7 +635,7 @@ def update_settings() -> Any:
         )
 
         settings["adaptive_polling_enabled"] = _as_bool(
-            request.form.get("adaptive_polling_enabled", settings.get("adaptive_polling_enabled", True))
+            request.form.get("adaptive_polling_enabled")
         )
         settings["idle_poll_interval_seconds"] = _as_int(
             request.form.get("idle_poll_interval_seconds"),
@@ -858,11 +864,41 @@ def _handle_direct_action(
                 flash(str(exc), "error")
             return redirect(url_for(ROUTE_INDEX))
 
-        if not scene_id:
-            action_label = AIRCON_SCENE_LABELS.get(action_key, action_key)
-            flash(f"Aucune scène configurée pour {action_label} en mode API Direct.", "error")
-        else:
-            flash(f"Impossible d'exécuter l'action {action_key} : scène échouée et pas de commande directe supportée", "error")
+        if action_key in ("winter", "summer", "fan"):
+            if not aircon_id:
+                action_label = AIRCON_SCENE_LABELS.get(action_key, action_key)
+                if not scene_id:
+                    flash(f"Aucune scène configurée pour {action_label} en mode API Direct.", "error")
+                else:
+                    flash(f"Impossible d'exécuter l'action {action_key} : scène échouée et pas de commande directe supportée", "error")
+                return redirect(url_for(ROUTE_INDEX))
+                
+            try:
+                settings_store = current_app.extensions["settings_store"]
+                settings = settings_store.read()
+                profile = settings.get(action_key, {}) if isinstance(settings.get(action_key), dict) else {}
+                target_temp = float(profile.get("target_temp", 22.0) or 22.0)
+                from switchbot_dashboard.utils import _safe_int
+                fan_speed = _safe_int(profile.get("fan_speed"), default=3)
+                
+                parameter = f"{target_temp},{assumed_mode},{fan_speed},on"
+                client.send_command(aircon_id, command="setAll", parameter=parameter, command_type="command")
+                
+                # update state with the new parameter as well
+                with _transaction_context(state_store):
+                    state = state_store.read()
+                    state["assumed_aircon_power"] = "on"
+                    state["assumed_aircon_mode"] = assumed_mode
+                    state["assumed_aircon_parameter"] = parameter
+                    state["last_action"] = f"setAll({parameter}) ({state_reason})"
+                    state["last_action_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+                    state_store.write(state)
+                
+                flash(flash_label)
+            except SwitchBotApiError as exc:
+                _update_state_on_error(state_store, str(exc))
+                flash(str(exc), "error")
+            return redirect(url_for(ROUTE_INDEX))
             
         return redirect(url_for(ROUTE_INDEX))
     finally:
@@ -1054,7 +1090,7 @@ def _parse_history_query_params(request_args: Any) -> tuple[dt.datetime, dt.date
     end_str = request_args.get("end")
     metrics_param = request_args.get("metrics")
     granularity = request_args.get("granularity", "minute")
-    limit = int(request_args.get("limit", 1000))
+    limit = _as_int(request_args.get("limit"), default=1000, minimum=1, maximum=10000)
 
     metrics = []
     if metrics_param:
@@ -1069,6 +1105,9 @@ def _parse_history_query_params(request_args: Any) -> tuple[dt.datetime, dt.date
     else:
         start = dt.datetime.fromisoformat(start_str.replace("Z", "+00:00"))
         end = dt.datetime.fromisoformat(end_str.replace("Z", "+00:00"))
+
+    if start >= end:
+        raise ValueError("start time must be before end time")
 
     valid_granularities = ["minute", "5min", "15min", "hour"]
     if granularity not in valid_granularities:

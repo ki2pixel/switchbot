@@ -15,11 +15,11 @@ if scheduler_enabled:
 else:
     workers = int(os.environ.get("WEB_CONCURRENCY", "1"))
 bind = f"0.0.0.0:{os.environ.get('PORT', '8000')}"
-timeout = 120
+timeout = 30
 accesslog = "-"
 errorlog = "-"
 loglevel = os.environ.get("LOG_LEVEL", "info").lower()
 
 # Worker class optimized for I/O bound operations (SwitchBot API calls)
-worker_class = "sync"
-threads = 2
+worker_class = "gthread"
+threads = 4

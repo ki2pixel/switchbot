@@ -1,0 +1,1 @@
+pytest>=7.0\nbeautifulsoup4>=4.12,<5\npytest-mock\nrequests-mock\n

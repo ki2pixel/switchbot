@@ -351,7 +351,7 @@ class HistoryDashboard {
 
         const params = new URLSearchParams({
             start: this.getTimeRangeStart(),
-            end: new Date().toISOString(),
+            end: this.getTimeRangeEnd(),
             granularity: this.currentFilters.granularity,
             metrics: this.currentFilters.metrics
         });
@@ -383,20 +383,34 @@ class HistoryDashboard {
 
     renderChartErrorState(error) {
         document.querySelectorAll('.chart-container').forEach((container) => {
-            container.textContent = '';
-            const wrapper = document.createElement('div');
-            wrapper.className = 'd-flex flex-column align-items-center justify-content-center text-muted py-4';
-            const icon = document.createElement('div');
-            icon.className = 'fs-3 mb-2';
-            icon.textContent = '\u26a0\ufe0f';
-            const msg = document.createElement('div');
-            msg.className = 'text-center';
-            msg.textContent = 'Impossible de charger les donn\u00e9es';
-            const detail = document.createElement('small');
-            detail.className = 'd-block mt-2';
-            detail.textContent = error.message;
-            wrapper.append(icon, msg, detail);
-            container.appendChild(wrapper);
+            if (!container.querySelector('.chart-error-overlay')) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'chart-error-overlay d-flex flex-column align-items-center justify-content-center text-muted py-4';
+                wrapper.style.position = 'absolute';
+                wrapper.style.top = '0';
+                wrapper.style.left = '0';
+                wrapper.style.width = '100%';
+                wrapper.style.height = '100%';
+                wrapper.style.backgroundColor = 'rgba(33, 37, 41, 0.8)';
+                wrapper.style.zIndex = '10';
+                
+                const icon = document.createElement('div');
+                icon.className = 'fs-3 mb-2';
+                icon.textContent = '\u26a0\ufe0f';
+                const msg = document.createElement('div');
+                msg.className = 'text-center';
+                msg.textContent = 'Impossible de charger les donn\u00e9es';
+                const detail = document.createElement('small');
+                detail.className = 'd-block mt-2';
+                detail.textContent = error.message;
+                
+                wrapper.append(icon, msg, detail);
+                container.style.position = 'relative';
+                container.appendChild(wrapper);
+            } else {
+                const detail = container.querySelector('.chart-error-overlay small');
+                if (detail) detail.textContent = error.message;
+            }
         });
     }
 
@@ -419,6 +433,8 @@ class HistoryDashboard {
     }
 
     updateCharts(historyData) {
+        document.querySelectorAll('.chart-error-overlay').forEach(el => el.remove());
+
         if (!historyData || historyData.length === 0) {
             const tempDescriptionEl = document.getElementById('tempHumidityChartDescription');
             if (tempDescriptionEl) {
@@ -582,10 +598,21 @@ class HistoryDashboard {
                 return new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
             case 'custom':
                 const customStart = document.getElementById('customStart').value;
-                return customStart ? new Date(customStart).toISOString() : this.getTimeRangeStart();
+                return customStart ? new Date(customStart).toISOString() : new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString();
             default:
-                return this.getTimeRangeStart();
+                return new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString();
         }
+    }
+
+    getTimeRangeEnd() {
+        const range = this.currentFilters.timeRange;
+        if (range === 'custom') {
+            const customEnd = document.getElementById('customEnd').value;
+            if (customEnd) {
+                return new Date(customEnd).toISOString();
+            }
+        }
+        return new Date().toISOString();
     }
 
     applyFilters() {

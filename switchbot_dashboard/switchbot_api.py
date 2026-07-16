@@ -192,13 +192,14 @@ class SwitchBotClient:
         delay += _rand.uniform(0, 0.5)  # jitter
         return delay
 
-    def get_devices(self) -> Any:
+    def get_devices(self, *, force: bool = False) -> Any:
         now = time.monotonic()
-        with self._cache_lock:
-            if self._devices_cache is not None:
-                cached_time, cached_val = self._devices_cache
-                if now - cached_time < 60.0:
-                    return cached_val
+        if not force:
+            with self._cache_lock:
+                if self._devices_cache is not None:
+                    cached_time, cached_val = self._devices_cache
+                    if now - cached_time < 60.0:
+                        return cached_val
 
         devices = self._request("GET", "/v1.1/devices")
         with self._cache_lock:
