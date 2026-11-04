@@ -30,6 +30,20 @@ from .extensions import limiter
 load_dotenv()
 
 
+def _running_under_wsgi_server() -> bool:
+    """Return True when the app is served by a production WSGI runtime.
+
+    ``FLASK_DEBUG`` is a development convenience flag, but deployment
+    dashboards frequently inherit it from a local ``.env``. Detecting the
+    actual runtime lets us ignore it where it would weaken security.
+    """
+    if os.environ.get("RENDER", "").strip().lower() in {"1", "true", "yes", "on"}:
+        return True
+    if os.environ.get("SERVER_SOFTWARE", "").strip():
+        return True
+    return "gunicorn" in sys.modules or "uwsgi" in sys.modules
+
+
 def _build_store(
     app: Flask,
     *,
@@ -154,7 +168,18 @@ def _mark_temperature_stale(app: Flask, state_store: BaseStore, *, reason: str) 
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    
+
+    # A stray FLASK_DEBUG=1 must never relax production guards when the app is
+    # actually served by gunicorn/uwsgi. Those guards include Secure session
+    # cookies, HSTS, password/secret enforcement and the store failover policy.
+    if _running_under_wsgi_server():
+        if app.debug:
+            app.logger.warning(
+                "[security] FLASK_DEBUG is set while running under a WSGI server; "
+                "forcing app.debug=False so production guards stay enabled"
+            )
+        app.debug = False
+
     # Configure session cookie options (S-02)
     app.config["SESSION_COOKIE_SECURE"] = not app.debug and not app.testing
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"

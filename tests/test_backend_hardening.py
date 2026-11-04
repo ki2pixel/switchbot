@@ -141,6 +141,63 @@ class TestHistoryServiceBufferResiliency:
 
 
 class TestStoreFailoverAndBuild:
+    def test_build_store_disables_runtime_fallback_in_production(
+        self, monkeypatch, tmp_path
+    ) -> None:
+        app = Flask("test_app")
+        app.debug = False
+        app.testing = False
+
+        monkeypatch.setenv("RENDER", "true")
+        monkeypatch.setenv("STORE_BACKEND", "postgres")
+        monkeypatch.setenv("POSTGRES_URL", "postgresql://localhost/fake")
+        monkeypatch.delenv("STORE_RUNTIME_FALLBACK", raising=False)
+
+        with patch("switchbot_dashboard.__init__.PostgresStore") as MockPostgresStore:
+            postgres_mock = MagicMock()
+            postgres_mock.health_check.return_value = True
+            MockPostgresStore.return_value = postgres_mock
+
+            # Given/When: a healthy primary in a production runtime
+            store = _build_store(
+                app,
+                kind="settings",
+                default_path=str(tmp_path / "settings.json"),
+                path_env="SWITCHBOT_SETTINGS_PATH",
+            )
+
+        # Then: production stays alert-only, no ephemeral JSON split-brain
+        assert store.fallback_enabled is False
+        assert store.degraded is False
+
+    def test_build_store_enables_runtime_fallback_when_explicitly_opted_in(
+        self, monkeypatch, tmp_path
+    ) -> None:
+        app = Flask("test_app")
+        app.debug = False
+        app.testing = False
+
+        monkeypatch.setenv("RENDER", "true")
+        monkeypatch.setenv("STORE_BACKEND", "postgres")
+        monkeypatch.setenv("POSTGRES_URL", "postgresql://localhost/fake")
+        monkeypatch.setenv("STORE_RUNTIME_FALLBACK", "true")
+
+        with patch("switchbot_dashboard.__init__.PostgresStore") as MockPostgresStore:
+            postgres_mock = MagicMock()
+            postgres_mock.health_check.return_value = True
+            MockPostgresStore.return_value = postgres_mock
+
+            # Given/When: the operator explicitly opts in
+            store = _build_store(
+                app,
+                kind="settings",
+                default_path=str(tmp_path / "settings.json"),
+                path_env="SWITCHBOT_SETTINGS_PATH",
+            )
+
+        # Then: the fallback is armed
+        assert store.fallback_enabled is True
+
     def test_build_store_wraps_healthy_postgres_in_resilient_store(
         self, monkeypatch, tmp_path
     ) -> None:

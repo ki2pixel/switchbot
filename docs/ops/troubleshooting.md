@@ -270,9 +270,24 @@ def test_postgres_store_fallback():
 
 ## Checklist Production
 
+### Symptômes d'un `FLASK_DEBUG` oublié en production
+
+- Le cookie de session n'a **pas** l'attribut `Secure` (visible dans `Set-Cookie`).
+- L'en-tête `Strict-Transport-Security` est absent des réponses.
+- Le log de démarrage affiche `[store] Runtime filesystem fallback configured …`
+  alors que `STORE_RUNTIME_FALLBACK` n'est pas activé.
+- `/healthz` renvoie `"store_fallback_enabled": true` sans opt-in explicite.
+
+Cause : `FLASK_DEBUG=1` traîné depuis le `.env` local. Depuis la remédiation V2,
+`create_app()` force `app.debug=False` dès qu'un serveur WSGI est détecté
+(gunicorn dans `sys.modules`, `RENDER=true` ou `SERVER_SOFTWARE`), mais la
+variable doit tout de même être retirée du dashboard d'hébergement.
+
 ### Avant Déploiement
 
 - [ ] `LOG_LEVEL=info` (pas `debug` en production)
+- [ ] `FLASK_DEBUG` absent ou `0`
+- [ ] `STORE_RUNTIME_FALLBACK` absent ou `false`
 - [ ] Health check `/healthz` accessible depuis monitoring
 - [ ] Variables d'environnement `.env` configurées
 - [ ] Configuration `config/settings.json` validée

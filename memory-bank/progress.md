@@ -12,6 +12,8 @@
 - [x] [2026-11-04 14:13:43] - AUD-SEC-02/03 : CSRF same-origin + marqueur `data-spa-inline`.
 - [x] [2026-11-04 14:31:00] - Nettoyage production Supabase : `DROP INDEX CONCURRENTLY` sur `idx_json_store_kind` et `idx_state_history_metadata` (122 Mo libérés), runner `scripts/drop_redundant_indexes.py`.
 - [x] [2026-11-04 14:31:00] - **285 tests passent**, 1 skipped.
+- [x] [2026-11-04 14:41:41] - `FLASK_DEBUG` neutralisé sous WSGI : cookies `Secure`, HSTS et garde-fous production rétablis ; fallback JSON runtime désactivé en prod par défaut.
+- [x] [2026-11-04 14:41:41] - **291 tests passent**, 1 skipped.
 
 ## Phase Remédiation Audit Frontend V2 (2026-11-04) — COMPLÈTE ✔
 - [x] [2026-11-04 13:00:00] - AUD-02 : timestamps ISO-8601 valides (`_utc_iso_z`) sur healthz et mocks history.

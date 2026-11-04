@@ -516,6 +516,9 @@ def healthz() -> Any:
         "postgres_connected": postgres_connected,
         "store_degraded": store_degraded,
         "active_store_backend": getattr(settings_store, "active_backend", "unknown"),
+        "store_fallback_enabled": bool(
+            getattr(settings_store, "fallback_enabled", False)
+        ),
         "timestamp_utc": timestamp,
     }
 

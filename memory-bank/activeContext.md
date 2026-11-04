@@ -16,6 +16,13 @@
   - Index utiles conservés : `json_store_pkey`, `idx_json_store_updated_at`, `state_history_pkey`, `idx_state_history_timestamp`, `idx_state_history_aircon_power`. `EXPLAIN ANALYZE` de `get_latest_records` → `Index Scan using idx_state_history_timestamp`, 1,05 ms.
   - Ré-instanciation de `PostgresStore` : les index supprimés ne sont **pas** recréés. `get_latest_records`/`get_aggregates` OK (types `float`).
   - Nouveau runner reproductible : `scripts/drop_redundant_indexes.py` (dry-run par défaut, `--apply` pour exécuter, `--index` pour cibler, lit `.env` ou `POSTGRES_URL`, `CONCURRENTLY` + autocommit).
+- **[2026-11-04 14:41:41] - Diagnostic post-déploiement Render : `FLASK_DEBUG=1` actif en production** :
+  - Symptômes relevés sur l'URL publique : cookie `session` **sans `Secure`**, aucun en-tête `Strict-Transport-Security`, et log `[store] Runtime filesystem fallback configured …` alors que `STORE_RUNTIME_FALLBACK` n'était pas activé.
+  - Cause : `FLASK_DEBUG=1` (hérité du `.env` local) rend `app.debug=True` ; toute la logique `is_production` (cookies Secure, HSTS, garde-fous secret/password, politique de failover) en dépendait.
+  - Fix : `_running_under_wsgi_server()` (gunicorn/uwsgi dans `sys.modules`, `RENDER=true`, `SERVER_SOFTWARE`) force `app.debug=False` au démarrage avec un WARNING `[security]`. En local (`flask run`), le debug reste actif.
+  - `/healthz` expose désormais `store_fallback_enabled` ; `ResilientStore.fallback_enabled` ajouté.
+  - Tests : **291 passent**, 1 skipped (WSGI-01..04 + séparation dev/prod du fallback runtime).
+  - **Action ops restante** : retirer `FLASK_DEBUG` du dashboard Render, et vérifier que `STORE_RUNTIME_FALLBACK` n'y est pas activé. Si `FLASK_SECRET_KEY` est faible, le prochain démarrage échouera volontairement (« Security Violation »).
 
 ## Session 2026-11-04 — Remédiation Audit Frontend V2
 - **[2026-11-04 13:20:00] - Correctif ordre CSS (cartes claires après navigation SPA)** :

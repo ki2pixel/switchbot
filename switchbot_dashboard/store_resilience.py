@@ -113,6 +113,11 @@ class ResilientStore:
         with self._lock:
             return self._consecutive_failures
 
+    @property
+    def fallback_enabled(self) -> bool:
+        """True when a runtime failover target is configured for this store."""
+        return self._allow_fallback and self._fallback is not None
+
     def read(self) -> dict[str, Any]:
         if self._is_degraded():
             return self._fallback.read()

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import json
+import sys
+import types
+
+from unittest.mock import MagicMock
 
 from switchbot_dashboard import create_app
 from switchbot_dashboard.automation import AutomationService
@@ -160,4 +164,117 @@ def test_create_app_requires_secret_key_in_production(monkeypatch, tmp_path):
     finally:
         sys.modules = orig_modules
         sys.argv = orig_argv
+
+
+# ---------------------------------------------------------------------------
+# WSGI runtime must ignore FLASK_DEBUG
+#
+# | Case ID | Input / Precondition            | Perspective      | Expected Result                        |
+# |---------|---------------------------------|------------------|----------------------------------------|
+# | WSGI-01 | FLASK_DEBUG=1 + gunicorn loaded | Normal (prod)    | app.debug False, Secure cookie + HSTS  |
+# | WSGI-02 | FLASK_DEBUG=1, no WSGI marker   | Equivalence (dev)| app.debug True, cookie not Secure      |
+# | WSGI-03 | FLASK_DEBUG=1 + RENDER=true     | Boundary (alt)   | app.debug False                        |
+# | WSGI-04 | FLASK_DEBUG=1 + SERVER_SOFTWARE | Boundary (alt)   | app.debug False                        |
+# ---------------------------------------------------------------------------
+
+
+def _empty_pool() -> MagicMock:
+    """A pool double whose stores read as an empty JSON document."""
+    cursor = MagicMock()
+    cursor.fetchone.return_value = {"data": {}}
+    connection = MagicMock()
+    connection.cursor.return_value.__enter__.return_value = cursor
+    pool = MagicMock()
+    pool.connection.return_value.__enter__.return_value = connection
+    return pool
+
+
+def _prepare_app_env(monkeypatch, tmp_path, *, backend: str = "filesystem") -> None:
+    settings_path = tmp_path / "settings.json"
+    state_path = tmp_path / "state.json"
+    settings_path.write_text("{}", encoding="utf-8")
+    state_path.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setenv("SWITCHBOT_SETTINGS_PATH", str(settings_path))
+    monkeypatch.setenv("SWITCHBOT_STATE_PATH", str(state_path))
+    monkeypatch.setenv("STORE_BACKEND", backend)
+    if backend == "postgres":
+        # conftest mocks ConnectionPool/_ensure_table_exists for this module;
+        # the shared pool created inside create_app needs the same treatment.
+        monkeypatch.setenv("POSTGRES_URL", "postgresql://test:test@localhost/test")
+        monkeypatch.setenv("POSTGRES_SSL_MODE", "disable")
+        monkeypatch.setattr(
+            "switchbot_dashboard.ConnectionPool", lambda **kwargs: _empty_pool()
+        )
+    monkeypatch.setenv("SCHEDULER_ENABLED", "false")
+    monkeypatch.setenv("FLASK_SECRET_KEY", "test-secret-4f8c1e2a9b7d")
+    monkeypatch.setenv("DASHBOARD_PASSWORD", "prod-password")
+    monkeypatch.delenv("FLASK_ENV", raising=False)
+    monkeypatch.delenv("RENDER", raising=False)
+    monkeypatch.delenv("SERVER_SOFTWARE", raising=False)
+    monkeypatch.delenv("STORE_RUNTIME_FALLBACK", raising=False)
+    monkeypatch.delitem(sys.modules, "gunicorn", raising=False)
+    monkeypatch.delitem(sys.modules, "uwsgi", raising=False)
+    monkeypatch.setattr(AutomationService, "poll_meter", lambda self: None)
+
+
+def test_gunicorn_runtime_forces_debug_off(monkeypatch, tmp_path):
+    _prepare_app_env(monkeypatch, tmp_path, backend="postgres")
+    monkeypatch.setenv("FLASK_DEBUG", "1")
+    monkeypatch.setitem(sys.modules, "gunicorn", types.ModuleType("gunicorn"))
+
+    # Given/When: a stray FLASK_DEBUG=1 is set while gunicorn serves the app
+    app = create_app()
+
+    # Then: debug is disabled and production cookie/HSTS guards are active
+    assert app.debug is False
+    assert app.config["SESSION_COOKIE_SECURE"] is True
+    assert app.extensions["settings_store"].fallback_enabled is False
+
+    app.config["WTF_CSRF_ENABLED"] = False
+    with app.test_client() as client:
+        login_page = client.get("/login")
+        login = client.post("/login", data={"password": "prod-password"})
+
+    assert "Strict-Transport-Security" in login_page.headers
+    assert "Secure" in login.headers.get("Set-Cookie", "")
+    assert "HttpOnly" in login.headers.get("Set-Cookie", "")
+
+
+def test_dev_runtime_keeps_debug_enabled(monkeypatch, tmp_path):
+    _prepare_app_env(monkeypatch, tmp_path)
+    monkeypatch.setenv("FLASK_DEBUG", "1")
+
+    # Given/When: the same flag runs without any WSGI marker (local dev)
+    app = create_app()
+
+    # Then: debug stays on and the Secure cookie is not forced over plain HTTP
+    assert app.debug is True
+    assert app.config["SESSION_COOKIE_SECURE"] is False
+
+
+def test_render_runtime_forces_debug_off(monkeypatch, tmp_path):
+    _prepare_app_env(monkeypatch, tmp_path, backend="postgres")
+    monkeypatch.setenv("FLASK_DEBUG", "1")
+    monkeypatch.setenv("RENDER", "true")
+
+    # Given/When: Render marks the runtime even if gunicorn is not importable
+    app = create_app()
+
+    # Then: production guards apply
+    assert app.debug is False
+    assert app.config["SESSION_COOKIE_SECURE"] is True
+
+
+def test_server_software_marker_forces_debug_off(monkeypatch, tmp_path):
+    _prepare_app_env(monkeypatch, tmp_path, backend="postgres")
+    monkeypatch.setenv("FLASK_DEBUG", "1")
+    monkeypatch.setenv("SERVER_SOFTWARE", "gunicorn/22.0.0")
+
+    # Given/When: a WSGI server exports SERVER_SOFTWARE
+    app = create_app()
+
+    # Then: production guards apply
+    assert app.debug is False
+    assert app.config["SESSION_COOKIE_SECURE"] is True
 
