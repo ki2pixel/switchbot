@@ -173,5 +173,26 @@ def test_performance_documentation_exists():
         assert section in doc_content, f"La documentation doit contenir la section '{section}'"
 
 
+def test_csrf_interceptor_checks_same_origin():
+    """Le token CSRF ne doit jamais partir vers une origine externe."""
+    loaders_js_path = os.path.join(
+        os.path.dirname(__file__),
+        '..',
+        'switchbot_dashboard',
+        'static',
+        'js',
+        'loaders.js'
+    )
+
+    with open(loaders_js_path, 'r', encoding='utf-8') as f:
+        js_content = f.read()
+
+    # Given/Then: helper and both interceptor paths are guarded
+    assert 'isSameOrigin' in js_content
+    assert 'isSameOrigin(input)' in js_content
+    assert 'isSameOrigin(url)' in js_content
+    assert 'this._csrfSameOrigin' in js_content
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

@@ -23,37 +23,57 @@ class BaseStore(Protocol):
 
 
 class JsonStoreTransactionContext:
+    """Re-entrant, thread-local transaction context for :class:`JsonStore`.
+
+    Nested ``with store.transaction():`` blocks join the transaction already
+    active on the current thread instead of trying to re-acquire the
+    non-reentrant ``threading.Lock`` (which used to deadlock the worker).
+    """
+
     def __init__(self, store: JsonStore):
         self._store = store
-        self._cached_data = None
+        self._cached_data: dict[str, Any] | None = None
         self._dirty = False
-        self._previous_transaction = None
+        self._is_nested = False
 
-    def __enter__(self):
-        self._previous_transaction = getattr(self._store._local, "active_transaction", None)
-        self._store._local.active_transaction = self
-        
-        # Acquire lock for the duration of the transaction
+    def __enter__(self) -> "JsonStoreTransactionContext":
+        active_tx = getattr(self._store._local, "active_transaction", None)
+        if active_tx is not None:
+            self._is_nested = True
+            return active_tx
+
+        # Acquire lock for the duration of the root transaction.
         self._store._lock.acquire()
-        
-        # Initial read from disk
-        self._cached_data = self._store._read_without_lock()
-        return self
+        try:
+            self._cached_data = self._store._read_without_lock()
+            self._store._local.active_transaction = self
+            return self
+        except BaseException:
+            self._store._lock.release()
+            raise
 
     def read(self) -> dict[str, Any]:
+        if self._is_nested:
+            return self._store._local.active_transaction.read()
         import copy
-        return copy.deepcopy(self._cached_data)
+        return copy.deepcopy(self._cached_data or {})
 
     def write(self, data: dict[str, Any]) -> None:
+        if self._is_nested:
+            self._store._local.active_transaction.write(data)
+            return
         import copy
         self._cached_data = copy.deepcopy(data)
         self._dirty = True
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._store._local.active_transaction = self._previous_transaction
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        if self._is_nested:
+            return
+
+        self._store._local.active_transaction = None
         try:
             if exc_type is None and self._dirty:
-                self._store._write_without_lock(self._cached_data)
+                self._store._write_without_lock(self._cached_data or {})
         finally:
             self._store._lock.release()
 

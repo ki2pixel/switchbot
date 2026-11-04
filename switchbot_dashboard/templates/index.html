@@ -8,7 +8,7 @@
     <title>SwitchBot Dashboard</title>
     
     <!-- Critical Theme Bootstrapping -->
-    <script nonce="{{ csp_nonce }}">
+    <script nonce="{{ csp_nonce }}" data-spa-inline>
       (function() {
         const prefersDark = globalThis.matchMedia('(prefers-color-scheme: dark)').matches;
         const root = document.documentElement;
@@ -450,7 +450,7 @@
 
     <!-- Promote the preloaded stylesheets once they are discovered (CSP-safe:
          replaces the previous inline onload= handlers, blocked by script-src). -->
-    <script nonce="{{ csp_nonce }}">
+    <script nonce="{{ csp_nonce }}" data-spa-inline>
       document.querySelectorAll('link[rel="preload"][as="style"]').forEach(function (link) {
         var deferred = link.dataset.deferred === 'true';
         link.rel = 'stylesheet';
@@ -466,7 +466,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}" />
     
     <!-- Critical JS for Performance -->
-    <script nonce="{{ csp_nonce }}">
+    <script nonce="{{ csp_nonce }}" data-spa-inline>
       // Performance mark for critical resources start
       if ('performance' in globalThis && 'mark' in performance) {
         performance.mark('critical-css-start');
@@ -477,7 +477,7 @@
     <a href="#app-content" class="sr-only" style="position:absolute;top:-999px;left:-999px;z-index:9999">Aller au contenu principal</a>
 
 <!-- Enhanced anti-flash script for body -->
-<script nonce="{{ csp_nonce }}">
+<script nonce="{{ csp_nonce }}" data-spa-inline>
   // Ensure dark theme is applied immediately when body loads
   document.body.style.backgroundColor = '#030712';
   document.body.style.color = '#f4f7ff';
@@ -648,7 +648,7 @@
     <script src="{{ url_for('static', filename='js/spa-router.js') }}"></script>
     
     <!-- Enhanced Performance Optimization Script -->
-    <script nonce="{{ csp_nonce }}">
+    <script nonce="{{ csp_nonce }}" data-spa-inline>
       // Mark critical CSS loading complete
       if ('performance' in globalThis && 'mark' in performance) {
         performance.mark('critical-css-loaded');

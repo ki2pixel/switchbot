@@ -195,6 +195,26 @@ class TestRecordState:
         assert flushed == 1
         mock_cursor.execute.assert_called_once()
 
+    def test_flush_does_not_hold_lock_during_insert(
+        self,
+        history_service,
+        sample_state_data,
+    ):
+        """Le verrou ne doit pas être tenu pendant l'I/O PostgreSQL."""
+        _mock_connection(history_service)
+        observed: dict[str, bool] = {}
+
+        def _insert(records):
+            acquired = history_service._pending_lock.acquire(blocking=False)
+            observed["lock_free"] = acquired
+            if acquired:
+                history_service._pending_lock.release()
+
+        with patch.object(history_service, "_insert_records", side_effect=_insert):
+            history_service.record_state(sample_state_data)
+
+        assert observed["lock_free"] is True
+
 
 class TestGetHistory:
     """Test historical data retrieval."""
@@ -405,7 +425,8 @@ class TestGetLatestRecords:
         assert call_args[0][0] is not None  # SQL query
         # Parameters might be in call_args[0] or call_args[1] depending on psycopg version
         params = call_args[0][1] if len(call_args[0]) > 1 else (call_args[1] if call_args[1] else ())
-        assert params[0] == 5  # Limit parameter
+        assert params[0] == max(5 * 60, 600)  # Indexed sub-window
+        assert params[1] == 5  # Final distinct-minute limit
 
     def test_get_latest_records_database_error(self, history_service):
         """Test handling of database errors during latest records retrieval."""

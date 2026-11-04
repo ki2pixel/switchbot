@@ -330,7 +330,13 @@ class SPARouter {
         // Re-execute page-specific script (e.g. settings.js, history.js)
         this.loadScriptDynamic(src);
       } else {
-        // Execute inline script
+        // Only server-marked inline scripts may be re-executed. Without this
+        // marker any inline <script> injected into fetched HTML would inherit
+        // the current document's valid nonce and bypass CSP.
+        if (!script.hasAttribute('data-spa-inline')) {
+          console.warn('[SPARouter] Blocked unmarked inline script');
+          return;
+        }
         this.executeInlineScript(script.textContent, nonce);
       }
     });
@@ -378,11 +384,13 @@ class SPARouter {
    * @param {string} nonce CSP nonce of the current document
    */
   executeInlineScript(code, nonce = '') {
-    const newScript = document.createElement('script');
-    if (nonce) {
-      newScript.nonce = nonce;
-      newScript.setAttribute('nonce', nonce);
+    if (!nonce) {
+      console.warn('[SPARouter] Refusing to inject inline script without CSP nonce');
+      return;
     }
+    const newScript = document.createElement('script');
+    newScript.nonce = nonce;
+    newScript.setAttribute('nonce', nonce);
     newScript.textContent = code;
     document.body.appendChild(newScript);
     // Remove inline scripts immediately after execution to keep DOM clean

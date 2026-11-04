@@ -1,5 +1,18 @@
 # Progrès du Projet - SwitchBot Dashboard
 
+## Phase Remédiation Audit Backend V2 (2026-11-04) — COMPLÈTE ✔
+- [x] [2026-11-04 14:13:43] - AUD-DB-01/CONC-01 : transactions réentrantes + cache thread-local.
+- [x] [2026-11-04 14:13:43] - AUD-SCHED-01 : reschedule protégé, job conservé, test périodique honnête.
+- [x] [2026-11-04 14:13:43] - AUD-SEC-01/API-01/API-02 : SSRF, quota avant retry, logs `[api]`, Session thread-local.
+- [x] [2026-11-04 14:13:43] - AUD-SEC-05/06 : validation `/history/api/*`, UTF-8, booléens.
+- [x] [2026-11-04 14:13:43] - AUD-CONC-02/03 : fencing des actions manuelles, run_once borné.
+- [x] [2026-11-04 14:13:43] - AUD-DB-02 : `ResilientStore` + alerte/bascule contrôlée.
+- [x] [2026-11-04 14:13:43] - AUD-DB-03/04/05/06/PERF-01/SQL-01 : migration, logs, verrou History, Decimal, index.
+- [x] [2026-11-04 14:13:43] - AUD-AUTO-01/02/TEST-01 : mode scène, historique capteur, test scheduler.
+- [x] [2026-11-04 14:13:43] - AUD-SEC-02/03 : CSRF same-origin + marqueur `data-spa-inline`.
+- [x] [2026-11-04 14:31:00] - Nettoyage production Supabase : `DROP INDEX CONCURRENTLY` sur `idx_json_store_kind` et `idx_state_history_metadata` (122 Mo libérés), runner `scripts/drop_redundant_indexes.py`.
+- [x] [2026-11-04 14:31:00] - **285 tests passent**, 1 skipped.
+
 ## Phase Remédiation Audit Frontend V2 (2026-11-04) — COMPLÈTE ✔
 - [x] [2026-11-04 13:00:00] - AUD-02 : timestamps ISO-8601 valides (`_utc_iso_z`) sur healthz et mocks history.
 - [x] [2026-11-04 13:00:00] - AUD-03 : garde redirection session expirée + refresh CSRF dans le routeur SPA et history.js.

@@ -141,6 +141,35 @@ class TestHistoryServiceBufferResiliency:
 
 
 class TestStoreFailoverAndBuild:
+    def test_build_store_wraps_healthy_postgres_in_resilient_store(
+        self, monkeypatch, tmp_path
+    ) -> None:
+        from switchbot_dashboard.store_resilience import ResilientStore
+
+        app = Flask("test_app")
+        app.config["TESTING"] = True
+        settings_path = tmp_path / "settings.json"
+
+        monkeypatch.setenv("STORE_BACKEND", "postgres")
+        monkeypatch.setenv("POSTGRES_URL", "postgresql://localhost/fake")
+
+        with patch("switchbot_dashboard.__init__.PostgresStore") as MockPostgresStore:
+            postgres_mock = MagicMock()
+            postgres_mock.health_check.return_value = True
+            MockPostgresStore.return_value = postgres_mock
+
+            store = _build_store(
+                app,
+                kind="settings",
+                default_path=str(settings_path),
+                path_env="SWITCHBOT_SETTINGS_PATH",
+            )
+
+        # Given/Then: a healthy primary is wrapped for runtime failure tracking
+        assert isinstance(store, ResilientStore)
+        assert store.primary is postgres_mock
+        assert store.degraded is False
+
     def test_build_store_fallback_on_unhealthy_postgres(self, monkeypatch, tmp_path) -> None:
         app = Flask("test_app")
         app.config["TESTING"] = True
@@ -215,6 +244,7 @@ class TestHistoryServiceAggregates:
         
         assert aggregates["total_records"] == 100
         assert aggregates["avg_temperature"] == 23.5
+        assert isinstance(aggregates["avg_temperature"], float)
         assert aggregates["common_aircon_state"] == "on"
 
         # Mock latest records results
@@ -233,6 +263,7 @@ class TestHistoryServiceAggregates:
         latest = service.get_latest_records(limit=5)
         assert len(latest) == 1
         assert latest[0]["temperature"] == 24.5
+        assert isinstance(latest[0]["temperature"], float)
         assert latest[0]["timestamp"] == "2026-07-04T12:00:00+00:00"
 
 

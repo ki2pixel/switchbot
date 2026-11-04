@@ -65,6 +65,41 @@ def get_store() -> StoreInterface:
     return JsonStore()
 ```
 
+### Résilience en cours d'exécution
+
+`ResilientStore` compte les `StoreError` consécutives du backend primaire :
+
+- au 3e échec, un log `[store] CRITICAL` est émis ;
+- hors production, il bascule vers le `JsonStore` de secours (dernier snapshot connu réinjecté) ;
+- en production, il reste en alerte seule et laisse les routes répondre `503` : un fichier JSON éphémère avec Gunicorn multi-workers provoquerait un split-brain et une perte de données.
+
+Variables associées :
+
+```bash
+STORE_RUNTIME_FALLBACK=false   # true pour activer la bascule JSON en production
+STORE_FAILURE_THRESHOLD=3      # nombre d'échecs consécutifs avant alerte/bascule
+```
+
+### Maintenance des index
+
+L'application ne crée plus deux index hérités :
+
+- `idx_json_store_kind` (doublon de la clé primaire `json_store`) ;
+- `idx_state_history_metadata` (GIN jamais requêté, uniquement du coût d'écriture).
+
+Sur une base existante, les supprimer manuellement :
+
+```bash
+# Dry-run (aucune modification)
+python scripts/drop_redundant_indexes.py
+
+# Exécution (DROP INDEX CONCURRENTLY, autocommit)
+python scripts/drop_redundant_indexes.py --apply
+```
+
+Le script lit `POSTGRES_URL` depuis l'environnement puis `<repo>/.env`, masque les identifiants dans ses logs et cible uniquement ces deux index. Alternative avec `psql` : `psql "$POSTGRES_URL" -f scripts/drop_redundant_indexes.sql`.
+
+
 ## L'Implémentation : Configuration et Code
 
 ### Variables d'environnement (.env)

@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS json_store (
 );
 
 -- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_json_store_kind ON json_store(kind);
+-- Note: no index on `kind` — it is the primary key, so the implicit unique
+-- index already covers equality lookups.
 CREATE INDEX IF NOT EXISTS idx_json_store_updated_at ON json_store(updated_at);
 
 -- Optional: GIN index for JSONB queries (if needed in future)

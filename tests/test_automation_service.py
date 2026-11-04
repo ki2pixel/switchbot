@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import copy
 import logging
+import threading
 from typing import Any
+
+import pytest
 
 import datetime as dt
 from unittest.mock import MagicMock, patch
 from zoneinfo import ZoneInfo
 
-from switchbot_dashboard.automation import AutomationService, _is_now_in_windows, LockLostError
+from switchbot_dashboard.automation import AutomationService, CachedStoreWrapper, _is_now_in_windows, LockLostError
 from switchbot_dashboard.quota import ApiQuotaTracker
 
 
@@ -894,5 +897,108 @@ def test_automation_lock_lost_fencing_token_raised_and_handled() -> None:
         warning_msg = mock_warning.call_args_list[0][0][0]
         assert "lock was lost or stolen" in warning_msg
 
+
+def test_cached_store_wrapper_isolates_cache_per_thread() -> None:
+    """Le cache du wrapper ne doit jamais être partagé entre threads."""
+    backing_store = MemoryStore({"value": 1})
+    wrapper = CachedStoreWrapper(backing_store)
+
+    # Given: le thread principal a rempli son cache
+    assert wrapper.read() == {"value": 1}
+    backing_store.write({"value": 2})
+    assert wrapper.read() == {"value": 1}
+
+    # When: un autre thread lit le store
+    result: dict[str, Any] = {}
+
+    def worker() -> None:
+        result["value"] = wrapper.read()
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+    thread.join()
+
+    # Then: il voit la valeur réelle, pas le cache du thread principal
+    assert result["value"] == {"value": 2}
+
+    # Et le clear_cache du worker ne vide pas celui du main thread
+    wrapper.clear_cache()
+    assert wrapper.read() == {"value": 2}
+
+
+def test_apply_state_updates_rejects_stolen_lock() -> None:
+    """Le fencing token doit bloquer une écriture après vol du verrou."""
+    service, _client, _settings_store, state_store = _build_service(
+        settings=_default_settings(),
+        temperature=20.0,
+    )
+    service._local.current_lock_token = 5
+    state = state_store.read()
+    state["automation_lock_token"] = 6
+    state_store.write(state)
+
+    with pytest.raises(LockLostError):
+        service.apply_state_updates(last_error="stolen lock")
+
+
+@pytest.mark.parametrize(
+    ("action_key", "expected_mode"),
+    [("winter", 5), ("summer", 2), ("fan", 4)],
+)
+def test_trigger_scene_preserves_aircon_mode(
+    action_key: str, expected_mode: int
+) -> None:
+    """Une scène ne doit pas remettre assumed_aircon_mode à None."""
+    service, client, _settings_store, state_store = _build_service(
+        settings=_default_settings(),
+        temperature=20.0,
+    )
+
+    # Given/When: la scène correspondant au mode est exécutée
+    result = service._trigger_scene(
+        action_key,
+        f"scene-{action_key}",
+        "manual",
+        "on",
+        "test",
+        "",
+    )
+
+    # Then: le mode métier est conservé pour is_in_fan_mode et l'UI
+    assert result is True
+    assert client.run_scene_calls == [f"scene-{action_key}"]
+    assert state_store.read()["assumed_aircon_mode"] == expected_mode
+
+
+def test_missing_meter_still_records_history_snapshot(monkeypatch) -> None:
+    """Une panne capteur ne doit pas créer un trou dans l'historique."""
+    service, _client, _settings_store, _state_store = _build_service(
+        settings=_default_settings(),
+        temperature=20.0,
+    )
+    monkeypatch.setattr(service, "poll_meter", lambda: None)
+
+    with patch.object(service, "_record_history_snapshot") as mock_record:
+        # Given/When: le tick ne peut pas lire la température
+        service.run_once()
+
+    # Then: l'état stale est tout de même historisé
+    mock_record.assert_called_once()
+
+
+def test_invalid_temperature_still_records_history_snapshot(monkeypatch) -> None:
+    """Une température invalide ne doit pas non plus trouer l'historique."""
+    service, _client, _settings_store, _state_store = _build_service(
+        settings=_default_settings(),
+        temperature=20.0,
+    )
+    monkeypatch.setattr(service, "poll_meter", lambda: {"temperature": "n/a"})
+
+    with patch.object(service, "_record_history_snapshot") as mock_record:
+        # Given/When: la lecture capteur est corrompue
+        service.run_once()
+
+    # Then: l'état est historisé malgré l'abandon de l'automatisation
+    mock_record.assert_called_once()
 
 

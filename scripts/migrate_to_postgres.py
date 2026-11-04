@@ -11,16 +11,34 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from switchbot_dashboard.config_store import JsonStore, StoreError
-from switchbot_dashboard.postgres_store import PostgresStore, PostgresStoreError
+from switchbot_dashboard.postgres_store import PostgresStore
+
+
+def _describe_url(url: str | None) -> str:
+    """Return a log-safe description of a connection URL.
+
+    Only the scheme, host and database path are kept: userinfo (username and
+    password) and query parameters are never written to logs.
+    """
+    if not url:
+        return "None"
+
+    parsed = urlsplit(url)
+    if not parsed.scheme or not parsed.hostname:
+        return "<invalid-url>"
+
+    netloc = parsed.hostname
+    if parsed.port:
+        netloc = f"{netloc}:{parsed.port}"
+    return urlunsplit((parsed.scheme, netloc, parsed.path, "", ""))
 
 
 def setup_logging(verbose: bool = False) -> logging.Logger:
@@ -53,7 +71,7 @@ def read_redis_data(redis_url: str, kind: str, logger: logging.Logger) -> dict[s
         logger.info(f"Successfully read {kind} from Redis ({len(data)} keys)")
         return data
 
-    except (RedisError, json.JSONDecodeError) as exc:
+    except (RedisError, json.JSONDecodeError):
         logger.exception(f"Failed to read {kind} from Redis")
         return None
 
@@ -71,7 +89,7 @@ def read_json_data(file_path: str, logger: logging.Logger) -> dict[str, Any]:
             logger.info(f"Successfully read {file_path} ({len(data)} keys)")
             return data
 
-    except (json.JSONDecodeError, OSError) as exc:
+    except (json.JSONDecodeError, OSError):
         logger.exception(f"Failed to read {file_path}")
         return {}
 
@@ -92,7 +110,7 @@ def validate_data(data: dict[str, Any], kind: str, logger: logging.Logger) -> bo
     # Basic validation for state
     elif kind == "state":
         if "last_read_at" in data and not isinstance(data["last_read_at"], str):
-            logger.error(f"Invalid last_read_at type in state: expected string")
+            logger.error("Invalid last_read_at type in state: expected string")
 
     logger.info(f"Data validation passed for {kind}")
     return True
@@ -138,14 +156,17 @@ def migrate_to_postgres(
     Returns:
         True if migration successful, False otherwise
     """
+    settings_store: PostgresStore | None = None
+    state_store: PostgresStore | None = None
+
     try:
         if not dry_run:
-            postgres_store = PostgresStore(
+            settings_store = PostgresStore(
                 connection_string=postgres_url,
-                kind="temp",
+                kind="settings",
                 logger=logger,
             )
-            if not postgres_store.health_check():
+            if not settings_store.health_check():
                 logger.error("PostgreSQL health check failed")
                 return False
             logger.info("PostgreSQL connection established successfully")
@@ -162,24 +183,33 @@ def migrate_to_postgres(
 
         if not dry_run:
             logger.info("=== Writing to PostgreSQL ===")
-            settings_store = PostgresStore(connection_string=postgres_url, kind="settings", logger=logger)
+            state_store = PostgresStore(
+                connection_string=postgres_url,
+                kind="state",
+                logger=logger,
+            )
             settings_store.write(settings_data)
             logger.info("Settings migrated successfully")
 
-            state_store = PostgresStore(connection_string=postgres_url, kind="state", logger=logger)
             state_store.write(state_data)
             logger.info("State migrated successfully")
-
-            settings_store.close()
-            state_store.close()
         else:
             logger.info("=== Dry run completed - no data written ===")
 
         return True
 
-    except Exception as exc:
+    except Exception:
         logger.exception("Migration failed")
         return False
+
+    finally:
+        for name, store in (("state", state_store), ("settings", settings_store)):
+            if store is None:
+                continue
+            try:
+                store.close()
+            except Exception as exc:
+                logger.warning("Failed to close %s store (%s)", name, exc)
 
 
 def main() -> None:
@@ -219,16 +249,10 @@ def main() -> None:
     logger = setup_logging(args.verbose)
 
     logger.info("Starting migration from Redis/JSON to PostgreSQL")
-    
-    def mask_url(url: str | None) -> str:
-        if not url:
-            return "None"
-        import re
-        return re.sub(r'(?<=://)[^:]+:[^@]+(?=@)', '***:***', url)
 
-    logger.info(f"PostgreSQL URL: {mask_url(args.postgres_url)}")
+    logger.info(f"PostgreSQL URL: {_describe_url(args.postgres_url)}")
     if args.redis_url:
-        logger.info(f"Redis URL: {mask_url(args.redis_url)}")
+        logger.info(f"Redis URL: {_describe_url(args.redis_url)}")
     logger.info(f"Settings path: {args.settings_path}")
     logger.info(f"State path: {args.state_path}")
     logger.info(f"Dry run: {args.dry_run}")

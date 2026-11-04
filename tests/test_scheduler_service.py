@@ -8,6 +8,7 @@ import time
 from typing import Any
 
 from switchbot_dashboard.scheduler import SchedulerService
+from switchbot_dashboard.config_store import StoreError
 
 
 class MemoryStore:
@@ -72,15 +73,13 @@ def test_scheduler_logs_startup_information(caplog: Any) -> None:
     scheduler.stop()
 
 
-def test_scheduler_interval_job_executes_periodically() -> None:
+def test_scheduler_interval_job_executes_periodically(monkeypatch: Any) -> None:
     """
-    Test documentant un problème connu : APScheduler BackgroundScheduler
-    ne déclenche PAS les jobs périodiques dans notre environnement Gunicorn.
-    
-    Le correctif appliqué (premier tick immédiat) garantit au moins une lecture
-    au démarrage, mais les ticks automatiques restent défaillants.
-    
-    TODO: Investiguer alternatives (cron externe, celery, ou polling HTTP).
+    Le scheduler doit réellement déclencher des ticks périodiques.
+
+    ``poll_interval_seconds`` est clampé à 15 s par la configuration métier.
+    On patche donc l'intervalle effectif à 1 s pour rendre le test rapide et
+    déterministe, sans modifier le comportement de production.
     """
     settings_store = MemoryStore({"poll_interval_seconds": 1})
     call_timestamps = []
@@ -92,26 +91,43 @@ def test_scheduler_interval_job_executes_periodically() -> None:
         settings_store=settings_store,
         tick_callable=tick_callable,
     )
+    monkeypatch.setattr(
+        scheduler,
+        "_get_effective_interval_seconds",
+        lambda **kwargs: (1, "test"),
+    )
 
     scheduler.start()
 
-    # Premier tick immédiat fonctionne (correctif appliqué)
+    # Given: le premier tick synchrone a déjà eu lieu au démarrage
     assert len(call_timestamps) == 1, "Premier tick immédiat doit fonctionner"
 
-    # Attend pour voir si des ticks périodiques se produisent
+    # When: on laisse tourner le scheduler plus de deux intervalles
     time.sleep(2.5)
 
     scheduler.stop()
 
-    # PROBLÈME CONNU: APScheduler ne schedule pas les jobs périodiques
-    # On documente ce comportement sans faire échouer le test
-    if len(call_timestamps) < 3:
-        print(f"⚠️ APScheduler n'a exécuté que {len(call_timestamps)} tick(s) au lieu de >=3")
-        print("   Ceci est un problème connu avec BackgroundScheduler + Gunicorn")
-        print("   Le premier tick immédiat (correctif appliqué) garantit au moins une lecture initiale")
-    
-    # On ne fait échouer le test que si le premier tick n'a pas fonctionné
-    assert len(call_timestamps) >= 1
+    # Then: au moins deux ticks périodiques supplémentaires ont été exécutés
+    assert len(call_timestamps) >= 2, (
+        f"APScheduler devait exécuter au moins 2 ticks, obtenu {len(call_timestamps)}"
+    )
+
+
+def test_scheduler_clamps_poll_interval_to_15_seconds() -> None:
+    """Le minimum de 15 s est une règle métier, pas un bug scheduler."""
+    settings_store = MemoryStore({"poll_interval_seconds": 1})
+    scheduler = SchedulerService(
+        settings_store=settings_store,
+        tick_callable=lambda: None,
+    )
+
+    interval, mode = scheduler._get_effective_interval_seconds(
+        now_utc=dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc)
+    )
+
+    assert interval == 15
+    assert mode == "automation_disabled"
+
 
 
 def test_scheduler_is_running_reports_correct_state() -> None:
@@ -183,6 +199,57 @@ def test_run_tick_safe_logs_exceptions(caplog: Any) -> None:
     assert any(
         "Automation tick raised exception" in record.message for record in caplog.records
     )
+
+
+class FailingStore(MemoryStore):
+    def read(self) -> dict[str, Any]:
+        raise StoreError("database is down")
+
+
+def test_run_tick_safe_survives_reschedule_store_failure(caplog: Any) -> None:
+    """Une panne store dans le finally ne doit pas tuer le job APScheduler."""
+    scheduler = SchedulerService(
+        settings_store=FailingStore(),
+        tick_callable=lambda: None,
+    )
+    # Simule un scheduler démarré sans lancer de thread réel.
+    scheduler._scheduler = object()
+    scheduler._current_interval_seconds = 30
+
+    caplog.set_level(logging.ERROR)
+
+    # Given/When: le store tombe pendant _maybe_reschedule_after_tick
+    scheduler._run_tick_safe()
+
+    # Then: l'exception est capturée et loguée, pas propagée
+    assert any(
+        "Post-tick reschedule failed" in record.message for record in caplog.records
+    )
+
+
+def test_reschedule_failure_keeps_existing_job() -> None:
+    """Un échec de reschedule ne doit pas supprimer le job existant."""
+    scheduler = SchedulerService(
+        settings_store=MemoryStore({"poll_interval_seconds": 15}),
+        tick_callable=lambda: None,
+    )
+    scheduler.start()
+    try:
+        internal = scheduler.get_scheduler()
+        assert internal is not None
+        assert internal.get_job(scheduler._job_id) is not None
+
+        # Given: le store devient indisponible
+        scheduler._settings_store = FailingStore()
+
+        # When: reschedule est appelé
+        scheduler.reschedule()
+
+        # Then: le job précédent est toujours planifié
+        assert internal.get_job(scheduler._job_id) is not None
+    finally:
+        scheduler.stop()
+
 
 
 def test_effective_interval_outside_window_uses_idle_interval() -> None:

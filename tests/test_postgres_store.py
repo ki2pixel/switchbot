@@ -238,6 +238,7 @@ class TestPostgresStore:
                 min_size=1,
                 max_size=5,
                 timeout=5.0,
+                open=True,
                 kwargs={
                     "sslmode": "verify-full",
                     "connect_timeout": 5,

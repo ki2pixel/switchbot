@@ -7,10 +7,13 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 DEFAULT_TIMEZONE = "Europe/Paris"
 
 def _safe_int(value: Any, *, default: int, minimum: int | None = None, maximum: int | None = None) -> int:
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
+    if isinstance(value, bool):
         parsed = default
+    else:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            parsed = default
 
     if minimum is not None and parsed < minimum:
         parsed = minimum

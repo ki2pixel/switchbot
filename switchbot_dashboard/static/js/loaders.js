@@ -4,14 +4,26 @@
     // ----------------------------------------------------
     const setupCsrfInterceptors = () => {
         const csrfMethods = ['POST', 'PUT', 'DELETE', 'PATCH'];
+
+        // Never leak the CSRF token to a cross-origin endpoint.
+        const isSameOrigin = (target) => {
+            try {
+                const url = typeof target === 'string'
+                    ? target
+                    : (target && target.url) || '';
+                return new URL(url, globalThis.location.origin).origin === globalThis.location.origin;
+            } catch {
+                return false;
+            }
+        };
         
         // 1. Fetch API Interceptor
         const originalFetch = globalThis.fetch;
         globalThis.fetch = function(input, init) {
             init = init || {};
-            const method = init.method ? init.method.toUpperCase() : 'GET';
+            const method = (init.method || (input && input.method) || 'GET').toUpperCase();
             
-            if (csrfMethods.includes(method)) {
+            if (csrfMethods.includes(method) && isSameOrigin(input)) {
                 const tokenMeta = document.querySelector('meta[name="csrf-token"]');
                 if (tokenMeta && tokenMeta.content) {
                     init.headers = init.headers || {};
@@ -38,13 +50,14 @@
         const originalOpen = XMLHttpRequest.prototype.open;
         XMLHttpRequest.prototype.open = function(method, url, ...args) {
             this._method = method;
+            this._csrfSameOrigin = isSameOrigin(url);
             return originalOpen.apply(this, [method, url, ...args]);
         };
 
         const originalSend = XMLHttpRequest.prototype.send;
         XMLHttpRequest.prototype.send = function(...args) {
             const method = this._method ? this._method.toUpperCase() : 'GET';
-            if (csrfMethods.includes(method)) {
+            if (csrfMethods.includes(method) && this._csrfSameOrigin) {
                 const tokenMeta = document.querySelector('meta[name="csrf-token"]');
                 if (tokenMeta && tokenMeta.content) {
                     this.setRequestHeader('X-CSRFToken', tokenMeta.content);

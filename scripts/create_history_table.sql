@@ -18,7 +18,9 @@ CREATE TABLE IF NOT EXISTS state_history (
 -- Indexes for optimal query performance
 CREATE INDEX IF NOT EXISTS idx_state_history_timestamp ON state_history(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_state_history_aircon_power ON state_history(assumed_aircon_power);
-CREATE INDEX IF NOT EXISTS idx_state_history_metadata ON state_history USING GIN(metadata);
+-- Note: no GIN index on `metadata` — no query filters on it, so it only added
+-- write amplification. Older databases can drop it with
+-- scripts/drop_redundant_indexes.sql.
 
 -- Note: We'll create the date bucket index in the application code
 -- to avoid IMMUTABLE function issues with date_trunc()

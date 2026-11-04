@@ -19,6 +19,7 @@ from psycopg_pool import ConnectionPool
 from .automation import AutomationService
 from .config_store import BaseStore, JsonStore, StoreError
 from .postgres_store import PostgresStore, PostgresStoreError
+from .store_resilience import ResilientStore
 from .history_service import HistoryService
 from .routes import dashboard_bp
 from .scheduler import SchedulerService
@@ -72,7 +73,33 @@ def _build_store(
             # Health check
             if store.health_check():
                 app.logger.info("[store] Using PostgreSQL backend for %s store", kind)
-                return store
+                allow_runtime_fallback = (not is_production) or (
+                    os.environ.get("STORE_RUNTIME_FALLBACK", "false").strip().lower()
+                    in {"1", "true", "yes", "on"}
+                )
+                fallback = None
+                if allow_runtime_fallback:
+                    fallback_path = os.environ.get(path_env, default_path)
+                    fallback = JsonStore(fallback_path)
+                    app.logger.info(
+                        "[store] Runtime filesystem fallback configured for %s store at %s",
+                        kind,
+                        fallback_path,
+                    )
+                try:
+                    failure_threshold = max(
+                        1, int(os.environ.get("STORE_FAILURE_THRESHOLD", "3"))
+                    )
+                except ValueError:
+                    failure_threshold = 3
+                return ResilientStore(
+                    primary=store,
+                    fallback=fallback,
+                    logger=app.logger,
+                    name=kind,
+                    failure_threshold=failure_threshold,
+                    allow_fallback=allow_runtime_fallback,
+                )
             else:
                 if is_production:
                     store.close()
@@ -186,24 +213,25 @@ def create_app() -> Flask:
                     min_size=1,
                     max_size=10,
                     timeout=5.0,
+                    open=True,
                     kwargs={
                         "sslmode": ssl_mode,
                         "connect_timeout": 5,
                         "options": "-c statement_timeout=5000",
                     },
                 )
-                app.logger.info("[postgres] Shared connection pool initialized successfully")
+                app.logger.info("[store] Shared connection pool initialized successfully")
                 
                 # Register atexit shutdown handler
                 @atexit.register
                 def close_shared_pool() -> None:
                     try:
                         shared_pool.close()
-                        logging.getLogger().info("[postgres] Shared connection pool closed successfully via atexit")
+                        logging.getLogger().info("[store] Shared connection pool closed successfully via atexit")
                     except Exception as exc:
-                        logging.getLogger().warning("[postgres] Error closing shared connection pool via atexit (%s)", exc)
+                        logging.getLogger().warning("[store] Error closing shared connection pool via atexit (%s)", exc)
             except Exception:
-                app.logger.exception("[postgres] Failed to initialize shared connection pool")
+                app.logger.exception("[store] Failed to initialize shared connection pool")
 
     project_root = Path(__file__).resolve().parents[1]
     default_settings_path = str(project_root / "config" / "settings.json")
@@ -264,10 +292,11 @@ def create_app() -> Flask:
 
     # Initialize HistoryService if PostgreSQL is available
     history_service = None
+    primary_settings_store = getattr(settings_store, "primary", settings_store)
     app.logger.info(f"[history] Settings store type: {type(settings_store)}")
-    app.logger.info(f"[history] Is PostgresStore: {isinstance(settings_store, PostgresStore)}")
+    app.logger.info(f"[history] Is PostgresStore: {isinstance(primary_settings_store, PostgresStore)}")
     
-    if isinstance(settings_store, PostgresStore):
+    if isinstance(primary_settings_store, PostgresStore):
         try:
             retention_hours_raw = os.environ.get("HISTORY_RETENTION_HOURS", "24")
             try:
@@ -275,7 +304,7 @@ def create_app() -> Flask:
             except ValueError:
                 retention_hours = 24
             history_service = HistoryService(
-                connection_pool=settings_store.pool,
+                connection_pool=primary_settings_store.pool,
                 logger=app.logger,
                 retention_hours=retention_hours,
             )
@@ -287,7 +316,7 @@ def create_app() -> Flask:
             @atexit.register
             def flush_history_buffer() -> None:
                 try:
-                    history_service.flush_pending_records()
+                    history_service.flush_pending_records(force=True)
                     logging.getLogger().info("[history] History buffer flushed via atexit")
                 except Exception as exc:
                     logging.getLogger().warning("[history] Error flushing history buffer via atexit (%s)", exc)

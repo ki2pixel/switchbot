@@ -26,8 +26,14 @@ from flask import (
 from .config_store import StoreError, JsonStore
 from .postgres_store import PostgresStore
 from .switchbot_api import SwitchBotApiError
+from .automation import LockLostError
 from .extensions import limiter
-from .aircon import AIRCON_SCENE_KEYS, AIRCON_SCENE_LABELS, extract_aircon_scenes as _extract_aircon_scenes
+from .aircon import (
+    AIRCON_MODE_BY_ACTION,
+    AIRCON_SCENE_KEYS,
+    AIRCON_SCENE_LABELS,
+    extract_aircon_scenes as _extract_aircon_scenes,
+)
 from .utils import (
     DEFAULT_TIMEZONE,
     _safe_int as _as_int,
@@ -52,6 +58,10 @@ def _transaction_context(store: Any) -> Any:
 
 dashboard_bp = Blueprint("dashboard", __name__)
 ROUTE_INDEX = "dashboard.index"
+
+# Bound manual /actions/run_once to a single background worker. Without this
+# an authenticated client could spawn unbounded threads (AUD-CONC-03).
+_run_once_lock = threading.Lock()
 
 # Global StoreError handler (Q-04)
 @dashboard_bp.app_errorhandler(StoreError)
@@ -349,7 +359,12 @@ def login() -> Any:
         if is_hashed:
             is_valid = check_password_hash(expected_password, provided_password)
         elif provided_password and expected_password:
-            is_valid = hmac.compare_digest(provided_password, expected_password)
+            # compare_digest rejects non-ASCII str inputs; encode first so an
+            # accented password returns "invalid" instead of a 500.
+            is_valid = hmac.compare_digest(
+                provided_password.encode("utf-8"),
+                expected_password.encode("utf-8"),
+            )
 
         if is_valid:
             # Session rotation to prevent session fixation (S-07)
@@ -387,7 +402,10 @@ def debug_state() -> Any:
     if not expected_token or not provided_token:
         abort(404)
 
-    if not hmac.compare_digest(provided_token, expected_token):
+    if not hmac.compare_digest(
+        provided_token.encode("utf-8"),
+        expected_token.encode("utf-8"),
+    ):
         abort(404)
 
     state_store = current_app.extensions["state_store"]
@@ -462,10 +480,12 @@ def healthz() -> Any:
     # Check Postgres connectivity
     postgres_configured = (os.environ.get("STORE_BACKEND", "postgres").strip().lower() == "postgres")
     postgres_connected = False
+    postgres_primary = getattr(settings_store, "primary", settings_store)
+    store_degraded = bool(getattr(settings_store, "degraded", False))
     
-    if isinstance(settings_store, PostgresStore):
-        postgres_connected = bool(settings_store.health_check())
-    elif isinstance(settings_store, JsonStore):
+    if isinstance(postgres_primary, PostgresStore):
+        postgres_connected = bool(postgres_primary.health_check())
+    elif isinstance(postgres_primary, JsonStore):
         postgres_connected = False
     else:
         # For MemoryStore and other test mock stores, default to True so mock-based tests don't fail with 503
@@ -483,7 +503,7 @@ def healthz() -> Any:
         average_tick_duration = getattr(automation_service, "average_tick_duration", 0.0)
         
     status = "ok"
-    if postgres_configured and not postgres_connected:
+    if (postgres_configured and not postgres_connected) or store_degraded:
         status = "degraded"
 
     payload = {
@@ -494,6 +514,8 @@ def healthz() -> Any:
         "last_scheduler_tick": last_scheduler_tick,
         "average_tick_duration_seconds": round(average_tick_duration, 4),
         "postgres_connected": postgres_connected,
+        "store_degraded": store_degraded,
+        "active_store_backend": getattr(settings_store, "active_backend", "unknown"),
         "timestamp_utc": timestamp,
     }
 
@@ -766,14 +788,26 @@ def run_once() -> Any:
     automation_service = current_app.extensions["automation_service"]
     app = current_app._get_current_object()  # type: ignore[attr-defined]
 
-    def _run_async() -> None:
-        with app.app_context():
-            try:
-                automation_service.run_once()
-            except Exception as exc:
-                app.logger.warning("[run_once] async tick failed: %s", exc)
+    if not _run_once_lock.acquire(blocking=False):
+        flash("Un cycle d'automatisation est déjà en cours.", "error")
+        return redirect(url_for(ROUTE_INDEX))
 
-    threading.Thread(target=_run_async, name="manual_run_once", daemon=True).start()
+    def _run_async() -> None:
+        try:
+            with app.app_context():
+                try:
+                    automation_service.run_once()
+                except Exception as exc:
+                    app.logger.warning("[run_once] async tick failed: %s", exc)
+        finally:
+            _run_once_lock.release()
+
+    try:
+        threading.Thread(target=_run_async, name="manual_run_once", daemon=True).start()
+    except Exception:
+        _run_once_lock.release()
+        raise
+
     flash("Cycle d'automatisation lancé en arrière-plan.")
     return redirect(url_for(ROUTE_INDEX))
 
@@ -789,26 +823,26 @@ def aircon_off() -> Any:
     )
 
 
-def _update_state_on_success(
-    state_store: Any, assumed_power: str, action_desc: str, assumed_mode: int | None = None
+def _apply_manual_state(
+    automation_service: Any,
+    state_store: Any,
+    **updates: Any,
 ) -> None:
+    """Apply a manual action state update with fencing when available.
+
+    ``AutomationService.apply_state_updates`` verifies the lock token inside
+    the transaction. Fall back to the raw store for test doubles that do not
+    implement the lock API.
+    """
+    if automation_service is not None and hasattr(
+        automation_service, "apply_state_updates"
+    ):
+        automation_service.apply_state_updates(**updates)
+        return
+
     with _transaction_context(state_store):
         state = state_store.read()
-        state.update({
-            "assumed_aircon_power": assumed_power,
-            "assumed_aircon_mode": assumed_mode,
-            "assumed_aircon_parameter": None,
-            "last_action": action_desc,
-            "last_action_at": _utc_now_iso(),
-            "last_error": None
-        })
-        state_store.write(state)
-
-
-def _update_state_on_error(state_store: Any, error_msg: str) -> None:
-    with _transaction_context(state_store):
-        state = state_store.read()
-        state["last_error"] = error_msg
+        state.update(updates)
         state_store.write(state)
 
 
@@ -826,28 +860,28 @@ def _handle_direct_action(
         client = current_app.extensions["switchbot_client"]
         state_store = current_app.extensions["state_store"]
 
-        assumed_mode = None
-        if action_key == "fan":
-            assumed_mode = 4
-        elif action_key == "winter":
-            assumed_mode = 5
-        elif action_key == "summer":
-            assumed_mode = 2
+        assumed_mode = AIRCON_MODE_BY_ACTION.get(action_key)
 
         if scene_id:
             try:
                 client.run_scene(scene_id)
-                _update_state_on_success(
+                _apply_manual_state(
+                    automation_service,
                     state_store,
-                    assumed_power,
-                    f"scene({scene_id}) ({state_reason})",
-                    assumed_mode=assumed_mode,
+                    assumed_aircon_power=assumed_power,
+                    assumed_aircon_mode=assumed_mode,
+                    assumed_aircon_parameter=None,
+                    last_action=f"scene({scene_id}) ({state_reason})",
+                    last_action_at=_utc_now_iso(),
+                    last_error=None,
                 )
                 flash(flash_label)
                 return redirect(url_for(ROUTE_INDEX))
             except SwitchBotApiError as exc:
                 if not aircon_id:
-                    _update_state_on_error(state_store, str(exc))
+                    _apply_manual_state(
+                        automation_service, state_store, last_error=str(exc)
+                    )
                     flash(str(exc), "error")
                     return redirect(url_for(ROUTE_INDEX))
                 current_app.logger.warning(f"Scene execution failed for {action_key}: {exc}. Falling back to direct command.")
@@ -858,10 +892,21 @@ def _handle_direct_action(
                 return redirect(url_for(ROUTE_INDEX))
             try:
                 client.send_command(aircon_id, command="turnOff", parameter="default", command_type="command")
-                _update_state_on_success(state_store, "off", f"turnOff ({state_reason})")
+                _apply_manual_state(
+                    automation_service,
+                    state_store,
+                    assumed_aircon_power="off",
+                    assumed_aircon_mode=None,
+                    assumed_aircon_parameter=None,
+                    last_action=f"turnOff ({state_reason})",
+                    last_action_at=_utc_now_iso(),
+                    last_error=None,
+                )
                 flash(flash_label)
             except SwitchBotApiError as exc:
-                _update_state_on_error(state_store, str(exc))
+                _apply_manual_state(
+                    automation_service, state_store, last_error=str(exc)
+                )
                 flash(str(exc), "error")
             return redirect(url_for(ROUTE_INDEX))
 
@@ -879,32 +924,49 @@ def _handle_direct_action(
                 settings = settings_store.read()
                 profile = settings.get(action_key, {}) if isinstance(settings.get(action_key), dict) else {}
                 target_temp = float(profile.get("target_temp", 22.0) or 22.0)
-                from switchbot_dashboard.utils import _safe_int
-                fan_speed = _safe_int(profile.get("fan_speed"), default=3)
+                fan_speed = _as_int(profile.get("fan_speed"), default=3)
                 
                 parameter = f"{target_temp},{assumed_mode},{fan_speed},on"
                 client.send_command(aircon_id, command="setAll", parameter=parameter, command_type="command")
                 
                 # update state with the new parameter as well
-                with _transaction_context(state_store):
-                    state = state_store.read()
-                    state["assumed_aircon_power"] = "on"
-                    state["assumed_aircon_mode"] = assumed_mode
-                    state["assumed_aircon_parameter"] = parameter
-                    state["last_action"] = f"setAll({parameter}) ({state_reason})"
-                    state["last_action_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
-                    state_store.write(state)
+                _apply_manual_state(
+                    automation_service,
+                    state_store,
+                    assumed_aircon_power="on",
+                    assumed_aircon_mode=assumed_mode,
+                    assumed_aircon_parameter=parameter,
+                    last_action=f"setAll({parameter}) ({state_reason})",
+                    last_action_at=_utc_now_iso(),
+                    last_error=None,
+                )
                 
                 flash(flash_label)
             except SwitchBotApiError as exc:
-                _update_state_on_error(state_store, str(exc))
+                _apply_manual_state(
+                    automation_service, state_store, last_error=str(exc)
+                )
                 flash(str(exc), "error")
             return redirect(url_for(ROUTE_INDEX))
             
         return redirect(url_for(ROUTE_INDEX))
+    except LockLostError:
+        current_app.logger.warning(
+            "[actions] Manual action aborted: automation lock was stolen"
+        )
+        flash(
+            "Action annulée : le verrou d'automatisation a été perdu. Veuillez réessayer.",
+            "error",
+        )
+        return redirect(url_for(ROUTE_INDEX))
     finally:
         if has_lock_support:
-            automation_service._release_lock()
+            try:
+                automation_service._release_lock()
+            finally:
+                local = getattr(automation_service, "_local", None)
+                if local is not None:
+                    local.current_lock_token = None
 
 
 def _execute_aircon_action(
@@ -1086,31 +1148,56 @@ def _generate_mock_history_data(start: dt.datetime, end: dt.datetime) -> list[di
         current += dt.timedelta(minutes=5)
     return mock_data
 
-def _parse_history_query_params(request_args: Any) -> tuple[dt.datetime, dt.datetime, list[str], str, int]:
+ALLOWED_HISTORY_METRICS = {
+    "timestamp",
+    "temperature",
+    "humidity",
+    "assumed_aircon_power",
+    "last_action",
+    "api_requests_today",
+    "error_count",
+    "last_temperature_stale",
+}
+
+
+def _parse_history_query_params(
+    request_args: Any,
+) -> tuple[dt.datetime, dt.datetime, list[str] | None, str, int]:
     start_str = request_args.get("start")
     end_str = request_args.get("end")
     metrics_param = request_args.get("metrics")
     granularity = request_args.get("granularity", "minute")
     limit = _as_int(request_args.get("limit"), default=1000, minimum=1, maximum=10000)
 
-    metrics = []
+    metrics: list[str] | None = None
     if metrics_param:
         if isinstance(metrics_param, str):
-            metrics = [m.strip() for m in metrics_param.split(",") if m.strip()]
+            raw_metrics = [m.strip() for m in metrics_param.split(",") if m.strip()]
         else:
-            metrics = metrics_param
+            raw_metrics = list(metrics_param)
+
+        filtered = [m for m in raw_metrics if m in ALLOWED_HISTORY_METRICS]
+        if not filtered:
+            raise ValueError("no valid metrics requested")
+        metrics = filtered
 
     if not start_str or not end_str:
         end = dt.datetime.now(dt.timezone.utc)
         start = end - dt.timedelta(hours=6)
     else:
-        start = dt.datetime.fromisoformat(start_str.replace("Z", "+00:00"))
-        end = dt.datetime.fromisoformat(end_str.replace("Z", "+00:00"))
+        parsed_start = _parse_iso_datetime(str(start_str))
+        parsed_end = _parse_iso_datetime(str(end_str))
+        if parsed_start is None or parsed_end is None:
+            raise ValueError("invalid ISO-8601 datetime format")
+        start, end = parsed_start, parsed_end
 
     if start >= end:
         raise ValueError("start time must be before end time")
 
-    valid_granularities = ["minute", "5min", "15min", "hour"]
+    if (end - start) > dt.timedelta(days=31):
+        raise ValueError("requested time range exceeds 31 days maximum")
+
+    valid_granularities = {"minute", "5min", "15min", "hour"}
     if granularity not in valid_granularities:
         granularity = "minute"
 
@@ -1242,9 +1329,9 @@ def history_api_aggregates() -> Any:
         }
 
     try:
-        period_hours = int(request.args.get("period_hours", 1))
-        if period_hours < 1 or period_hours > 24:
-            period_hours = 1
+        period_hours = _as_int(
+            request.args.get("period_hours"), default=1, minimum=1, maximum=24
+        )
 
         aggregates = history_service.get_aggregates(period_hours)
         
@@ -1334,9 +1421,9 @@ def history_api_latest() -> Any:
         }
 
     try:
-        limit = int(request.args.get("limit", 10))
-        if limit < 1 or limit > 100:
-            limit = 10
+        limit = _as_int(
+            request.args.get("limit"), default=10, minimum=1, maximum=100
+        )
 
         latest = history_service.get_latest_records(limit)
         

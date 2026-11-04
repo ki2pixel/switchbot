@@ -9,6 +9,11 @@ AIRCON_SCENE_LABELS: dict[str, str] = {
     "fan": "Aircon ON – Mode neutre",
     "off": "Aircon OFF – Scène",
 }
+AIRCON_MODE_BY_ACTION: dict[str, int] = {
+    "winter": 5,
+    "summer": 2,
+    "fan": 4,
+}
 
 
 def extract_aircon_scenes(settings: dict[str, Any]) -> Dict[str, str]:

@@ -140,3 +140,30 @@ class TestSPARouterSafety:
         assert "newScript.nonce" in source, (
             "Must assign the nonce before inserting the script"
         )
+
+    def test_inline_scripts_require_server_marker(self):
+        """Only server-marked inline scripts may be re-executed (AUD-SEC-03)."""
+        source = _read_spa_router()
+        assert "data-spa-inline" in source, (
+            "Router must require data-spa-inline on inline scripts"
+        )
+        assert "Blocked unmarked inline script" in source, (
+            "Router must refuse to execute unmarked inline scripts"
+        )
+        assert "Refusing to inject inline script without CSP nonce" in source, (
+            "Router must refuse an empty CSP nonce"
+        )
+
+    def test_index_inline_scripts_are_marked(self):
+        """Every inline script in index.html must carry data-spa-inline."""
+        template_path = os.path.join(
+            os.path.dirname(__file__), "..",
+            "switchbot_dashboard", "templates", "index.html",
+        )
+        with open(template_path, encoding="utf-8") as f:
+            source = f.read()
+
+        # Count inline script openings and the marker occurrences
+        assert source.count("<script nonce=") == source.count(
+            "<script nonce=\"{{ csp_nonce }}\" data-spa-inline>"
+        )

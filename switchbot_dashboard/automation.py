@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+import contextlib
 import copy
 import datetime as dt
 import logging
+import threading
 import time
 from typing import Any, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import has_request_context, request
 
-from .aircon import AIRCON_SCENE_LABELS, extract_aircon_scenes
+from .aircon import AIRCON_MODE_BY_ACTION, AIRCON_SCENE_LABELS, extract_aircon_scenes
 from .config_store import BaseStore
 from .switchbot_api import SwitchBotApiError, SwitchBotClient
 from .utils import _safe_int, _utc_now_iso
@@ -101,49 +103,42 @@ def _summarize_time_windows(time_windows: list[dict[str, Any]]) -> str:
 
 
 class CachedStoreWrapper:
-    """Proxy store that caches reads and writes during a single execution context.
-    
-    Prevents redundant database queries during a single automation tick (P-04).
+    """Thread-local proxy store that caches reads during one execution context.
+
+    The cache is strictly per-thread: the scheduler thread and HTTP worker
+    threads must never observe or clear each other's cached snapshot. Sharing a
+    single ``dict`` here corrupted state under concurrent ticks (AUD-CONC-01).
     """
+
     def __init__(self, store: BaseStore) -> None:
         self._store = store
-        self._cache: dict[str, Any] | None = None
+        self._local = threading.local()
 
     def clear_cache(self) -> None:
-        self._cache = None
+        self._local.cache = None
 
     def read(self) -> dict[str, Any]:
-        if self._cache is None:
-            self._cache = self._store.read()
-        return copy.deepcopy(self._cache)
+        cache = getattr(self._local, "cache", None)
+        if cache is None:
+            cache = self._store.read()
+            self._local.cache = cache
+        return copy.deepcopy(cache)
 
     def write(self, data: dict[str, Any]) -> None:
-        self._cache = copy.deepcopy(data)
+        self._local.cache = copy.deepcopy(data)
         self._store.write(data)
 
+    @contextlib.contextmanager
     def transaction(self) -> Any:
-        if not hasattr(self._store, "transaction"):
-            import contextlib
-            @contextlib.contextmanager
-            def dummy():
-                self.clear_cache()
-                yield
-                self.clear_cache()
-            return dummy()
-
         self.clear_cache()
-        class CacheClearingTransaction:
-            def __init__(self, parent: CachedStoreWrapper, tx: Any) -> None:
-                self.parent = parent
-                self.tx = tx
-            def __enter__(self) -> Any:
-                self.parent.clear_cache()
-                return self.tx.__enter__()
-            def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Any:
-                res = self.tx.__exit__(exc_type, exc_val, exc_tb)
-                self.parent.clear_cache()
-                return res
-        return CacheClearingTransaction(self, self._store.transaction())
+        try:
+            if hasattr(self._store, "transaction"):
+                with self._store.transaction():
+                    yield
+            else:
+                yield
+        finally:
+            self.clear_cache()
 
 
 class AutomationService:
@@ -179,7 +174,6 @@ class AutomationService:
         self._cached_timezone_key = None
         self._cached_timezone_value = None
         self._tick_durations: list[float] = []
-        import threading
         self._local = threading.local()
 
         # Share the wrapped state store with the quota tracker to ensure cache coherency (P-04)
@@ -198,6 +192,14 @@ class AutomationService:
                     )
             state.update(updates)
             self._state_store.write(state)
+
+    def apply_state_updates(self, **updates: Any) -> None:
+        """Fencing-aware state update used by manual HTTP actions.
+
+        The caller must hold the automation lock; this method rejects the
+        write if another worker stole it in the meantime.
+        """
+        self._update_state(**updates)
 
     def _log(self, level: int, message: str, **details: Any) -> None:
         payload = "[automation] " + message
@@ -373,8 +375,13 @@ class AutomationService:
                         if mode is None:
                             mode = int(parts[1])
                         fan_speed = int(parts[2])
-                    except (ValueError, IndexError):
-                        pass
+                    except (ValueError, IndexError) as exc:
+                        self._debug(
+                            "Failed to parse cached aircon parameter",
+                            trigger=trigger,
+                            parameter=param,
+                            error=str(exc),
+                        )
 
             return {
                 "power": power,
@@ -390,8 +397,13 @@ class AutomationService:
                 last_poll = _ensure_utc(last_poll)
                 if now - last_poll < dt.timedelta(minutes=poll_cooldown_minutes):
                     is_cooldown_active = True
-            except ValueError:
-                pass
+            except ValueError as exc:
+                self._debug(
+                    "Failed to parse last_aircon_poll_at",
+                    trigger=trigger,
+                    value=last_aircon_poll_at,
+                    error=str(exc),
+                )
 
         if is_cooldown_active:
             self._debug(
@@ -415,8 +427,13 @@ class AutomationService:
                         if mode is None:
                             mode = int(parts[1])
                         fan_speed = int(parts[2])
-                    except (ValueError, IndexError):
-                        pass
+                    except (ValueError, IndexError) as exc:
+                        self._debug(
+                            "Failed to parse cached aircon parameter",
+                            trigger=trigger,
+                            parameter=param,
+                            error=str(exc),
+                        )
 
             return {
                 "power": power,
@@ -873,7 +890,7 @@ class AutomationService:
             self._log_quota_snapshot(context=f"scene_{action_key}")
             self._update_state(
                 assumed_aircon_power=assumed_power,
-                assumed_aircon_mode=None,
+                assumed_aircon_mode=AIRCON_MODE_BY_ACTION.get(action_key),
                 assumed_aircon_parameter=None,
                 last_action=f"scene({scene_id}) ({state_reason})",
                 last_action_at=_utc_now_iso(),
@@ -941,7 +958,7 @@ class AutomationService:
             if is_locked and not is_expired:
                 return False
                 
-            lock_token = int(state.get("automation_lock_token", 0)) + 1
+            lock_token = _safe_int(state.get("automation_lock_token"), default=0) + 1
             state["automation_in_progress"] = True
             state["automation_locked_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
             state["automation_lock_owner"] = owner_label
@@ -1239,6 +1256,7 @@ class AutomationService:
 
         if not reading or reading.get("temperature") is None:
             self._debug("Meter reading unavailable; aborting automation tick", trigger=trigger)
+            self._record_history_snapshot(timezone_name, trigger=trigger)
             self._log_tick_completion(trigger, outcome="missing_meter")
             return
 
@@ -1247,6 +1265,7 @@ class AutomationService:
         except (TypeError, ValueError):
             self._update_state(last_error="Invalid temperature reading")
             self._error("Invalid temperature reading returned by meter", trigger=trigger, value=reading.get("temperature"))
+            self._record_history_snapshot(timezone_name, trigger=trigger)
             self._log_tick_completion(trigger, outcome="invalid_temperature")
             return
 

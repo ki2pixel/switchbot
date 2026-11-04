@@ -44,7 +44,16 @@ class SchedulerService:
                 exc_info=True,
             )
         finally:
-            self._maybe_reschedule_after_tick()
+            # A store outage here must never escape the APScheduler job: an
+            # uncaught exception used to kill the periodic scheduling path.
+            try:
+                self._maybe_reschedule_after_tick()
+            except Exception as exc:
+                self._logger.error(
+                    "[scheduler] Post-tick reschedule failed (store unavailable?): %s",
+                    exc,
+                    exc_info=True,
+                )
 
     @property
     def last_tick_time(self) -> dt.datetime | None:
@@ -190,7 +199,7 @@ class SchedulerService:
                 desired_interval,
                 mode,
             )
-            self._schedule_or_reschedule_locked()
+            self._schedule_or_reschedule_locked(desired_interval)
 
     def start(self) -> None:
         with self._lock:
@@ -214,18 +223,19 @@ class SchedulerService:
             self._logger.info("[scheduler] Triggering immediate first tick in background thread")
             threading.Thread(target=self._run_tick_safe, name="first_scheduler_tick", daemon=True).start()
 
-    def _schedule_or_reschedule_locked(self) -> None:
+    def _schedule_or_reschedule_locked(self, desired_interval: int | None = None) -> None:
         if self._scheduler is None:
             self._logger.warning("[scheduler] Cannot schedule job: scheduler is None")
             return
 
-        interval = self._get_interval_seconds()
+        interval = (
+            desired_interval
+            if desired_interval is not None
+            else self._get_interval_seconds()
+        )
 
-        existing_job = self._scheduler.get_job(self._job_id)
-        if existing_job is not None:
-            self._logger.debug("[scheduler] Removing existing job before rescheduling")
-            existing_job.remove()
-
+        # replace_existing=True swaps the job atomically. Removing it first
+        # created a window where a failure left the scheduler with no job.
         self._scheduler.add_job(
             func=self._run_tick_safe,
             trigger="interval",
@@ -241,11 +251,20 @@ class SchedulerService:
     def reschedule(self) -> None:
         with self._lock:
             if self._scheduler is None:
-                self._logger.debug("[scheduler] Reschedule called but scheduler not started (normal if SCHEDULER_ENABLED=false)")
+                self._logger.debug(
+                    "[scheduler] Reschedule called but scheduler not started (normal if SCHEDULER_ENABLED=false)"
+                )
                 return
-            
-            self._logger.info("[scheduler] Rescheduling automation job")
-            self._schedule_or_reschedule_locked()
+
+            try:
+                self._logger.info("[scheduler] Rescheduling automation job")
+                self._schedule_or_reschedule_locked()
+            except Exception as exc:
+                self._logger.error(
+                    "[scheduler] Failed to reschedule automation job: %s",
+                    exc,
+                    exc_info=True,
+                )
 
     def stop(self) -> None:
         with self._lock:

@@ -18,29 +18,53 @@ class PostgresStoreError(StoreError):
 
 
 class PostgresStoreTransactionContext:
+    """Re-entrant, thread-local transaction context for :class:`PostgresStore`.
+
+    A nested transaction joins the transaction already active on the current
+    thread. Borrowing a second pooled connection would make the thread wait on
+    its own ``FOR UPDATE`` row lock until ``statement_timeout``.
+    """
+
     def __init__(self, store: PostgresStore):
         self._store = store
         self._conn_ctx = None
         self._conn = None
         self._cur = None
-        self._cached_data = None
+        self._conn_entered = False
+        self._cached_data: dict[str, Any] | None = None
         self._dirty = False
-        self._previous_transaction = None
+        self._is_nested = False
 
-    def __enter__(self):
-        self._previous_transaction = getattr(self._store._local, "active_transaction", None)
-        self._store._local.active_transaction = self
-        
+    def __enter__(self) -> "PostgresStoreTransactionContext":
+        active_tx = getattr(self._store._local, "active_transaction", None)
+        if active_tx is not None:
+            self._is_nested = True
+            return active_tx
+
         try:
             self._conn_ctx = self._store.pool.connection()
             self._conn = self._conn_ctx.__enter__()
+            self._conn_entered = True
             self._conn.autocommit = False
             self._cur = self._conn.cursor(row_factory=dict_row)
-            
-            # Row-level locking on json_store
-            self._cur.execute("SELECT data FROM json_store WHERE kind = %s FOR UPDATE", (self._store._kind,))
+
+            # Guarantee that the row exists so FOR UPDATE actually locks it.
+            # Without this INSERT two concurrent transactions would both see
+            # no row and could overwrite each other without serialization.
+            self._cur.execute(
+                """
+                INSERT INTO json_store (kind, data, updated_at)
+                VALUES (%s, '{}'::jsonb, NOW())
+                ON CONFLICT (kind) DO NOTHING
+                """,
+                (self._store._kind,),
+            )
+            self._cur.execute(
+                "SELECT data FROM json_store WHERE kind = %s FOR UPDATE",
+                (self._store._kind,),
+            )
             result = self._cur.fetchone()
-            
+
             if result is None:
                 self._cached_data = {}
             else:
@@ -51,72 +75,125 @@ class PostgresStoreTransactionContext:
                     self._cached_data = data
                 else:
                     self._cached_data = {}
+
+            self._store._local.active_transaction = self
+            return self
         except Exception as exc:
-            self._store._local.active_transaction = self._previous_transaction
-            if self._cur:
+            if self._conn is not None:
                 try:
-                    self._cur.close()
-                except Exception:
-                    pass
-            if self._conn_ctx:
-                try:
-                    self._conn_ctx.__exit__(type(exc), exc, exc.__traceback__)
-                except Exception:
-                    pass
-            raise PostgresStoreError(f"Failed to start transaction for {self._store._kind} store") from exc
-        return self
+                    self._conn.rollback()
+                except Exception as rollback_exc:
+                    self._store._logger.warning(
+                        "[store] Rollback failed while aborting transaction for %s store (%s)",
+                        self._store._kind,
+                        rollback_exc,
+                    )
+            self._close_resources()
+            raise PostgresStoreError(
+                f"Failed to start transaction for {self._store._kind} store"
+            ) from exc
+
+    def _close_resources(self) -> None:
+        if self._cur is not None:
+            try:
+                self._cur.close()
+            except Exception as cur_exc:
+                self._store._logger.warning(
+                    "[store] Failed to close cursor for %s store (%s)",
+                    self._store._kind,
+                    cur_exc,
+                )
+            finally:
+                self._cur = None
+
+        if self._conn_ctx is not None and self._conn_entered:
+            try:
+                # The transaction was already committed or rolled back above.
+                # Exiting without an exception avoids a spurious warning from
+                # the pool context manager while still returning the connection.
+                self._conn_ctx.__exit__(None, None, None)
+            except Exception as conn_exc:
+                self._store._logger.warning(
+                    "[store] Failed to return connection to pool for %s store (%s)",
+                    self._store._kind,
+                    conn_exc,
+                )
+            finally:
+                self._conn_ctx = None
+                self._conn = None
+                self._conn_entered = False
 
     def read(self) -> dict[str, Any]:
+        if self._is_nested:
+            return self._store._local.active_transaction.read()
         import copy
-        return copy.deepcopy(self._cached_data)
+        return copy.deepcopy(self._cached_data or {})
 
     def write(self, data: dict[str, Any]) -> None:
+        if self._is_nested:
+            self._store._local.active_transaction.write(data)
+            return
         import copy
         self._cached_data = copy.deepcopy(data)
         self._dirty = True
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._store._local.active_transaction = self._previous_transaction
-        
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        if self._is_nested:
+            return
+
+        self._store._local.active_transaction = None
+
         try:
             if exc_type is not None:
-                self._conn.rollback()
+                if self._conn is not None:
+                    self._conn.rollback()
                 self._store._logger.info(
-                    "[postgres] Transaction rolled back for %s store due to exception: %s",
+                    "[store] Transaction rolled back for %s store due to exception: %s",
                     self._store._kind,
                     exc_val,
                 )
+            elif self._dirty:
+                query = sql.SQL("""
+                    INSERT INTO json_store (kind, data, updated_at)
+                    VALUES (%s, %s, NOW())
+                    ON CONFLICT (kind)
+                    DO UPDATE SET
+                        data = EXCLUDED.data,
+                        updated_at = EXCLUDED.updated_at
+                """)
+                self._cur.execute(query, (self._store._kind, Jsonb(self._cached_data)))
+                self._conn.commit()
+                self._store._logger.debug(
+                    "[store] Transaction committed with write for %s store",
+                    self._store._kind,
+                )
             else:
-                if self._dirty:
-                    query = sql.SQL("""
-                        INSERT INTO json_store (kind, data, updated_at)
-                        VALUES (%s, %s, NOW())
-                        ON CONFLICT (kind)
-                        DO UPDATE SET
-                            data = EXCLUDED.data,
-                            updated_at = EXCLUDED.updated_at
-                    """)
-                    self._cur.execute(query, (self._store._kind, Jsonb(self._cached_data)))
-                    self._conn.commit()
-                    self._store._logger.debug("[postgres] Transaction committed with write for %s store", self._store._kind)
-                else:
-                    self._conn.commit()
-                    self._store._logger.debug("[postgres] Transaction committed (no write) for %s store", self._store._kind)
+                self._conn.commit()
+                self._store._logger.debug(
+                    "[store] Transaction committed (no write) for %s store",
+                    self._store._kind,
+                )
         except Exception as exc:
-            self._store._logger.error("[postgres] Failed to finalize transaction for %s store (%s)", self._store._kind, exc)
+            if self._conn is not None:
+                try:
+                    self._conn.rollback()
+                except Exception as rollback_exc:
+                    self._store._logger.warning(
+                        "[store] Rollback failed while finalizing transaction for %s store (%s)",
+                        self._store._kind,
+                        rollback_exc,
+                    )
+            self._store._logger.error(
+                "[store] Failed to finalize transaction for %s store (%s)",
+                self._store._kind,
+                exc,
+            )
             if exc_type is None:
-                raise PostgresStoreError(f"Failed to commit PostgreSQL transaction for {self._store._kind} store") from exc
+                raise PostgresStoreError(
+                    f"Failed to commit PostgreSQL transaction for {self._store._kind} store"
+                ) from exc
         finally:
-            if self._cur:
-                try:
-                    self._cur.close()
-                except Exception:
-                    pass
-            if self._conn_ctx:
-                try:
-                    self._conn_ctx.__exit__(exc_type, exc_val, exc_tb)
-                except Exception:
-                    pass
+            self._close_resources()
 
 
 class PostgresStore:
@@ -149,6 +226,7 @@ class PostgresStore:
                 "min_size": 1,
                 "max_size": max_connections,
                 "timeout": 5.0,  # pool checkout timeout
+                "open": True,
                 "kwargs": {
                     "sslmode": ssl_mode,
                     "connect_timeout": 5,
@@ -158,7 +236,7 @@ class PostgresStore:
             self._initialize_pool()
         else:
             self._logger.info(
-                "[postgres] Reusing shared connection pool for %s store", self._kind
+                "[store] Reusing shared connection pool for %s store", self._kind
             )
 
         self._ensure_table_exists()
@@ -168,11 +246,11 @@ class PostgresStore:
         try:
             self._pool = ConnectionPool(**self._connection_params)
             self._logger.info(
-                "[postgres] Connection pool initialized for %s store", self._kind
+                "[store] Connection pool initialized for %s store", self._kind
             )
         except Exception as exc:
             self._logger.error(
-                "[postgres] Failed to initialize connection pool for %s store (%s)",
+                "[store] Failed to initialize connection pool for %s store (%s)",
                 self._kind,
                 exc,
             )
@@ -188,7 +266,6 @@ class PostgresStore:
                 data JSONB NOT NULL,
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             );
-            CREATE INDEX IF NOT EXISTS idx_json_store_kind ON json_store(kind);
             CREATE INDEX IF NOT EXISTS idx_json_store_updated_at ON json_store(updated_at);
         """)
 
@@ -198,11 +275,11 @@ class PostgresStore:
                     cur.execute(create_table_query)
                     conn.commit()
                     self._logger.info(
-                        "[postgres] Table ensured for %s store", self._kind
+                        "[store] Table ensured for %s store", self._kind
                     )
         except Exception as exc:
             self._logger.error(
-                "[postgres] Failed to ensure table exists for %s store (%s)",
+                "[store] Failed to ensure table exists for %s store (%s)",
                 self._kind,
                 exc,
             )
@@ -227,7 +304,7 @@ class PostgresStore:
 
                     if result is None:
                         self._logger.debug(
-                            "[postgres] No data found for %s store, returning empty dict",
+                            "[store] No data found for %s store, returning empty dict",
                             self._kind,
                         )
                         return {}
@@ -246,7 +323,7 @@ class PostgresStore:
             raise
         except Exception as exc:
             self._logger.error(
-                "[postgres] Read failed for %s store (%s)", self._kind, exc
+                "[store] Read failed for %s store (%s)", self._kind, exc
             )
             raise PostgresStoreError(
                 f"PostgreSQL read failed for {self._kind} store"
@@ -274,12 +351,12 @@ class PostgresStore:
                     cur.execute(query, (self._kind, jsonb_data))
                     conn.commit()
                     self._logger.debug(
-                        "[postgres] Data written successfully for %s store", self._kind
+                        "[store] Data written successfully for %s store", self._kind
                     )
 
         except Exception as exc:
             self._logger.error(
-                "[postgres] Write failed for %s store (%s)", self._kind, exc
+                "[store] Write failed for %s store (%s)", self._kind, exc
             )
             raise PostgresStoreError(
                 f"PostgreSQL write failed for {self._kind} store"
@@ -296,17 +373,17 @@ class PostgresStore:
         if self._pool and self._owns_pool:
             try:
                 self._pool.close()
-                self._logger.info("[postgres] Connection pool closed for %s store", self._kind)
+                self._logger.info("[store] Connection pool closed for %s store", self._kind)
             except Exception as exc:
                 self._logger.warning(
-                    "[postgres] Error closing connection pool for %s store (%s)",
+                    "[store] Error closing connection pool for %s store (%s)",
                     self._kind,
                     exc,
                 )
             finally:
                 self._pool = None
         elif self._pool:
-            self._logger.debug("[postgres] Skipping closing shared pool for %s store", self._kind)
+            self._logger.debug("[store] Skipping closing shared pool for %s store", self._kind)
             self._pool = None
 
     def health_check(self) -> bool:
@@ -323,6 +400,6 @@ class PostgresStore:
                     return True
         except Exception as exc:
             self._logger.warning(
-                "[postgres] Health check failed for %s store (%s)", self._kind, exc
+                "[store] Health check failed for %s store (%s)", self._kind, exc
             )
             return False

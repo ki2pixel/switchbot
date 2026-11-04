@@ -70,6 +70,36 @@ class TestSwitchBotClientInit:
         assert c._quota_tracker == mock_quota_tracker
 
 
+class TestSwitchBotClientBaseUrlValidation:
+    @pytest.mark.parametrize(
+        "base_url",
+        [
+            "http://api.switch-bot.com",
+            "https://127.0.0.1",
+            "https://10.0.0.5",
+            "https://169.254.169.254",
+            "https://[::1]",
+            "https://localhost",
+            "https://metadata.google.internal",
+            "https://user:pass@api.switch-bot.com",
+            "https://api.switch-bot.com#fragment",
+            "https://api.switch-bot.com?x=1",
+        ],
+    )
+    def test_init_rejects_unsafe_base_url(self, base_url: str) -> None:
+        with pytest.raises(SwitchBotApiError):
+            SwitchBotClient(token="token", secret="secret", base_url=base_url)
+
+    def test_init_accepts_and_normalizes_https_base_url(self) -> None:
+        client = SwitchBotClient(
+            token="token",
+            secret="secret",
+            base_url="https://custom.api.switch-bot.com/",
+        )
+        assert client._base_url == "https://custom.api.switch-bot.com"
+
+
+
 class TestHMACHeaders:
     """Test HMAC header generation logic."""
 
@@ -142,7 +172,7 @@ class TestQuotaTracking:
 class TestClientRequestOperations:
     """Test requests retry behavior, error codes, and main API methods."""
 
-    @patch("requests.request")
+    @patch("requests.Session.request")
     def test_request_success(self, mock_request, client) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -159,7 +189,7 @@ class TestClientRequestOperations:
         assert res["statusCode"] == 100
         assert mock_request.call_count == 1
 
-    @patch("requests.request")
+    @patch("requests.Session.request")
     def test_request_retries_on_500(self, mock_request, client) -> None:
         mock_response_500 = MagicMock()
         mock_response_500.status_code = 500
@@ -181,7 +211,58 @@ class TestClientRequestOperations:
         assert res["statusCode"] == 100
         assert mock_request.call_count == 2
 
-    @patch("requests.request")
+    @patch("requests.Session.request")
+    def test_quota_captured_before_retry_then_timeout(
+        self, mock_request, client, mock_quota_tracker
+    ) -> None:
+        """Un 429 suivi d'un timeout doit quand même enregistrer remaining=0."""
+        mock_response_429 = MagicMock()
+        mock_response_429.status_code = 429
+        mock_response_429.headers = {
+            "x-ratelimit-limit": "10000",
+            "x-ratelimit-remaining": "0",
+        }
+        mock_request.side_effect = [
+            mock_response_429,
+            requests.RequestException("timeout after 429"),
+        ]
+
+        with pytest.raises(SwitchBotApiError):
+            client._request("GET", "/test")
+
+        mock_quota_tracker.record_from_headers.assert_called_once_with(
+            limit=10000, remaining=0
+        )
+
+
+    @patch("requests.Session.request")
+    def test_quota_tracker_failure_does_not_break_api(
+        self, mock_request, client, mock_quota_tracker
+    ) -> None:
+        """Un store de quota indisponible ne doit pas casser l'appel SwitchBot."""
+        mock_quota_tracker.record_from_headers.side_effect = RuntimeError("store down")
+        mock_quota_tracker.record_call.side_effect = RuntimeError("store down")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {
+            "x-ratelimit-limit": "10000",
+            "x-ratelimit-remaining": "9999",
+        }
+        mock_response.json.return_value = {
+            "statusCode": 100,
+            "message": "success",
+            "body": {},
+        }
+        mock_request.return_value = mock_response
+
+        # Given/When: le tracker lève une erreur
+        result = client._request("GET", "/test")
+
+        # Then: l'appel API reste exploitable
+        assert result["statusCode"] == 100
+
+    @patch("requests.Session.request")
     def test_request_fails_after_max_retries(self, mock_request, client) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 500
@@ -193,7 +274,7 @@ class TestClientRequestOperations:
 
         assert mock_request.call_count == 2
 
-    @patch("requests.request")
+    @patch("requests.Session.request")
     def test_request_network_exception_retries(self, mock_request, client) -> None:
         mock_request.side_effect = [
             requests.RequestException("Network timeout"),
@@ -205,7 +286,7 @@ class TestClientRequestOperations:
 
         assert mock_request.call_count == 2
 
-    @patch("requests.request")
+    @patch("requests.Session.request")
     def test_request_status_190_retries(self, mock_request, client) -> None:
         mock_response_190 = MagicMock()
         mock_response_190.status_code = 200
@@ -229,7 +310,7 @@ class TestClientRequestOperations:
         assert res["statusCode"] == 100
         assert mock_request.call_count == 2
 
-    @patch("requests.request")
+    @patch("requests.Session.request")
     def test_request_invalid_json(self, mock_request, client) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -252,7 +333,7 @@ class TestClientRequestOperations:
         with pytest.raises(SwitchBotApiError, match="Missing scene_id"):
             client.run_scene("")
 
-    @patch("requests.request")
+    @patch("requests.Session.request")
     def test_run_scene_request(self, mock_request, client) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -265,7 +346,7 @@ class TestClientRequestOperations:
         mock_request.assert_called_once()
         assert "scenes/scene-uuid/execute" in mock_request.call_args[1]["url"]
 
-    @patch("requests.request")
+    @patch("requests.Session.request")
     def test_request_429_forces_remaining_to_zero(self, mock_request, client, mock_quota_tracker) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 429

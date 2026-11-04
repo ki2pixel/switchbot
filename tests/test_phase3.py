@@ -136,6 +136,54 @@ def test_postgres_store_transaction_rollback():
     mock_conn.rollback.assert_called()
 
 
+def test_json_store_nested_transaction_joins_parent(tmp_path):
+    """Une transaction imbriquée ne doit pas re-acquérir le verrou non réentrant."""
+    store = JsonStore(str(tmp_path / "nested.json"))
+    store.write({"key": "initial"})
+
+    # Given/When: deux blocs transaction imbriqués sur le même thread
+    with store.transaction():
+        with store.transaction():
+            data = store.read()
+            data["key"] = "nested"
+            store.write(data)
+
+        # Then: le contexte imbriqué partage l'état du parent
+        assert store.read() == {"key": "nested"}
+
+    assert store.read() == {"key": "nested"}
+
+
+def test_postgres_store_nested_transaction_reuses_parent_connection():
+    """La transaction imbriquée doit réutiliser la connexion du parent."""
+    mock_pool = MagicMock()
+    mock_conn = MagicMock()
+    mock_cur = MagicMock()
+    mock_conn_ctx = MagicMock()
+    mock_pool.connection.return_value = mock_conn_ctx
+    mock_conn_ctx.__enter__.return_value = mock_conn
+    mock_conn.cursor.return_value = mock_cur
+    mock_cur.fetchone.return_value = {"data": {"key": "initial_db"}}
+
+    store = PostgresStore(kind="state", logger=MagicMock(), pool=mock_pool)
+
+    # Ignore les appels faits par _ensure_table_exists pendant l'initialisation
+    mock_pool.connection.reset_mock()
+    mock_conn.reset_mock()
+
+    # Given/When: deux blocs transaction imbriqués
+    with store.transaction():
+        with store.transaction():
+            data = store.read()
+            data["key"] = "nested_db"
+            store.write(data)
+
+    # Then: une seule connexion a été empruntée et un seul commit a eu lieu
+    mock_pool.connection.assert_called_once()
+    mock_conn.commit.assert_called_once()
+
+
+
 def test_history_api_fail_safe_in_production():
     """Without PostgreSQL in production, /history/api/* must stay fail-safe:
     HTTP 200 with empty, well-formed data flagged as degraded."""
@@ -236,7 +284,7 @@ def test_switchbot_client_retry_delay_cap():
     
     client = SwitchBotClient(token="test", secret="test", retry_delay_seconds=10, retry_attempts=2)
     
-    with patch("requests.request", side_effect=requests.RequestException("failing")), \
+    with patch("requests.Session.request", side_effect=requests.RequestException("failing")), \
          patch("time.sleep") as mock_sleep:
         try:
             client.get_devices()
