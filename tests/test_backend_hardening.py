@@ -148,6 +148,10 @@ class TestStoreFailoverAndBuild:
         app.debug = False
         app.testing = False
 
+        # CI exports FLASK_ENV=testing globally; this test needs a real
+        # production evaluation, so clear every ambient override first.
+        monkeypatch.delenv("FLASK_ENV", raising=False)
+        monkeypatch.delenv("FLASK_DEBUG", raising=False)
         monkeypatch.setenv("RENDER", "true")
         monkeypatch.setenv("STORE_BACKEND", "postgres")
         monkeypatch.setenv("POSTGRES_URL", "postgresql://localhost/fake")
@@ -177,6 +181,8 @@ class TestStoreFailoverAndBuild:
         app.debug = False
         app.testing = False
 
+        monkeypatch.delenv("FLASK_ENV", raising=False)
+        monkeypatch.delenv("FLASK_DEBUG", raising=False)
         monkeypatch.setenv("RENDER", "true")
         monkeypatch.setenv("STORE_BACKEND", "postgres")
         monkeypatch.setenv("POSTGRES_URL", "postgresql://localhost/fake")

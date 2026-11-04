@@ -23,6 +23,10 @@
   - `/healthz` expose désormais `store_fallback_enabled` ; `ResilientStore.fallback_enabled` ajouté.
   - Tests : **291 passent**, 1 skipped (WSGI-01..04 + séparation dev/prod du fallback runtime).
   - **Action ops restante** : retirer `FLASK_DEBUG` du dashboard Render, et vérifier que `STORE_RUNTIME_FALLBACK` n'y est pas activé. Si `FLASK_SECRET_KEY` est faible, le prochain démarrage échouera volontairement (« Security Violation »).
+- **[2026-11-04 14:49:41] - CI GitHub Actions : échec `test_build_store_disables_runtime_fallback_in_production`** :
+  - Cause : la CI exporte `FLASK_ENV=testing` pour toute la session pytest ; `_build_store` en déduit `is_testing=True`, donc `is_production=False`, donc le fallback JSON est armé. En local la variable est absente, le test passait.
+  - Fix : les deux tests de `TestStoreFailoverAndBuild` font désormais `monkeypatch.delenv("FLASK_ENV"/"FLASK_DEBUG")` avant de simuler la production. Commentaire ajouté pour éviter la régression.
+  - Validation : suite complète rejouée avec `FLASK_ENV=testing FLASK_DEBUG=0` (conditions CI) → **291 passed, 1 skipped**.
 
 ## Session 2026-11-04 — Remédiation Audit Frontend V2
 - **[2026-11-04 13:20:00] - Correctif ordre CSS (cartes claires après navigation SPA)** :

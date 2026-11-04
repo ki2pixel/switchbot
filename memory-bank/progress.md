@@ -14,6 +14,7 @@
 - [x] [2026-11-04 14:31:00] - **285 tests passent**, 1 skipped.
 - [x] [2026-11-04 14:41:41] - `FLASK_DEBUG` neutralisé sous WSGI : cookies `Secure`, HSTS et garde-fous production rétablis ; fallback JSON runtime désactivé en prod par défaut.
 - [x] [2026-11-04 14:41:41] - **291 tests passent**, 1 skipped.
+- [x] [2026-11-04 14:49:41] - Tests de failover rendus indépendants de `FLASK_ENV=testing` exporté par la CI.
 
 ## Phase Remédiation Audit Frontend V2 (2026-11-04) — COMPLÈTE ✔
 - [x] [2026-11-04 13:00:00] - AUD-02 : timestamps ISO-8601 valides (`_utc_iso_z`) sur healthz et mocks history.
