@@ -8,6 +8,7 @@
 - [x] [2026-11-04 13:00:00] - AUD-08 : CSS composite-only, focus-visible, chevrons accessibles, reduced-motion.
 - [x] [2026-11-04 13:00:00] - AUD-09 : CSP nonce par requête, rétention configurable 24h, docs skills alignées.
 - [x] [2026-11-04 13:00:00] - AUD-01/04/07 : constats infirmés après vérification (aucune modification nécessaire).
+- [x] [2026-11-04 13:20:00] - Fix ordre CSS : vendor avant `theme.css` (cartes claires après navigation SPA) + test `TestStylesheetOrder`.
 
 ## Phase Maintenance & Clean-up (2026-11-04) — COMPLÈTE ✔
 - [x] [2026-11-04 12:05:00] - Nettoyage des configs IDE legacy (.cline, .windsurf, .codex, .zencoder) et consolidation dans `.agents/`.

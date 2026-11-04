@@ -438,12 +438,13 @@
       }
     </style>
     
-    <!-- Preload Critical Resources -->
+    <!-- Preload Critical Resources (vendor CSS must come before theme.css so
+         the dark theme can override Bootstrap defaults) -->
+    <link rel="preload" href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" as="style" />
+    <link rel="preload" href="{{ url_for('static', filename='vendor/css/space-grotesk.css') }}" as="style" />
     <link rel="preload" href="{{ url_for('static', filename='css/theme.css') }}" as="style" />
     <link rel="preload" href="{{ url_for('static', filename='css/index.css') }}" as="style" />
     <link rel="preload" href="{{ url_for('static', filename='js/loaders.js') }}" as="script" />
-    <link rel="preload" href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" as="style" />
-    <link rel="preload" href="{{ url_for('static', filename='vendor/css/space-grotesk.css') }}" as="style" />
     <link rel="preload" href="{{ url_for('static', filename='css/sticky-cards.css') }}" as="style" data-deferred="true" />
     <link rel="preload" href="{{ url_for('static', filename='css/sticky-footer.css') }}" as="style" data-deferred="true" />
 

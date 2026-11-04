@@ -5,8 +5,11 @@ fonts are converted to WOFF2, and no debug console.log remains.
 """
 from __future__ import annotations
 
+import glob
 import os
 import re
+
+from bs4 import BeautifulSoup
 
 
 PROJECT_ROOT = os.path.join(os.path.dirname(__file__), "..")
@@ -197,3 +200,77 @@ class TestCSSCompositorSafety:
         """devices.css must honour prefers-reduced-motion."""
         css = _read_file(os.path.join(CSS_DIR, "devices.css"))
         assert "@media (prefers-reduced-motion: reduce)" in css
+
+
+TEMPLATES_DIR = os.path.join(PROJECT_ROOT, "switchbot_dashboard", "templates")
+
+PAGE_STYLESHEETS = (
+    "css/index.css",
+    "css/settings.css",
+    "css/actions.css",
+    "css/history.css",
+    "css/devices.css",
+)
+
+
+def _stylesheet_order(template_path: str) -> list[str]:
+    """Return static stylesheet filenames in <head> declaration order."""
+    soup = BeautifulSoup(_read_file(template_path), "html.parser")
+    order: list[str] = []
+    for link in soup.find_all("link"):
+        rel = link.get("rel") or []
+        if "stylesheet" not in rel and link.get("as") != "style":
+            continue
+        href = link.get("href", "")
+        match = re.search(r"filename='([^']+)'", href)
+        if match:
+            order.append(match.group(1))
+    return order
+
+
+class TestStylesheetOrder:
+    """Vendor CSS must load before theme.css so the dark theme overrides
+    Bootstrap defaults (regression: SPA navigation rendered light cards)."""
+
+    def test_vendor_css_precedes_theme_in_every_template(self):
+        templates = sorted(
+            p for p in glob.glob(os.path.join(TEMPLATES_DIR, "*.html"))
+            if not os.path.basename(p).startswith("_")
+        )
+        assert templates, "No templates found"
+
+        for path in templates:
+            name = os.path.basename(path)
+            order = _stylesheet_order(path)
+            if "css/theme.css" not in order:
+                continue
+
+            theme_index = order.index("css/theme.css")
+            for vendor in ("vendor/css/bootstrap.min.css", "vendor/css/space-grotesk.css"):
+                if vendor not in order:
+                    continue
+                assert order.index(vendor) < theme_index, (
+                    f"{name}: {vendor} must be declared before theme.css "
+                    f"(found order: {order})"
+                )
+
+    def test_page_css_follows_theme(self):
+        templates = sorted(
+            p for p in glob.glob(os.path.join(TEMPLATES_DIR, "*.html"))
+            if not os.path.basename(p).startswith("_")
+        )
+
+        for path in templates:
+            name = os.path.basename(path)
+            order = _stylesheet_order(path)
+            if "css/theme.css" not in order:
+                continue
+
+            theme_index = order.index("css/theme.css")
+            for page_css in PAGE_STYLESHEETS:
+                if page_css not in order:
+                    continue
+                assert order.index(page_css) > theme_index, (
+                    f"{name}: {page_css} must be declared after theme.css "
+                    f"(found order: {order})"
+                )

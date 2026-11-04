@@ -1,6 +1,11 @@
 # Contexte Actif
 
 ## Session 2026-11-04 — Remédiation Audit Frontend V2
+- **[2026-11-04 13:20:00] - Correctif ordre CSS (cartes claires après navigation SPA)** :
+  - Cause : `index.html` chargeait `theme.css` **avant** `bootstrap.min.css`. En SPA, cet ordre était conservé ; `.card { background-color: var(--bs-card-bg) }` (Bootstrap, blanc) écrasait `.card { background: var(--sb-glass-bg) }` (theme sombre). Au survol, `.card:hover` reprenait le dessus → fond clair puis sombre.
+  - Fix : réordonnancement des preloads d'`index.html` (bootstrap → space-grotesk → theme → index → sticky-*), aligné sur tous les autres templates.
+  - `spa-router.js` : `sticky-cards.css` traité comme feuille page-specific (nettoyage en quittant l'accueil).
+  - Tests : `TestStylesheetOrder` (vendor avant theme, page CSS après theme) — **228 tests passent**.
 - **[2026-11-04 13:00:00] - Correction des constats vérifiés de `docs/audits/Audit_Frontend_SwitchBot_Dashboard_V2.md`** :
   - **AUD-02** : helper `_utc_iso_z()` dans `utils.py` ; suppression des 6 concaténations `.isoformat() + "Z"` (healthz + mocks history).
   - **AUD-03** : garde `response.redirected → /login` + `401` dans `spa-router.js`, resynchronisation du token CSRF, redirection `401` dans `history.js`.

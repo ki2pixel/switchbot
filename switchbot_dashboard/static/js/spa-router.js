@@ -124,7 +124,9 @@ class SPARouter {
           .filter(Boolean)
       );
 
-      const pageSpecificCSSPattern = /\/static\/css\/(index|settings|actions|history|devices)\.css$/;
+      // Page-specific stylesheets are removed when leaving their page, so an
+      // SPA transition ends up with the same CSS set as a full reload.
+      const pageSpecificCSSPattern = /\/static\/css\/(index|settings|actions|history|devices|sticky-cards)\.css$/;
 
       // Inject only stylesheets that are not already in the document
       const loadPromises = [];
