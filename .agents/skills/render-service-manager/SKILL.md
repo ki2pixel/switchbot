@@ -1,6 +1,7 @@
 ---
 name: render-service-manager
 description: Gestion complète des services Render.com pour SwitchBot Dashboard (déploiement, monitoring, environnements, bases de données). Utiliser pour créer/gérer web services, cron jobs, static sites, PostgreSQL et monitoring via render-switchbot-mcp.
+---
 
 > ⚠️ **Note** : Les scripts et références MCP Render mentionnés dans ce skill sont des placeholders. Pour les opérations réelles, utiliser les outils MCP `render-switchbot-mcp` directement ou les scripts dans `/home/kidpixel/SwitchBot/scripts/`.
 
