@@ -71,6 +71,45 @@ def _ensure_utc(value: dt.datetime) -> dt.datetime:
     return value.astimezone(dt.timezone.utc)
 
 
+def _is_virtual_aircon_device(aircon_device_id: str) -> bool:
+    """Return True for virtual infrared remotes that reject status queries."""
+    return len(aircon_device_id) > 12 and aircon_device_id.count("-") >= 2
+
+
+def _is_assumed_fan_mode(state: dict[str, Any]) -> bool:
+    """Return True when the assumed state already represents fan mode."""
+    assumed_power = state.get("assumed_aircon_power", "")
+    assumed_mode = state.get("assumed_aircon_mode")
+    last_action = state.get("last_action", "")
+    return assumed_power == "on" and (
+        assumed_mode == 4 or "fan" in str(last_action).lower()
+    )
+
+
+def _build_aircon_status_updates(body: dict[str, Any]) -> dict[str, Any]:
+    """Map a SwitchBot aircon status body to state-store updates."""
+    power = body.get("power")
+    mode = body.get("mode")
+    temperature = body.get("temperature")
+    fan_speed = body.get("fanSpeed")
+
+    updates: dict[str, Any] = {"last_aircon_poll_at": _utc_now_iso()}
+    if power is not None:
+        updates["assumed_aircon_power"] = power
+    if mode is not None:
+        updates["assumed_aircon_mode"] = mode
+    if (
+        power is not None
+        and mode is not None
+        and temperature is not None
+        and fan_speed is not None
+    ):
+        updates["assumed_aircon_parameter"] = (
+            f"{temperature},{mode},{fan_speed},{power}"
+        )
+    return updates
+
+
 logger = logging.getLogger(__name__)
 OFF_REPEAT_STATE_KEY = "pending_off_repeat"
 DEFAULT_TIMEZONE = "Europe/Paris"
@@ -320,6 +359,88 @@ class AutomationService:
         )
         return {"temperature": temperature, "humidity": humidity}
 
+    def _build_cached_aircon_status(
+        self, state: dict[str, Any], *, trigger: str
+    ) -> dict[str, Any]:
+        """Reconstruct an aircon status payload from the persisted assumed state."""
+        power = state.get("assumed_aircon_power")
+        mode = state.get("assumed_aircon_mode")
+        temperature: float | int | None = None
+        fan_speed: int | None = None
+
+        param = state.get("assumed_aircon_parameter")
+        if param and isinstance(param, str):
+            parts = param.split(",")
+            if len(parts) >= 4:
+                try:
+                    temperature = float(parts[0]) if "." in parts[0] else int(parts[0])
+                    if mode is None:
+                        mode = int(parts[1])
+                    fan_speed = int(parts[2])
+                except (ValueError, IndexError) as exc:
+                    self._debug(
+                        "Failed to parse cached aircon parameter",
+                        trigger=trigger,
+                        parameter=param,
+                        error=str(exc),
+                    )
+
+        return {
+            "power": power,
+            "mode": mode,
+            "temperature": temperature,
+            "fanSpeed": fan_speed,
+        }
+
+    def _aircon_poll_cooldown_active(
+        self,
+        *,
+        now: dt.datetime,
+        state: dict[str, Any],
+        cooldown_minutes: int,
+        trigger: str,
+    ) -> bool:
+        """Return True when the last successful poll is still within the cooldown."""
+        last_aircon_poll_at = state.get("last_aircon_poll_at")
+        if not last_aircon_poll_at or state.get("assumed_aircon_power") is None:
+            return False
+
+        try:
+            last_poll = _ensure_utc(
+                dt.datetime.fromisoformat(
+                    str(last_aircon_poll_at).replace("Z", "+00:00")
+                )
+            )
+        except ValueError as exc:
+            self._debug(
+                "Failed to parse last_aircon_poll_at",
+                trigger=trigger,
+                value=last_aircon_poll_at,
+                error=str(exc),
+            )
+            return False
+
+        return now - last_poll < dt.timedelta(minutes=cooldown_minutes)
+
+    def _sync_aircon_status(
+        self, updates: dict[str, Any], *, trigger: str
+    ) -> None:
+        """Persist only the status fields that differ from the assumed state."""
+        current_state = self._state_store.read()
+        changes = {
+            key: value
+            for key, value in updates.items()
+            if current_state.get(key) != value
+        }
+        if not changes:
+            return
+        self._update_state(**changes)
+        self._info(
+            "Aircon state synchronized from API status",
+            trigger=trigger,
+            **changes,
+        )
+
     def poll_aircon_status(self, aircon_device_id: str, *, force: bool = False) -> dict[str, Any] | None:
         """Poll the real-time status of the virtual Air Conditioner from SwitchBot API.
 
@@ -342,107 +463,43 @@ class AutomationService:
             )
             return None
 
-        # Check cooldown
         now = dt.datetime.now(dt.timezone.utc)
         settings = self._settings_store.read()
-        poll_cooldown_minutes = _safe_int(settings.get("aircon_poll_cooldown_minutes"), default=15)
-
+        poll_cooldown_minutes = _safe_int(
+            settings.get("aircon_poll_cooldown_minutes"), default=15
+        )
         state = self._state_store.read()
-        last_aircon_poll_at = state.get("last_aircon_poll_at")
-        has_cached_status = state.get("assumed_aircon_power") is not None
 
-        # Check if the device is a virtual infrared remote.
-        # Virtual infrared devices (IDs with length > 12 and at least 2 hyphens) do not support status queries.
-        # Calling the API on them always returns status 190 and wastes quota.
-        is_virtual = len(aircon_device_id) > 12 and aircon_device_id.count("-") >= 2
-        if is_virtual:
+        # Virtual infrared devices (IDs with length > 12 and at least 2 hyphens)
+        # do not support status queries and would only waste quota.
+        if _is_virtual_aircon_device(aircon_device_id):
             self._debug(
                 "Aircon polling bypassed (virtual infrared remote doesn't support status queries)",
                 trigger=trigger,
                 aircon_device_id=aircon_device_id,
             )
-            power = state.get("assumed_aircon_power")
-            mode = state.get("assumed_aircon_mode")
-            temperature = None
-            fan_speed = None
+            return self._build_cached_aircon_status(state, trigger=trigger)
 
-            param = state.get("assumed_aircon_parameter")
-            if param and isinstance(param, str):
-                parts = param.split(",")
-                if len(parts) >= 4:
-                    try:
-                        temperature = float(parts[0]) if '.' in parts[0] else int(parts[0])
-                        if mode is None:
-                            mode = int(parts[1])
-                        fan_speed = int(parts[2])
-                    except (ValueError, IndexError) as exc:
-                        self._debug(
-                            "Failed to parse cached aircon parameter",
-                            trigger=trigger,
-                            parameter=param,
-                            error=str(exc),
-                        )
-
-            return {
-                "power": power,
-                "mode": mode,
-                "temperature": temperature,
-                "fanSpeed": fan_speed,
-            }
-
-        is_cooldown_active = False
-        if not force and last_aircon_poll_at and has_cached_status:
-            try:
-                last_poll = dt.datetime.fromisoformat(last_aircon_poll_at.replace("Z", "+00:00"))
-                last_poll = _ensure_utc(last_poll)
-                if now - last_poll < dt.timedelta(minutes=poll_cooldown_minutes):
-                    is_cooldown_active = True
-            except ValueError as exc:
-                self._debug(
-                    "Failed to parse last_aircon_poll_at",
-                    trigger=trigger,
-                    value=last_aircon_poll_at,
-                    error=str(exc),
-                )
-
-        if is_cooldown_active:
+        if not force and self._aircon_poll_cooldown_active(
+            now=now,
+            state=state,
+            cooldown_minutes=poll_cooldown_minutes,
+            trigger=trigger,
+        ):
             self._debug(
                 "Aircon polling bypassed (cooldown active)",
                 trigger=trigger,
                 aircon_device_id=aircon_device_id,
-                last_aircon_poll_at=last_aircon_poll_at,
+                last_aircon_poll_at=state.get("last_aircon_poll_at"),
             )
-            # Reconstruct status from state cache
-            power = state.get("assumed_aircon_power")
-            mode = state.get("assumed_aircon_mode")
-            temperature = None
-            fan_speed = None
+            return self._build_cached_aircon_status(state, trigger=trigger)
 
-            param = state.get("assumed_aircon_parameter")
-            if param and isinstance(param, str):
-                parts = param.split(",")
-                if len(parts) >= 4:
-                    try:
-                        temperature = float(parts[0]) if '.' in parts[0] else int(parts[0])
-                        if mode is None:
-                            mode = int(parts[1])
-                        fan_speed = int(parts[2])
-                    except (ValueError, IndexError) as exc:
-                        self._debug(
-                            "Failed to parse cached aircon parameter",
-                            trigger=trigger,
-                            parameter=param,
-                            error=str(exc),
-                        )
-
-            return {
-                "power": power,
-                "mode": mode,
-                "temperature": temperature,
-                "fanSpeed": fan_speed,
-            }
-
-        self._debug("Polling SwitchBot aircon status", trigger=trigger, aircon_device_id=aircon_device_id, force=force)
+        self._debug(
+            "Polling SwitchBot aircon status",
+            trigger=trigger,
+            aircon_device_id=aircon_device_id,
+            force=force,
+        )
 
         try:
             response = self._client.get_device_status(aircon_device_id)
@@ -461,45 +518,14 @@ class AutomationService:
         self._log_quota_snapshot(context="aircon_status")
 
         body = response.get("body", {})
-        power = body.get("power")
-        mode = body.get("mode")
-        temperature = body.get("temperature")
-        fan_speed = body.get("fanSpeed")
-
-        updates: dict[str, Any] = {
-            "last_aircon_poll_at": _utc_now_iso()
-        }
-        if power is not None:
-            updates["assumed_aircon_power"] = power
-        if mode is not None:
-            updates["assumed_aircon_mode"] = mode
-        if (
-            power is not None
-            and mode is not None
-            and temperature is not None
-            and fan_speed is not None
-        ):
-            updates["assumed_aircon_parameter"] = f"{temperature},{mode},{fan_speed},{power}"
-
-        if updates:
-            current_state = self._state_store.read()
-            changes = {}
-            for k, v in updates.items():
-                if current_state.get(k) != v:
-                    changes[k] = v
-            if changes:
-                self._update_state(**changes)
-                self._info(
-                    "Aircon state synchronized from API status",
-                    trigger=trigger,
-                    **changes
-                )
-
+        self._sync_aircon_status(
+            _build_aircon_status_updates(body), trigger=trigger
+        )
         return {
-            "power": power,
-            "mode": mode,
-            "temperature": temperature,
-            "fanSpeed": fan_speed,
+            "power": body.get("power"),
+            "mode": body.get("mode"),
+            "temperature": body.get("temperature"),
+            "fanSpeed": body.get("fanSpeed"),
         }
 
     def _cooldown_active(self, now: dt.datetime) -> bool:
@@ -677,6 +703,66 @@ class AutomationService:
             state_reason=state_reason,
         )
 
+    def _load_due_off_repeat(
+        self, now: dt.datetime
+    ) -> tuple[int, str, int] | None:
+        """Return the due off-repeat schedule, clearing invalid or exhausted tasks."""
+        state = self._state_store.read()
+        task = state.get(OFF_REPEAT_STATE_KEY)
+        if not isinstance(task, dict):
+            return None
+
+        remaining = _safe_int(task.get("remaining"), default=0)
+        if remaining <= 0:
+            self._clear_off_repeat_task()
+            return None
+
+        next_run_raw = task.get("next_run_at")
+        if not isinstance(next_run_raw, str):
+            self._clear_off_repeat_task()
+            return None
+
+        try:
+            next_run_at = dt.datetime.fromisoformat(
+                next_run_raw.replace("Z", "+00:00")
+            )
+        except ValueError:
+            self._clear_off_repeat_task()
+            return None
+
+        if _ensure_utc(now) < _ensure_utc(next_run_at):
+            return None
+
+        state_reason = (
+            str(task.get("state_reason", "automation_off_repeat")).strip()
+            or "automation_off_repeat"
+        )
+        interval_seconds = max(
+            _safe_int(task.get("interval_seconds"), default=10), 1
+        )
+        return remaining, state_reason, interval_seconds
+
+    def _reschedule_off_repeat(
+        self,
+        now_utc: dt.datetime,
+        *,
+        remaining: int,
+        interval_seconds: int,
+        state_reason: str,
+    ) -> str:
+        """Persist the next off-repeat run and return its ISO timestamp."""
+        next_run_at = (now_utc + dt.timedelta(seconds=interval_seconds)).isoformat()
+        with self._state_store.transaction():
+            state = self._state_store.read()
+            state[OFF_REPEAT_STATE_KEY] = {
+                "remaining": remaining,
+                "interval_seconds": interval_seconds,
+                "next_run_at": next_run_at,
+                "state_reason": state_reason,
+            }
+            self._state_store.write(state)
+        return next_run_at
+
     def _process_off_repeat_task(
         self,
         now: dt.datetime,
@@ -685,36 +771,11 @@ class AutomationService:
         scenes: dict[str, str],
         aircon_device_id: str,
     ) -> None:
-        state = self._state_store.read()
-        task = state.get(OFF_REPEAT_STATE_KEY)
-        if not isinstance(task, dict):
+        schedule = self._load_due_off_repeat(now)
+        if schedule is None:
             return
 
-        remaining = _safe_int(task.get("remaining"), default=0)
-        if remaining <= 0:
-            self._clear_off_repeat_task()
-            return
-
-        next_run_raw = task.get("next_run_at")
-        if not isinstance(next_run_raw, str):
-            self._clear_off_repeat_task()
-            return
-
-        try:
-            next_run_at = dt.datetime.fromisoformat(next_run_raw.replace("Z", "+00:00"))
-        except ValueError:
-            self._clear_off_repeat_task()
-            return
-
-        now_utc = _ensure_utc(now)
-        if now_utc < _ensure_utc(next_run_at):
-            return
-
-        state_reason = str(task.get("state_reason", "automation_off_repeat")).strip() or "automation_off_repeat"
-        interval_seconds = _safe_int(task.get("interval_seconds"), default=10)
-        if interval_seconds < 1:
-            interval_seconds = 1
-
+        remaining, state_reason, interval_seconds = schedule
         self._debug(
             "Executing scheduled off repeat",
             trigger=trigger,
@@ -738,7 +799,11 @@ class AutomationService:
         )
 
         if not success:
-            self._warning("Off repeat action failed; clearing schedule", trigger=trigger, state_reason=state_reason)
+            self._warning(
+                "Off repeat action failed; clearing schedule",
+                trigger=trigger,
+                state_reason=state_reason,
+            )
             self._clear_off_repeat_task()
             return
 
@@ -747,22 +812,96 @@ class AutomationService:
             self._clear_off_repeat_task()
             return
 
-        next_run_at = (now_utc + dt.timedelta(seconds=interval_seconds)).isoformat()
-        with self._state_store.transaction():
-            state = self._state_store.read()
-            state[OFF_REPEAT_STATE_KEY] = {
-                "remaining": remaining,
-                "interval_seconds": interval_seconds,
-                "next_run_at": next_run_at,
-                "state_reason": state_reason,
-            }
-            self._state_store.write(state)
+        next_run_at = self._reschedule_off_repeat(
+            _ensure_utc(now),
+            remaining=remaining,
+            interval_seconds=interval_seconds,
+            state_reason=state_reason,
+        )
         self._debug(
             "Off repeat rescheduled",
             trigger=trigger,
             remaining=remaining,
             next_run_at=next_run_at,
         )
+
+    def _send_direct_fan_mode(
+        self,
+        settings: dict[str, Any],
+        *,
+        aircon_device_id: str,
+        trigger: str,
+        state_reason: str,
+    ) -> bool:
+        """Send a direct setAll in fan mode when no scene is configured."""
+        mode = str(settings.get("mode", "winter")).strip().lower()
+        profile = settings.get(mode, {})
+        if not isinstance(profile, dict):
+            profile = {}
+        target_temp = float(profile.get("target_temp", 22.0) or 22.0)
+        fan_speed = _safe_int(profile.get("fan_speed"), default=3)
+
+        try:
+            self._send_aircon_setall(
+                aircon_device_id,
+                temperature=target_temp,
+                mode=4,
+                fan_speed=fan_speed,
+                power_state="on",
+                trigger=trigger,
+                reason=state_reason,
+            )
+            return True
+        except SwitchBotApiError as exc:
+            self._update_state(last_error=str(exc))
+            self._error(
+                "SwitchBot API error during direct fan mode fallback",
+                trigger=trigger,
+                error=str(exc),
+                state_reason=state_reason,
+            )
+            return False
+
+    def _try_fan_mode_action(
+        self,
+        settings: dict[str, Any],
+        *,
+        trigger: str,
+        scenes: dict[str, str],
+        aircon_device_id: str,
+        state_reason: str,
+        force_direct: bool,
+    ) -> bool | None:
+        """Run the fan-mode branch; return None when the off branch must run."""
+        state = self._state_store.read()
+        if not force_direct and _is_assumed_fan_mode(state):
+            self._debug(
+                "Skipping off/fan action: already assumed in fan mode",
+                trigger=trigger,
+                state_reason=state_reason,
+            )
+            return False
+
+        handled = self._trigger_aircon_action(
+            action_key="fan",
+            state_reason=state_reason,
+            assumed_power="on",
+            trigger=trigger,
+            scenes=scenes,
+            aircon_device_id=aircon_device_id,
+        )
+        if handled:
+            self._update_state(assumed_aircon_mode=4)
+            return True
+
+        if aircon_device_id:
+            return self._send_direct_fan_mode(
+                settings,
+                aircon_device_id=aircon_device_id,
+                trigger=trigger,
+                state_reason=state_reason,
+            )
+        return None
 
     def _perform_off_action(
         self,
@@ -775,54 +914,18 @@ class AutomationService:
         inside_window: bool = False,
     ) -> bool:
         settings = self._settings_store.read()
-        fan_mode_during_window = bool(settings.get("fan_mode_during_window", False))
-        
-        if fan_mode_during_window and inside_window:
-            state = self._state_store.read()
-            assumed_power = state.get("assumed_aircon_power", "")
-            assumed_mode = state.get("assumed_aircon_mode")
-            last_action = state.get("last_action", "")
-            
-            is_in_fan_mode = assumed_power == "on" and (assumed_mode == 4 or "fan" in str(last_action).lower())
-            if not force_direct and is_in_fan_mode:
-                self._debug("Skipping off/fan action: already assumed in fan mode", trigger=trigger, state_reason=state_reason)
-                return False
-                
-            handled = self._trigger_aircon_action(
-                action_key="fan",
-                state_reason=state_reason,
-                assumed_power="on",
+
+        if bool(settings.get("fan_mode_during_window", False)) and inside_window:
+            fan_result = self._try_fan_mode_action(
+                settings,
                 trigger=trigger,
                 scenes=scenes,
                 aircon_device_id=aircon_device_id,
+                state_reason=state_reason,
+                force_direct=force_direct,
             )
-            if handled:
-                self._update_state(assumed_aircon_mode=4)
-                return True
-                
-            if aircon_device_id:
-                mode = str(settings.get("mode", "winter")).strip().lower()
-                profile = settings.get(mode, {})
-                if not isinstance(profile, dict):
-                    profile = {}
-                target_temp = float(profile.get("target_temp", 22.0) or 22.0)
-                fan_speed = _safe_int(profile.get("fan_speed"), default=3)
-                
-                try:
-                    self._send_aircon_setall(
-                        aircon_device_id,
-                        temperature=target_temp,
-                        mode=4,
-                        fan_speed=fan_speed,
-                        power_state="on",
-                        trigger=trigger,
-                        reason=state_reason,
-                    )
-                    return True
-                except SwitchBotApiError as exc:
-                    self._update_state(last_error=str(exc))
-                    self._error("SwitchBot API error during direct fan mode fallback", trigger=trigger, error=str(exc), state_reason=state_reason)
-                    return False
+            if fan_result is not None:
+                return fan_result
 
         if not force_direct:
             state = self._state_store.read()
@@ -1099,15 +1202,13 @@ class AutomationService:
             return state_reason.replace("automation_", "")
         return "no_action"
 
-    def _evaluate_temperature(
+    def _resolve_temperature_profile(
         self,
-        current_temp: float,
         settings: dict[str, Any],
+        current_temp: float,
         trigger: str,
-        now: dt.datetime,
-        scenes: dict[str, str],
-        aircon_id: str,
-    ) -> str:
+    ) -> tuple[dict[str, Any] | None, str | None]:
+        """Validate the active profile and return its normalized values."""
         mode = str(settings.get("mode", "winter")).strip().lower()
         profile = settings.get(mode, {})
         if not isinstance(profile, dict):
@@ -1122,49 +1223,237 @@ class AutomationService:
             ac_mode = _safe_int(profile.get("ac_mode"), default=5)
             fan_speed = _safe_int(profile.get("fan_speed"), default=3)
         except (TypeError, ValueError):
-            self._update_state(last_error=f"Invalid profile configuration for mode: {mode}")
-            self._error("Invalid automation profile configuration", trigger=trigger, mode=mode)
-            return "invalid_profile"
+            self._update_state(
+                last_error=f"Invalid profile configuration for mode: {mode}"
+            )
+            self._error(
+                "Invalid automation profile configuration",
+                trigger=trigger,
+                mode=mode,
+            )
+            return None, "invalid_profile"
 
         if min_temp > max_temp:
-            self._update_state(last_error=f"Invalid thresholds: min_temp > max_temp ({mode})")
-            self._error("Invalid temperature thresholds", trigger=trigger, mode=mode, min_temp=min_temp, max_temp=max_temp)
-            return "invalid_thresholds"
+            self._update_state(
+                last_error=f"Invalid thresholds: min_temp > max_temp ({mode})"
+            )
+            self._error(
+                "Invalid temperature thresholds",
+                trigger=trigger,
+                mode=mode,
+                min_temp=min_temp,
+                max_temp=max_temp,
+            )
+            return None, "invalid_thresholds"
 
-        self._debug("Temperature evaluation", trigger=trigger, mode=mode, current_temp=current_temp, min_temp=min_temp, max_temp=max_temp, hysteresis=hysteresis, target_temp=target_temp)
+        self._debug(
+            "Temperature evaluation",
+            trigger=trigger,
+            mode=mode,
+            current_temp=current_temp,
+            min_temp=min_temp,
+            max_temp=max_temp,
+            hysteresis=hysteresis,
+            target_temp=target_temp,
+        )
+        return {
+            "mode": mode,
+            "min_temp": min_temp,
+            "max_temp": max_temp,
+            "target_temp": target_temp,
+            "ac_mode": ac_mode,
+            "fan_speed": fan_speed,
+            "hysteresis": hysteresis,
+        }, None
+
+    def _handle_fan_neutral_zone(
+        self,
+        settings: dict[str, Any],
+        *,
+        trigger: str,
+        scenes: dict[str, str],
+        aircon_id: str,
+    ) -> str | None:
+        """Start fan mode when the neutral zone would otherwise do nothing."""
+        if not bool(settings.get("fan_mode_during_window", False)):
+            return None
+
+        state = self._state_store.read()
+        if state.get("assumed_aircon_power") != "off":
+            return None
+
+        if aircon_id:
+            self.poll_aircon_status(aircon_id, force=True)
+        self._perform_off_action(
+            trigger=trigger,
+            scenes=scenes,
+            aircon_device_id=aircon_id,
+            state_reason="automation_fan_neutral_zone",
+            inside_window=True,
+        )
+        return "fan_neutral_zone"
+
+    def _evaluate_temperature(
+        self,
+        current_temp: float,
+        settings: dict[str, Any],
+        trigger: str,
+        now: dt.datetime,
+        scenes: dict[str, str],
+        aircon_id: str,
+    ) -> str:
+        values, profile_error = self._resolve_temperature_profile(
+            settings, current_temp, trigger
+        )
+        if values is None:
+            return profile_error or "invalid_profile"
 
         if self._cooldown_active(now):
             self._debug("Cooldown active — skipping automation", trigger=trigger)
             return "cooldown"
 
         try:
-            if mode == "winter":
-                result = self._handle_winter_mode(current_temp, min_temp, max_temp, hysteresis, trigger, scenes, aircon_id, target_temp, ac_mode, fan_speed, now)
-            elif mode == "summer":
-                result = self._handle_summer_mode(current_temp, min_temp, max_temp, hysteresis, trigger, scenes, aircon_id, target_temp, ac_mode, fan_speed, now)
+            if values["mode"] == "winter":
+                result = self._handle_winter_mode(
+                    current_temp,
+                    values["min_temp"],
+                    values["max_temp"],
+                    values["hysteresis"],
+                    trigger,
+                    scenes,
+                    aircon_id,
+                    values["target_temp"],
+                    values["ac_mode"],
+                    values["fan_speed"],
+                    now,
+                )
+            elif values["mode"] == "summer":
+                result = self._handle_summer_mode(
+                    current_temp,
+                    values["min_temp"],
+                    values["max_temp"],
+                    values["hysteresis"],
+                    trigger,
+                    scenes,
+                    aircon_id,
+                    values["target_temp"],
+                    values["ac_mode"],
+                    values["fan_speed"],
+                    now,
+                )
             else:
-                self._update_state(last_error=f"Unknown mode: {mode}")
-                self._error("Unknown automation mode", trigger=trigger, mode=mode)
+                self._update_state(last_error=f"Unknown mode: {values['mode']}")
+                self._error(
+                    "Unknown automation mode",
+                    trigger=trigger,
+                    mode=values["mode"],
+                )
                 return "invalid_mode"
-            
-            if result == "no_action" and bool(settings.get("fan_mode_during_window", False)):
-                state = self._state_store.read()
-                if state.get("assumed_aircon_power") == "off":
-                    if aircon_id:
-                        self.poll_aircon_status(aircon_id, force=True)
-                    self._perform_off_action(
-                        trigger=trigger,
-                        scenes=scenes,
-                        aircon_device_id=aircon_id,
-                        state_reason="automation_fan_neutral_zone",
-                        inside_window=True,
-                    )
-                    return "fan_neutral_zone"
+
+            if result == "no_action":
+                neutral = self._handle_fan_neutral_zone(
+                    settings,
+                    trigger=trigger,
+                    scenes=scenes,
+                    aircon_id=aircon_id,
+                )
+                if neutral:
+                    return neutral
             return result
         except SwitchBotApiError as exc:
             self._update_state(last_error=str(exc))
-            self._error("SwitchBot API error during automation", trigger=trigger, error=str(exc))
+            self._error(
+                "SwitchBot API error during automation",
+                trigger=trigger,
+                error=str(exc),
+            )
             return "api_error"
+
+    def _run_disabled_tick(self, timezone_name: str, *, trigger: str) -> None:
+        """Poll the meter and record history when automation is disabled."""
+        self._debug("Automation disabled — polling meter only", trigger=trigger)
+        self.poll_meter()
+        self._record_history_snapshot(timezone_name, trigger=trigger)
+        self._log_tick_completion(trigger, outcome="disabled")
+
+    def _run_outside_window_tick(
+        self,
+        settings: dict[str, Any],
+        *,
+        now: dt.datetime,
+        timezone_name: str,
+        trigger: str,
+        scenes: dict[str, str],
+        aircon_id: str,
+    ) -> None:
+        """Handle a tick that falls outside the configured time windows."""
+        self._debug("Outside configured window — polling meter", trigger=trigger)
+        self.poll_meter()
+        outcome = "noop"
+
+        if settings.get("turn_off_outside_windows", False):
+            state = self._state_store.read()
+            if state.get("assumed_aircon_power") == "off":
+                self._debug(
+                    "Skipping off automation outside window: already assumed off",
+                    trigger=trigger,
+                )
+                outcome = "already_off"
+            elif self._cooldown_active(now):
+                self._debug(
+                    "Cooldown active, skipping off automation outside window",
+                    trigger=trigger,
+                )
+            else:
+                if aircon_id:
+                    self.poll_aircon_status(aircon_id, force=True)
+                handled = self._perform_off_action(
+                    trigger=trigger,
+                    scenes=scenes,
+                    aircon_device_id=aircon_id,
+                    state_reason="automation_off_outside_window",
+                    inside_window=False,
+                )
+                if handled:
+                    self._schedule_off_repeat_task(
+                        now, state_reason="automation_off_outside_window"
+                    )
+                    outcome = "turned_off_outside_window"
+        else:
+            outcome = "outside_window"
+
+        self._record_history_snapshot(timezone_name, trigger=trigger)
+        self._log_tick_completion(trigger, outcome=outcome)
+
+    def _resolve_meter_temperature(
+        self,
+        reading: dict[str, Any] | None,
+        *,
+        timezone_name: str,
+        trigger: str,
+    ) -> float | None:
+        """Return the meter temperature or abort the tick with history/logging."""
+        if not reading or reading.get("temperature") is None:
+            self._debug(
+                "Meter reading unavailable; aborting automation tick",
+                trigger=trigger,
+            )
+            self._record_history_snapshot(timezone_name, trigger=trigger)
+            self._log_tick_completion(trigger, outcome="missing_meter")
+            return None
+
+        try:
+            return float(reading["temperature"])
+        except (TypeError, ValueError):
+            self._update_state(last_error="Invalid temperature reading")
+            self._error(
+                "Invalid temperature reading returned by meter",
+                trigger=trigger,
+                value=reading.get("temperature"),
+            )
+            self._record_history_snapshot(timezone_name, trigger=trigger)
+            self._log_tick_completion(trigger, outcome="invalid_temperature")
+            return None
 
     def _run_once_impl(self) -> None:
         trigger = self._detect_trigger_source()
@@ -1174,7 +1463,6 @@ class AutomationService:
         now = dt.datetime.now(dt.timezone.utc).astimezone(timezone_info)
         poll_interval = _safe_int(settings.get("poll_interval_seconds"), default=0)
         automation_enabled = bool(settings.get("automation_enabled", False))
-        outcome = "noop"
 
         scenes = extract_aircon_scenes(settings)
         aircon_id = str(settings.get("aircon_device_id", "")).strip()
@@ -1196,10 +1484,7 @@ class AutomationService:
         )
 
         if not automation_enabled:
-            self._debug("Automation disabled — polling meter only", trigger=trigger)
-            self.poll_meter()
-            self._record_history_snapshot(timezone_name, trigger=trigger)
-            self._log_tick_completion(trigger, outcome="disabled")
+            self._run_disabled_tick(timezone_name, trigger=trigger)
             return
 
         time_windows = settings.get("time_windows", [])
@@ -1219,60 +1504,30 @@ class AutomationService:
         )
 
         if not in_window:
-            self._debug("Outside configured window — polling meter", trigger=trigger)
-            self.poll_meter()
-            if settings.get("turn_off_outside_windows", False):
-                state = self._state_store.read()
-                if state.get("assumed_aircon_power") == "off":
-                    self._debug(
-                        "Skipping off automation outside window: already assumed off",
-                        trigger=trigger,
-                    )
-                    outcome = "already_off"
-                elif self._cooldown_active(now):
-                    self._debug("Cooldown active, skipping off automation outside window", trigger=trigger)
-                else:
-                    if aircon_id:
-                        self.poll_aircon_status(aircon_id, force=True)
-                    handled = self._perform_off_action(
-                        trigger=trigger,
-                        scenes=scenes,
-                        aircon_device_id=aircon_id,
-                        state_reason="automation_off_outside_window",
-                        inside_window=False,
-                    )
-                    if handled:
-                        self._schedule_off_repeat_task(now, state_reason="automation_off_outside_window")
-                        outcome = "turned_off_outside_window"
-            else:
-                outcome = "outside_window"
-            self._record_history_snapshot(timezone_name, trigger=trigger)
-            self._log_tick_completion(trigger, outcome=outcome)
+            self._run_outside_window_tick(
+                settings,
+                now=now,
+                timezone_name=timezone_name,
+                trigger=trigger,
+                scenes=scenes,
+                aircon_id=aircon_id,
+            )
             return
 
         reading = self.poll_meter()
         if aircon_id:
             self.poll_aircon_status(aircon_id)
 
-        if not reading or reading.get("temperature") is None:
-            self._debug("Meter reading unavailable; aborting automation tick", trigger=trigger)
-            self._record_history_snapshot(timezone_name, trigger=trigger)
-            self._log_tick_completion(trigger, outcome="missing_meter")
+        current_temp = self._resolve_meter_temperature(
+            reading, timezone_name=timezone_name, trigger=trigger
+        )
+        if current_temp is None:
             return
 
-        try:
-            current_temp = float(reading["temperature"])
-        except (TypeError, ValueError):
-            self._update_state(last_error="Invalid temperature reading")
-            self._error("Invalid temperature reading returned by meter", trigger=trigger, value=reading.get("temperature"))
-            self._record_history_snapshot(timezone_name, trigger=trigger)
-            self._log_tick_completion(trigger, outcome="invalid_temperature")
-            return
-
-        outcome = self._evaluate_temperature(current_temp, settings, trigger, now, scenes, aircon_id)
-
+        outcome = self._evaluate_temperature(
+            current_temp, settings, trigger, now, scenes, aircon_id
+        )
         self._log_tick_completion(trigger, outcome=outcome)
-        
         self._record_history_snapshot(timezone_name, trigger=trigger)
 
     def _record_history_snapshot(self, timezone_name: str, *, trigger: str) -> None:

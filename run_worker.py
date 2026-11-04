@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import os
 import time
-import logging
 
 # Force scheduler to be enabled inside this worker process
 os.environ["SCHEDULER_ENABLED"] = "true"

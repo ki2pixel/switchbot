@@ -166,43 +166,26 @@ SCHEDULER_ENABLED=true             # Active/désactive le scheduler
 ```python
 # switchbot_dashboard/routes.py
 @dashboard_bp.get("/healthz")
-def health_check() -> Response:
+def healthz() -> Any:
     """Endpoint de monitoring pour les systèmes externes."""
-    try:
-        scheduler_service = current_app.extensions["scheduler_service"]
-        quota_tracker = current_app.extensions["quota_tracker"]
-        state_store = current_app.extensions["state_store"]
-        
-        status = "ok"
-        details = {
-            "status": status,
-            "scheduler_running": scheduler_service.is_running(),
-            "automation_enabled": bool(state_store.read().get("automation_enabled")),
-            "last_tick": state_store.read().get("last_tick"),
-            "api_requests_total": quota_tracker.get_total_calls(),
-            "api_requests_remaining": quota_tracker.get_remaining_calls(),
-            "api_quota_day": quota_tracker.get_quota_day(),
-            "version": "2.0.0"
-        }
-        
-        # Détection automatique des problèmes
-        if not scheduler_service.is_running():
-            status = "error"
-            details["error"] = "Scheduler not running"
-            
-        if quota_tracker.get_remaining_calls() < 50:
-            status = "warning"
-            details["warning"] = "API quota low"
-            
-        return jsonify(details), 200 if status == "ok" else 503
-        
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "error": str(e),
-            "timestamp": _utc_now_iso()
-        }), 503
+    # Lecture des stores, health check PostgreSQL, état scheduler...
+    payload = {
+        "status": status,  # ok / degraded / error
+        "scheduler_running": scheduler_running,
+        "automation_enabled": automation_enabled,
+        "last_tick": last_tick,
+        "last_scheduler_tick": last_scheduler_tick,
+        "average_tick_duration_seconds": round(average_tick_duration, 4),
+        "postgres_connected": postgres_connected,
+        "store_degraded": store_degraded,
+        "active_store_backend": getattr(settings_store, "active_backend", "unknown"),
+        "store_fallback_enabled": bool(getattr(settings_store, "fallback_enabled", False)),
+        "timestamp_utc": timestamp,
+    }
+    return app.response_class(json.dumps(payload) + "\n", mimetype="application/json", status=status_code)
 ```
+
+Le endpoint renvoie `503` si PostgreSQL est configuré mais injoignable, si le store est dégradé, ou si le scheduler est activé mais arrêté. Les compteurs de quota ne font pas partie de la réponse.
 
 ## Les Pièges : Erreurs Communes à Éviter
 
@@ -253,19 +236,18 @@ curl http://localhost:5000/healthz | jq '.api_requests_*'
 
 ### Tests Unitaires Essentiels
 
-```python
-# tests/test_error_handling.py
-def test_switchbot_api_retry():
-    """Test le retry avec backoff exponentiel."""
-    
-def test_scene_execution_fallback():
-    """Test le fallback scène → commande."""
-    
-def test_scheduler_exception_handling():
-    """Test le wrapper global du scheduler."""
-    
-def test_postgres_store_fallback():
-    """Test la bascule PostgreSQL → filesystem."""
+```bash
+# Retry API et capture quota
+python -m pytest tests/test_switchbot_api.py -v
+
+# Cascade scène → commande directe, idempotence OFF, timezone
+python -m pytest tests/test_automation_service.py -v
+
+# Wrapper du scheduler et gestion d'exception
+python -m pytest tests/test_scheduler_service.py -v
+
+# Bascule PostgreSQL → filesystem
+python -m pytest tests/test_config_store_failover.py tests/test_postgres_store.py -v
 ```
 
 ## Checklist Production

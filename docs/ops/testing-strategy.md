@@ -50,9 +50,15 @@ SCHEDULER_ENABLED=true
   "meter_device_id": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
   "aircon_device_id": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
   "poll_interval_seconds": 120,
-  "min_temperature": 22,
-  "max_temperature": 26,
+  "mode": "winter",
   "hysteresis_celsius": 0.5,
+  "winter": {
+    "min_temp": 18.0,
+    "max_temp": 22.0,
+    "target_temp": 20.0,
+    "ac_mode": 5,
+    "fan_speed": 3
+  },
   "api_quota_warning_threshold": 100
 }
 ```
@@ -71,11 +77,12 @@ curl -v http://localhost:8000/healthz
   "status": "ok",
   "scheduler_running": true,
   "automation_enabled": true,
-  "last_tick": "2024-01-10T14:30:00Z",
-  "api_requests_total": 42,
-  "api_requests_remaining": 958,
-  "api_quota_day": "2024-01-10",
-  "version": "2.0.0"
+  "last_tick": "2026-11-04T14:30:00Z",
+  "postgres_connected": true,
+  "store_degraded": false,
+  "active_store_backend": "postgres",
+  "store_fallback_enabled": false,
+  "timestamp_utc": "2026-11-04T14:30:05Z"
 }
 ```
 

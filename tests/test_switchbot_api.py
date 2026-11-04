@@ -358,3 +358,122 @@ class TestClientRequestOperations:
             client.get_devices()
 
         mock_quota_tracker.record_from_headers.assert_any_call(limit=None, remaining=0)
+
+    @patch("requests.Session.request")
+    def test_request_http_error_with_invalid_json(self, mock_request, client) -> None:
+        # Given: an HTTP 400 response whose body is not JSON
+        mock_response = MagicMock()
+        mock_response.status_code = 400
+        mock_response.headers = {}
+        mock_response.json.side_effect = ValueError("not json")
+        mock_request.return_value = mock_response
+
+        # When/Then: the error payload is reported explicitly
+        with pytest.raises(SwitchBotApiError, match="invalid JSON error payload"):
+            client._request("GET", "/test")
+
+    @patch("requests.Session.request")
+    def test_request_unexpected_response_shape(self, mock_request, client) -> None:
+        # Given: a 200 response without a statusCode field
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_response.json.return_value = {"message": "ok"}
+        mock_request.return_value = mock_response
+
+        # When/Then: the payload shape is rejected
+        with pytest.raises(SwitchBotApiError, match="Unexpected SwitchBot response"):
+            client._request("GET", "/test")
+
+    @patch("requests.Session.request")
+    def test_request_unknown_api_status_code(self, mock_request, client) -> None:
+        # Given: a 200 response with an unsupported SwitchBot statusCode
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_response.json.return_value = {
+            "statusCode": 401,
+            "message": "unauthorized",
+        }
+        mock_request.return_value = mock_response
+
+        # When/Then: the API error is surfaced
+        with pytest.raises(SwitchBotApiError, match="SwitchBot API error"):
+            client._request("GET", "/test")
+
+    @patch("requests.Session.request")
+    def test_request_status_190_exhausts_retries(self, mock_request, client) -> None:
+        # Given: every attempt returns the retryable statusCode 190
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_response.json.return_value = {
+            "statusCode": 190,
+            "message": "device internal error",
+        }
+        mock_request.return_value = mock_response
+
+        # When/Then: retries are exhausted and a generic error is raised
+        with pytest.raises(SwitchBotApiError, match="SwitchBot request failed"):
+            client._request("GET", "/test")
+        assert mock_request.call_count == 2
+
+    @patch("requests.Session.request")
+    def test_request_retry_after_invalid_header_falls_back(self, mock_request, client) -> None:
+        # Given: a 500 with an unparseable Retry-After, then a success
+        first_response = MagicMock()
+        first_response.status_code = 500
+        first_response.headers = {"Retry-After": "soon"}
+
+        second_response = MagicMock()
+        second_response.status_code = 200
+        second_response.headers = {}
+        second_response.json.return_value = {
+            "statusCode": 100,
+            "message": "success",
+        }
+        mock_request.side_effect = [first_response, second_response]
+
+        # When: the request is retried
+        result = client._request("GET", "/test")
+
+        # Then: exponential backoff is used and the retry succeeds
+        assert result["statusCode"] == 100
+        assert mock_request.call_count == 2
+
+    def test_capture_quota_metadata_without_tracker(self) -> None:
+        # Given: a client without a quota tracker and quota headers present
+        client = SwitchBotClient(token="token", secret="secret", retry_attempts=1)
+        mock_response = MagicMock(spec=requests.Response)
+        mock_response.headers = {
+            "x-ratelimit-limit": "100",
+            "x-ratelimit-remaining": "90",
+        }
+
+        # When: metadata is captured
+        updated = client._capture_quota_metadata(mock_response)
+
+        # Then: the snapshot is stored but no tracker is updated
+        assert updated is False
+        assert client.get_last_quota_snapshot() == {"limit": 100, "remaining": 90}
+
+    def test_capture_quota_metadata_absent_tracker_failure(
+        self, client, mock_quota_tracker
+    ) -> None:
+        # Given: no quota headers and a tracker that raises
+        mock_quota_tracker.record_call.side_effect = RuntimeError("store down")
+        mock_response = MagicMock(spec=requests.Response)
+        mock_response.headers = {}
+
+        # When: metadata is captured
+        updated = client._capture_quota_metadata(mock_response)
+
+        # Then: the failure is swallowed
+        assert updated is False
+
+    def test_safe_int_rejects_non_numeric(self, client) -> None:
+        # Given/When: a non-numeric header value
+        result = client._safe_int("not-a-number")
+
+        # Then: the conversion returns None
+        assert result is None

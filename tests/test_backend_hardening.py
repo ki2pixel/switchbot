@@ -278,6 +278,76 @@ class TestStoreFailoverAndBuild:
             # Should fall back to JsonStore
             assert isinstance(store, JsonStore)
 
+    def test_build_store_invalid_failure_threshold_defaults_to_three(
+        self, monkeypatch, tmp_path
+    ) -> None:
+        app = Flask("test_app")
+        app.config["TESTING"] = True
+
+        monkeypatch.setenv("STORE_BACKEND", "postgres")
+        monkeypatch.setenv("POSTGRES_URL", "postgresql://localhost/fake")
+        monkeypatch.setenv("STORE_FAILURE_THRESHOLD", "not-a-number")
+
+        with patch("switchbot_dashboard.__init__.PostgresStore") as MockPostgresStore:
+            postgres_mock = MagicMock()
+            postgres_mock.health_check.return_value = True
+            MockPostgresStore.return_value = postgres_mock
+
+            # Given/When: a healthy primary with an invalid failure threshold
+            store = _build_store(
+                app,
+                kind="settings",
+                default_path=str(tmp_path / "settings.json"),
+                path_env="SWITCHBOT_SETTINGS_PATH",
+            )
+
+        # Then: the resilient wrapper falls back to the documented default
+        assert store._failure_threshold == 3
+
+    def test_build_store_rejects_redis_in_production(
+        self, monkeypatch, tmp_path
+    ) -> None:
+        app = Flask("test_app")
+        app.debug = False
+        app.testing = False
+
+        monkeypatch.delenv("FLASK_ENV", raising=False)
+        monkeypatch.delenv("FLASK_DEBUG", raising=False)
+        monkeypatch.setenv("STORE_BACKEND", "redis")
+
+        # Given: a production runtime with the deprecated Redis backend selected
+        # When/Then: startup raises instead of silently using an unsupported backend
+        with pytest.raises(PostgresStoreError, match="Redis backend is deprecated"):
+            _build_store(
+                app,
+                kind="settings",
+                default_path=str(tmp_path / "settings.json"),
+                path_env="SWITCHBOT_SETTINGS_PATH",
+            )
+
+    def test_build_store_rejects_filesystem_in_production(
+        self, monkeypatch, tmp_path
+    ) -> None:
+        app = Flask("test_app")
+        app.debug = False
+        app.testing = False
+
+        monkeypatch.delenv("FLASK_ENV", raising=False)
+        monkeypatch.delenv("FLASK_DEBUG", raising=False)
+        monkeypatch.setenv("STORE_BACKEND", "filesystem")
+
+        # Given: a production runtime with the filesystem fallback selected
+        # When/Then: startup raises because production requires PostgreSQL
+        with pytest.raises(
+            PostgresStoreError, match="Filesystem fallback is disabled"
+        ):
+            _build_store(
+                app,
+                kind="settings",
+                default_path=str(tmp_path / "settings.json"),
+                path_env="SWITCHBOT_SETTINGS_PATH",
+            )
+
 
 class TestHistoryServiceAggregates:
     @patch("switchbot_dashboard.history_service.HistoryService._ensure_table_exists")

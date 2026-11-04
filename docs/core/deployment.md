@@ -111,6 +111,8 @@ Un unique service Web Gunicorn fait tout (sert l'IHM et exécute les ticks du pl
   SCHEDULER_ENABLED=true
   WEB_CONCURRENCY=1          # Obligatoire pour éviter les ticks dupliqués
   LOG_LEVEL=warning
+  FLASK_DEBUG=0              # Jamais 1 : le debug désactive cookies Secure/HSTS
+  STORE_RUNTIME_FALLBACK=false  # Production : alerte seule, pas de JSON éphémère
   ```
 * **Commande de démarrage Render** (Service Web) :
   ```bash
@@ -125,6 +127,8 @@ Nous séparons la réception du trafic HTTP de l'exécution du planificateur à 
      SCHEDULER_ENABLED=false
      WEB_CONCURRENCY=4       # Configurez librement selon vos besoins
      LOG_LEVEL=warning
+     FLASK_DEBUG=0
+     STORE_RUNTIME_FALLBACK=false
      ```
    * **Commande de démarrage** (Service Web) :
      ```bash
@@ -143,6 +147,8 @@ Nous séparons la réception du trafic HTTP de l'exécution du planificateur à 
      ```
    * **Mise à l'échelle** : Toujours laisser à **1 instance** (Singleton).
 
+> **Sécurité** : dans les deux topologies, `FLASK_DEBUG` doit être absent ou `0`. Depuis la remédiation V2, `create_app()` force `app.debug=False` dès qu'un serveur WSGI est détecté (Gunicorn, `RENDER=true`, `SERVER_SOFTWARE`), mais un `FLASK_DEBUG=1` résiduel fausse les garde-fous de production avant ce point. Vérifiez aussi que `STORE_RUNTIME_FALLBACK` reste `false` en production.
+
 
 ## Monitoring santé intégré
 
@@ -160,21 +166,23 @@ curl https://votre-app.onrender.com/healthz
   "status": "ok",
   "scheduler_running": true,
   "automation_enabled": true,
-  "last_tick": "2026-02-08T14:30:00Z",
-  "last_read_at": "2026-02-08T14:29:45Z",
-  "temperature_stale": false,
-  "api_requests_total": 42,
-  "api_requests_remaining": 958,
-  "api_quota_day": "2026-02-08",
-  "version": "2.0.0"
+  "last_tick": "2026-11-04T14:30:00Z",
+  "last_scheduler_tick": "2026-11-04T14:30:00Z",
+  "average_tick_duration_seconds": 0.0231,
+  "postgres_connected": true,
+  "store_degraded": false,
+  "active_store_backend": "postgres",
+  "store_fallback_enabled": false,
+  "timestamp_utc": "2026-11-04T14:30:05Z"
 }
 ```
 
 **Alertes recommandées** :
 - `status != "ok"` → Critique
-- `scheduler_running == false` → Avertissement  
+- `scheduler_running == false` → Avertissement
 - `last_tick` > 10 minutes → Critique
-- `api_requests_remaining` < 100 → Avertissement
+- `store_degraded == true` ou `postgres_connected == false` → Critique
+- `store_fallback_enabled == true` en production → À vérifier (bascule JSON éphémère)
 
 ### Logs structurés
 

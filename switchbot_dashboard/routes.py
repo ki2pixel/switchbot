@@ -7,6 +7,7 @@ import os
 import random
 import re
 import threading
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -441,76 +442,73 @@ def debug_state() -> Any:
     )
 
 
-@dashboard_bp.get("/healthz")
-def healthz() -> Any:
-    app = current_app
-    settings_store = app.extensions["settings_store"]
-    state_store = app.extensions["state_store"]
-    scheduler_service = app.extensions["scheduler_service"]
+def _json_response(app: Any, payload: dict[str, Any], status_code: int) -> Any:
+    """Build a newline-terminated JSON response."""
+    return app.response_class(
+        json.dumps(payload) + "\n", mimetype="application/json", status=status_code
+    )
 
-    timestamp = _utc_now_iso()
 
+def _store_connectivity(settings_store: Any) -> tuple[bool, bool]:
+    """Return ``(postgres_configured, postgres_connected)`` for health reporting."""
+    postgres_configured = (
+        os.environ.get("STORE_BACKEND", "postgres").strip().lower() == "postgres"
+    )
+    postgres_primary = getattr(settings_store, "primary", settings_store)
+
+    if isinstance(postgres_primary, PostgresStore):
+        return postgres_configured, bool(postgres_primary.health_check())
+    if isinstance(postgres_primary, JsonStore):
+        return postgres_configured, False
+    # MemoryStore and other test doubles default to healthy so mock-based
+    # tests do not fail with a spurious 503.
+    return postgres_configured, True
+
+
+def _read_health_snapshot(
+    app: Any,
+    settings_store: Any,
+    state_store: Any,
+    scheduler_service: Any,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Read health inputs, returning an error detail instead of raising."""
     try:
         settings = settings_store.read()
         state = state_store.read()
-        scheduler_running = bool(scheduler_service.is_running())
-        automation_enabled = bool(settings.get("automation_enabled", False))
-        last_tick = state.get("last_tick")
+        return {
+            "scheduler_running": bool(scheduler_service.is_running()),
+            "automation_enabled": bool(settings.get("automation_enabled", False)),
+            "last_tick": state.get("last_tick"),
+        }, None
     except StoreError:
         app.logger.exception("[health] store error")
-        payload = {
-            "status": "error",
-            "details": "store_unavailable",
-            "timestamp_utc": timestamp,
-        }
-        return app.response_class(
-            json.dumps(payload) + "\n", mimetype="application/json", status=503
-        )
+        return None, "store_unavailable"
     except Exception:  # pragma: no cover - defensive fallback
         app.logger.exception("[health] unexpected failure")
-        payload = {
-            "status": "error",
-            "details": "unexpected_failure",
-            "timestamp_utc": timestamp,
-        }
-        return app.response_class(
-            json.dumps(payload) + "\n", mimetype="application/json", status=503
-        )
+        return None, "unexpected_failure"
 
-    # Check Postgres connectivity
-    postgres_configured = (os.environ.get("STORE_BACKEND", "postgres").strip().lower() == "postgres")
-    postgres_connected = False
-    postgres_primary = getattr(settings_store, "primary", settings_store)
-    store_degraded = bool(getattr(settings_store, "degraded", False))
-    
-    if isinstance(postgres_primary, PostgresStore):
-        postgres_connected = bool(postgres_primary.health_check())
-    elif isinstance(postgres_primary, JsonStore):
-        postgres_connected = False
-    else:
-        # For MemoryStore and other test mock stores, default to True so mock-based tests don't fail with 503
-        postgres_connected = True
-    
-    # Get last scheduler tick
-    last_scheduler_tick = None
-    if getattr(scheduler_service, "last_tick_time", None) is not None:
-        last_scheduler_tick = _utc_iso_z(scheduler_service.last_tick_time)
-        
-    # Get average tick duration
-    automation_service = app.extensions.get("automation_service")
-    average_tick_duration = 0.0
-    if automation_service:
-        average_tick_duration = getattr(automation_service, "average_tick_duration", 0.0)
-        
+
+def _build_health_payload(
+    *,
+    settings_store: Any,
+    snapshot: dict[str, Any],
+    timestamp: str,
+    postgres_configured: bool,
+    postgres_connected: bool,
+    store_degraded: bool,
+    last_scheduler_tick: str | None,
+    average_tick_duration: float,
+) -> dict[str, Any]:
+    """Build the /healthz JSON payload."""
     status = "ok"
     if (postgres_configured and not postgres_connected) or store_degraded:
         status = "degraded"
 
-    payload = {
+    return {
         "status": status,
-        "scheduler_running": scheduler_running,
-        "automation_enabled": automation_enabled,
-        "last_tick": last_tick,
+        "scheduler_running": snapshot["scheduler_running"],
+        "automation_enabled": snapshot["automation_enabled"],
+        "last_tick": snapshot["last_tick"],
         "last_scheduler_tick": last_scheduler_tick,
         "average_tick_duration_seconds": round(average_tick_duration, 4),
         "postgres_connected": postgres_connected,
@@ -522,15 +520,62 @@ def healthz() -> Any:
         "timestamp_utc": timestamp,
     }
 
-    scheduler_enabled = (os.environ.get("SCHEDULER_ENABLED", "true").strip().lower() == "true")
-    if (postgres_configured and not postgres_connected) or (scheduler_enabled and not scheduler_running):
-        status_code = 503
-    else:
-        status_code = 200
 
-    return app.response_class(
-        json.dumps(payload) + "\n", mimetype="application/json", status=status_code
+@dashboard_bp.get("/healthz")
+def healthz() -> Any:
+    app = current_app
+    settings_store = app.extensions["settings_store"]
+    state_store = app.extensions["state_store"]
+    scheduler_service = app.extensions["scheduler_service"]
+
+    timestamp = _utc_now_iso()
+
+    snapshot, error = _read_health_snapshot(
+        app, settings_store, state_store, scheduler_service
     )
+    if snapshot is None:
+        return _json_response(
+            app,
+            {
+                "status": "error",
+                "details": error or "unexpected_failure",
+                "timestamp_utc": timestamp,
+            },
+            503,
+        )
+
+    postgres_configured, postgres_connected = _store_connectivity(settings_store)
+    store_degraded = bool(getattr(settings_store, "degraded", False))
+
+    last_scheduler_tick = None
+    if getattr(scheduler_service, "last_tick_time", None) is not None:
+        last_scheduler_tick = _utc_iso_z(scheduler_service.last_tick_time)
+
+    automation_service = app.extensions.get("automation_service")
+    average_tick_duration = 0.0
+    if automation_service:
+        average_tick_duration = getattr(automation_service, "average_tick_duration", 0.0)
+
+    payload = _build_health_payload(
+        settings_store=settings_store,
+        snapshot=snapshot,
+        timestamp=timestamp,
+        postgres_configured=postgres_configured,
+        postgres_connected=postgres_connected,
+        store_degraded=store_degraded,
+        last_scheduler_tick=last_scheduler_tick,
+        average_tick_duration=average_tick_duration,
+    )
+
+    scheduler_enabled = (
+        os.environ.get("SCHEDULER_ENABLED", "true").strip().lower() == "true"
+    )
+    status_code = 503 if (
+        (postgres_configured and not postgres_connected)
+        or (scheduler_enabled and not snapshot["scheduler_running"])
+    ) else 200
+
+    return _json_response(app, payload, status_code)
 
 
 def _update_timezone(request_form: Any, settings: dict[str, Any]) -> None:
@@ -549,6 +594,29 @@ def _update_timezone(request_form: Any, settings: dict[str, Any]) -> None:
             "error",
         )
 
+_HHMM_PATTERN = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+
+
+def _parse_time_window_days(raw_days: list[str]) -> list[int]:
+    """Convert form day tokens to a sorted, de-duplicated 0-6 list."""
+    try:
+        parsed_days = [
+            int(token.strip()) for token in raw_days if token.strip() != ""
+        ]
+    except ValueError:
+        return []
+    return sorted({day for day in parsed_days if 0 <= day <= 6})
+
+
+def _validate_time_window_times(start: str, end: str) -> str | None:
+    """Return an error message when a HH:MM value is malformed."""
+    if start and not _HHMM_PATTERN.match(start):
+        return "L'heure de début est invalide : utilisez le format HH:MM (ex: 08:30)."
+    if end and not _HHMM_PATTERN.match(end):
+        return "L'heure de fin est invalide : utilisez le format HH:MM (ex: 22:00)."
+    return None
+
+
 def _update_time_windows(request_form: Any, settings: dict[str, Any]) -> None:
     time_window_days_raw = request_form.getlist("time_window_days")
     time_window_start = request_form.get("time_window_start", "").strip()
@@ -558,31 +626,12 @@ def _update_time_windows(request_form: Any, settings: dict[str, Any]) -> None:
         settings["time_windows"] = []
         return
 
-    # SEC-03: Strict HH:MM format validation
-    hhmm_pattern = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
-    if time_window_start and not hhmm_pattern.match(time_window_start):
-        flash(
-            "L'heure de début est invalide : utilisez le format HH:MM (ex: 08:30).",
-            "error",
-        )
-        return
-    if time_window_end and not hhmm_pattern.match(time_window_end):
-        flash(
-            "L'heure de fin est invalide : utilisez le format HH:MM (ex: 22:00).",
-            "error",
-        )
+    error = _validate_time_window_times(time_window_start, time_window_end)
+    if error:
+        flash(error, "error")
         return
 
-    try:
-        parsed_days = [
-            int(token.strip())
-            for token in time_window_days_raw
-            if token.strip() != ""
-        ]
-    except ValueError:
-        parsed_days = []
-
-    parsed_days = sorted({day for day in parsed_days if 0 <= day <= 6})
+    parsed_days = _parse_time_window_days(time_window_days_raw)
 
     if parsed_days and time_window_start and time_window_end:
         settings["time_windows"] = [
@@ -622,6 +671,154 @@ def _update_profiles(request_form: Any, settings: dict[str, Any]) -> None:
         settings[key] = profile
 
 
+def _update_mode(request_form: Any, settings: dict[str, Any]) -> str | None:
+    """Validate and persist the automation mode."""
+    mode = str(request_form.get("mode", settings.get("mode", "winter"))).strip().lower()
+    if mode not in ("winter", "summer"):
+        return "Le mode sélectionné est invalide (doit être 'winter' ou 'summer')."
+    settings["mode"] = mode
+    return None
+
+
+def _update_polling_settings(request_form: Any, settings: dict[str, Any]) -> None:
+    """Persist polling interval and adaptive polling settings."""
+    settings["poll_interval_seconds"] = _as_int(
+        request_form.get("poll_interval_seconds"),
+        default=int(settings.get("poll_interval_seconds", 120) or 120),
+        minimum=60,
+        maximum=3600,
+    )
+    settings["adaptive_polling_enabled"] = _as_bool(
+        request_form.get("adaptive_polling_enabled")
+    )
+    settings["idle_poll_interval_seconds"] = _as_int(
+        request_form.get("idle_poll_interval_seconds"),
+        default=int(settings.get("idle_poll_interval_seconds", 600) or 600),
+        minimum=300,
+        maximum=86_400,
+    )
+    settings["poll_warmup_minutes"] = _as_int(
+        request_form.get("poll_warmup_minutes"),
+        default=int(settings.get("poll_warmup_minutes", 15) or 15),
+        minimum=0,
+        maximum=24 * 60,
+    )
+    settings["aircon_poll_cooldown_minutes"] = _as_int(
+        request_form.get("aircon_poll_cooldown_minutes"),
+        default=int(settings.get("aircon_poll_cooldown_minutes", 15) or 15),
+        minimum=1,
+        maximum=24 * 60,
+    )
+
+
+def _update_cooldown_settings(request_form: Any, settings: dict[str, Any]) -> None:
+    """Persist hysteresis, action cooldowns and OFF-repeat settings."""
+    settings["hysteresis_celsius"] = _as_float(
+        request_form.get("hysteresis_celsius"),
+        default=float(settings.get("hysteresis_celsius", 0.3) or 0.3),
+        minimum=0.0,
+        maximum=5.0,
+    )
+    settings["command_cooldown_seconds"] = _as_int(
+        request_form.get("command_cooldown_seconds"),
+        default=int(settings.get("command_cooldown_seconds", 180) or 180),
+        minimum=0,
+        maximum=3600,
+    )
+    settings["action_on_cooldown_seconds"] = _as_int(
+        request_form.get("action_on_cooldown_seconds"),
+        default=int(settings.get("action_on_cooldown_seconds", 0) or 0),
+        minimum=0,
+        maximum=3600,
+    )
+    settings["action_off_cooldown_seconds"] = _as_int(
+        request_form.get("action_off_cooldown_seconds"),
+        default=int(settings.get("action_off_cooldown_seconds", 0) or 0),
+        minimum=0,
+        maximum=3600,
+    )
+    settings["off_repeat_count"] = _as_int(
+        request_form.get("off_repeat_count"),
+        default=int(settings.get("off_repeat_count", 1) or 1),
+        minimum=1,
+        maximum=10,
+    )
+    settings["off_repeat_interval_seconds"] = _as_int(
+        request_form.get("off_repeat_interval_seconds"),
+        default=int(settings.get("off_repeat_interval_seconds", 10) or 10),
+        minimum=1,
+        maximum=600,
+    )
+
+
+def _update_boolean_settings(request_form: Any, settings: dict[str, Any]) -> None:
+    """Persist boolean behaviour switches."""
+    settings["turn_off_outside_windows"] = _as_bool(
+        request_form.get("turn_off_outside_windows")
+    )
+    settings["fan_mode_during_window"] = _as_bool(
+        request_form.get("fan_mode_during_window")
+    )
+
+
+def _update_quota_settings(request_form: Any, settings: dict[str, Any]) -> None:
+    """Persist the API quota warning threshold."""
+    settings["api_quota_warning_threshold"] = _as_int(
+        request_form.get("api_quota_warning_threshold"),
+        default=int(
+            settings.get(
+                "api_quota_warning_threshold", DEFAULT_QUOTA_WARNING_THRESHOLD
+            )
+            or DEFAULT_QUOTA_WARNING_THRESHOLD
+        ),
+        minimum=0,
+        maximum=10_000,
+    )
+
+
+def _update_device_ids(request_form: Any, settings: dict[str, Any]) -> str | None:
+    """Validate and persist the Meter and Aircon device IDs."""
+    device_id_pattern = re.compile(r"^[a-zA-Z0-9:-]*$")
+    meter_device_id = str(request_form.get("meter_device_id", "")).strip()
+    aircon_device_id = str(request_form.get("aircon_device_id", "")).strip()
+
+    if len(meter_device_id) > 50 or not device_id_pattern.match(meter_device_id):
+        return "L'ID du capteur est invalide (caractères alphanumériques/tirets/deux-points, max 50 caractères)."
+
+    if len(aircon_device_id) > 50 or not device_id_pattern.match(aircon_device_id):
+        return "L'ID du climatiseur est invalide (caractères alphanumériques/tirets/deux-points, max 50 caractères)."
+
+    settings["meter_device_id"] = meter_device_id
+    settings["aircon_device_id"] = aircon_device_id
+    return None
+
+
+def _update_scene_ids(
+    request_form: Any,
+    settings: dict[str, Any],
+    current_aircon_scenes: dict[str, str],
+) -> str | None:
+    """Validate and persist SwitchBot scene IDs."""
+    scene_id_pattern = re.compile(r"^[a-zA-Z0-9\-]*$")
+    updated_aircon_scenes: dict[str, str] = {}
+
+    for key in AIRCON_SCENE_KEYS:
+        raw_scene_id = str(
+            request_form.get(f"scene_{key}_id", current_aircon_scenes.get(key, ""))
+        ).strip()
+        if raw_scene_id and (
+            len(raw_scene_id) > 50 or not scene_id_pattern.match(raw_scene_id)
+        ):
+            return (
+                f"L'ID de scène '{key}' est invalide "
+                "(alphanumérique et tirets uniquement, max 50 caractères)."
+            )
+        updated_aircon_scenes[key] = raw_scene_id
+
+    settings["aircon_scenes"] = updated_aircon_scenes
+    return None
+
+
 @dashboard_bp.post("/settings")
 @limiter.limit("5 per minute")
 def update_settings() -> Any:
@@ -644,129 +841,32 @@ def update_settings() -> Any:
         current_aircon_scenes = _extract_aircon_scenes(settings)
 
         settings["automation_enabled"] = _as_bool(request.form.get("automation_enabled"))
-        
-        # Mode Validation (S-05)
-        mode = str(request.form.get("mode", settings.get("mode", "winter"))).strip().lower()
-        if mode not in ("winter", "summer"):
-            flash("Le mode sélectionné est invalide (doit être 'winter' ou 'summer').", "error")
+
+        mode_error = _update_mode(request.form, settings)
+        if mode_error:
+            flash(mode_error, "error")
             return redirect(url_for("dashboard.settings_page"))
-        settings["mode"] = mode
 
-
-        settings["poll_interval_seconds"] = _as_int(
-            request.form.get("poll_interval_seconds"),
-            default=int(settings.get("poll_interval_seconds", 120) or 120),
-            minimum=60,
-            maximum=3600,
-        )
-
-        settings["adaptive_polling_enabled"] = _as_bool(
-            request.form.get("adaptive_polling_enabled")
-        )
-        settings["idle_poll_interval_seconds"] = _as_int(
-            request.form.get("idle_poll_interval_seconds"),
-            default=int(settings.get("idle_poll_interval_seconds", 600) or 600),
-            minimum=300,
-            maximum=86_400,
-        )
-        settings["poll_warmup_minutes"] = _as_int(
-            request.form.get("poll_warmup_minutes"),
-            default=int(settings.get("poll_warmup_minutes", 15) or 15),
-            minimum=0,
-            maximum=24 * 60,
-        )
-        settings["aircon_poll_cooldown_minutes"] = _as_int(
-            request.form.get("aircon_poll_cooldown_minutes"),
-            default=int(settings.get("aircon_poll_cooldown_minutes", 15) or 15),
-            minimum=1,
-            maximum=24 * 60,
-        )
-
-        settings["hysteresis_celsius"] = _as_float(
-            request.form.get("hysteresis_celsius"),
-            default=float(settings.get("hysteresis_celsius", 0.3) or 0.3),
-            minimum=0.0,
-            maximum=5.0,
-        )
-
-        settings["command_cooldown_seconds"] = _as_int(
-            request.form.get("command_cooldown_seconds"),
-            default=int(settings.get("command_cooldown_seconds", 180) or 180),
-            minimum=0,
-            maximum=3600,
-        )
-        settings["action_on_cooldown_seconds"] = _as_int(
-            request.form.get("action_on_cooldown_seconds"),
-            default=int(settings.get("action_on_cooldown_seconds", 0) or 0),
-            minimum=0,
-            maximum=3600,
-        )
-        settings["action_off_cooldown_seconds"] = _as_int(
-            request.form.get("action_off_cooldown_seconds"),
-            default=int(settings.get("action_off_cooldown_seconds", 0) or 0),
-            minimum=0,
-            maximum=3600,
-        )
-        settings["off_repeat_count"] = _as_int(
-            request.form.get("off_repeat_count"),
-            default=int(settings.get("off_repeat_count", 1) or 1),
-            minimum=1,
-            maximum=10,
-        )
-        settings["off_repeat_interval_seconds"] = _as_int(
-            request.form.get("off_repeat_interval_seconds"),
-            default=int(settings.get("off_repeat_interval_seconds", 10) or 10),
-            minimum=1,
-            maximum=600,
-        )
-
-        settings["turn_off_outside_windows"] = _as_bool(request.form.get("turn_off_outside_windows"))
-        settings["fan_mode_during_window"] = _as_bool(request.form.get("fan_mode_during_window"))
-
+        _update_polling_settings(request.form, settings)
+        _update_cooldown_settings(request.form, settings)
+        _update_boolean_settings(request.form, settings)
         _update_timezone(request.form, settings)
+        _update_quota_settings(request.form, settings)
 
-        settings["api_quota_warning_threshold"] = _as_int(
-            request.form.get("api_quota_warning_threshold"),
-            default=int(settings.get("api_quota_warning_threshold", DEFAULT_QUOTA_WARNING_THRESHOLD) or DEFAULT_QUOTA_WARNING_THRESHOLD),
-            minimum=0,
-            maximum=10_000,
-        )
-
-        # Device IDs Validation (S-06)
-        device_id_pattern = re.compile(r"^[a-zA-Z0-9:-]*$")
-        meter_device_id = str(request.form.get("meter_device_id", "")).strip()
-        aircon_device_id = str(request.form.get("aircon_device_id", "")).strip()
-
-        if len(meter_device_id) > 50 or not device_id_pattern.match(meter_device_id):
-            flash("L'ID du capteur est invalide (caractères alphanumériques/tirets/deux-points, max 50 caractères).", "error")
+        device_error = _update_device_ids(request.form, settings)
+        if device_error:
+            flash(device_error, "error")
             return redirect(url_for("dashboard.settings_page"))
-
-        if len(aircon_device_id) > 50 or not device_id_pattern.match(aircon_device_id):
-            flash("L'ID du climatiseur est invalide (caractères alphanumériques/tirets/deux-points, max 50 caractères).", "error")
-            return redirect(url_for("dashboard.settings_page"))
-
-        settings["meter_device_id"] = meter_device_id
-        settings["aircon_device_id"] = aircon_device_id
 
         _update_time_windows(request.form, settings)
         _update_profiles(request.form, settings)
 
-        # SEC-02: Scene ID regex validation
-        scene_id_pattern = re.compile(r"^[a-zA-Z0-9\-]*$")
-        updated_aircon_scenes: dict[str, str] = {}
-        for key in AIRCON_SCENE_KEYS:
-            raw_scene_id = str(
-                request.form.get(f"scene_{key}_id", current_aircon_scenes.get(key, ""))
-            ).strip()
-            if raw_scene_id and (len(raw_scene_id) > 50 or not scene_id_pattern.match(raw_scene_id)):
-                flash(
-                    f"L'ID de scène '{key}' est invalide (alphanumérique et tirets uniquement, max 50 caractères).",
-                    "error",
-                )
-                return redirect(url_for("dashboard.settings_page"))
-            updated_aircon_scenes[key] = raw_scene_id
-
-        settings["aircon_scenes"] = updated_aircon_scenes
+        scene_error = _update_scene_ids(
+            request.form, settings, current_aircon_scenes
+        )
+        if scene_error:
+            flash(scene_error, "error")
+            return redirect(url_for("dashboard.settings_page"))
 
         settings_store.write(settings)
 
@@ -849,119 +949,18 @@ def _apply_manual_state(
         state_store.write(state)
 
 
-def _handle_direct_action(
-    action_key: str, scene_id: str, aircon_id: str, state_reason: str, flash_label: str, assumed_power: str
-) -> Any:
-    automation_service = current_app.extensions.get("automation_service")
-    has_lock_support = automation_service and hasattr(automation_service, "_acquire_lock")
-    if has_lock_support:
-        if not automation_service._acquire_lock():
-            flash("Action impossible : un cycle d'automatisation ou une autre commande est en cours. Veuillez réessayer.", "error")
-            return redirect(url_for(ROUTE_INDEX))
+@contextlib.contextmanager
+def _manual_action_lock(automation_service: Any) -> Iterator[bool]:
+    """Acquire and always release the automation lock for a manual action."""
+    has_lock_support = bool(
+        automation_service and hasattr(automation_service, "_acquire_lock")
+    )
+    if has_lock_support and not automation_service._acquire_lock():
+        yield False
+        return
 
     try:
-        client = current_app.extensions["switchbot_client"]
-        state_store = current_app.extensions["state_store"]
-
-        assumed_mode = AIRCON_MODE_BY_ACTION.get(action_key)
-
-        if scene_id:
-            try:
-                client.run_scene(scene_id)
-                _apply_manual_state(
-                    automation_service,
-                    state_store,
-                    assumed_aircon_power=assumed_power,
-                    assumed_aircon_mode=assumed_mode,
-                    assumed_aircon_parameter=None,
-                    last_action=f"scene({scene_id}) ({state_reason})",
-                    last_action_at=_utc_now_iso(),
-                    last_error=None,
-                )
-                flash(flash_label)
-                return redirect(url_for(ROUTE_INDEX))
-            except SwitchBotApiError as exc:
-                if not aircon_id:
-                    _apply_manual_state(
-                        automation_service, state_store, last_error=str(exc)
-                    )
-                    flash(str(exc), "error")
-                    return redirect(url_for(ROUTE_INDEX))
-                current_app.logger.warning(f"Scene execution failed for {action_key}: {exc}. Falling back to direct command.")
-
-        if action_key == "off":
-            if not aircon_id:
-                flash("aircon_device_id manquant pour commande directe", "error")
-                return redirect(url_for(ROUTE_INDEX))
-            try:
-                client.send_command(aircon_id, command="turnOff", parameter="default", command_type="command")
-                _apply_manual_state(
-                    automation_service,
-                    state_store,
-                    assumed_aircon_power="off",
-                    assumed_aircon_mode=None,
-                    assumed_aircon_parameter=None,
-                    last_action=f"turnOff ({state_reason})",
-                    last_action_at=_utc_now_iso(),
-                    last_error=None,
-                )
-                flash(flash_label)
-            except SwitchBotApiError as exc:
-                _apply_manual_state(
-                    automation_service, state_store, last_error=str(exc)
-                )
-                flash(str(exc), "error")
-            return redirect(url_for(ROUTE_INDEX))
-
-        if action_key in ("winter", "summer", "fan"):
-            if not aircon_id:
-                action_label = AIRCON_SCENE_LABELS.get(action_key, action_key)
-                if not scene_id:
-                    flash(f"Aucune scène configurée pour {action_label} en mode API Direct.", "error")
-                else:
-                    flash(f"Impossible d'exécuter l'action {action_key} : scène échouée et pas de commande directe supportée", "error")
-                return redirect(url_for(ROUTE_INDEX))
-                
-            try:
-                settings_store = current_app.extensions["settings_store"]
-                settings = settings_store.read()
-                profile = settings.get(action_key, {}) if isinstance(settings.get(action_key), dict) else {}
-                target_temp = float(profile.get("target_temp", 22.0) or 22.0)
-                fan_speed = _as_int(profile.get("fan_speed"), default=3)
-                
-                parameter = f"{target_temp},{assumed_mode},{fan_speed},on"
-                client.send_command(aircon_id, command="setAll", parameter=parameter, command_type="command")
-                
-                # update state with the new parameter as well
-                _apply_manual_state(
-                    automation_service,
-                    state_store,
-                    assumed_aircon_power="on",
-                    assumed_aircon_mode=assumed_mode,
-                    assumed_aircon_parameter=parameter,
-                    last_action=f"setAll({parameter}) ({state_reason})",
-                    last_action_at=_utc_now_iso(),
-                    last_error=None,
-                )
-                
-                flash(flash_label)
-            except SwitchBotApiError as exc:
-                _apply_manual_state(
-                    automation_service, state_store, last_error=str(exc)
-                )
-                flash(str(exc), "error")
-            return redirect(url_for(ROUTE_INDEX))
-            
-        return redirect(url_for(ROUTE_INDEX))
-    except LockLostError:
-        current_app.logger.warning(
-            "[actions] Manual action aborted: automation lock was stolen"
-        )
-        flash(
-            "Action annulée : le verrou d'automatisation a été perdu. Veuillez réessayer.",
-            "error",
-        )
-        return redirect(url_for(ROUTE_INDEX))
+        yield True
     finally:
         if has_lock_support:
             try:
@@ -970,6 +969,221 @@ def _handle_direct_action(
                 local = getattr(automation_service, "_local", None)
                 if local is not None:
                     local.current_lock_token = None
+
+
+def _execute_manual_scene(
+    *,
+    client: Any,
+    automation_service: Any,
+    state_store: Any,
+    scene_id: str,
+    aircon_id: str,
+    action_key: str,
+    assumed_power: str,
+    assumed_mode: Any,
+    state_reason: str,
+    flash_label: str,
+) -> Any | None:
+    """Run a scene; return a redirect when handled, None to fall back."""
+    try:
+        client.run_scene(scene_id)
+    except SwitchBotApiError as exc:
+        if not aircon_id:
+            _apply_manual_state(
+                automation_service, state_store, last_error=str(exc)
+            )
+            flash(str(exc), "error")
+            return redirect(url_for(ROUTE_INDEX))
+        current_app.logger.warning(
+            f"Scene execution failed for {action_key}: {exc}. "
+            "Falling back to direct command."
+        )
+        return None
+
+    _apply_manual_state(
+        automation_service,
+        state_store,
+        assumed_aircon_power=assumed_power,
+        assumed_aircon_mode=assumed_mode,
+        assumed_aircon_parameter=None,
+        last_action=f"scene({scene_id}) ({state_reason})",
+        last_action_at=_utc_now_iso(),
+        last_error=None,
+    )
+    flash(flash_label)
+    return redirect(url_for(ROUTE_INDEX))
+
+
+def _execute_manual_off(
+    *,
+    client: Any,
+    automation_service: Any,
+    state_store: Any,
+    aircon_id: str,
+    state_reason: str,
+    flash_label: str,
+) -> None:
+    """Send a direct turnOff command and persist the assumed state."""
+    if not aircon_id:
+        flash("aircon_device_id manquant pour commande directe", "error")
+        return
+
+    try:
+        client.send_command(
+            aircon_id,
+            command="turnOff",
+            parameter="default",
+            command_type="command",
+        )
+        _apply_manual_state(
+            automation_service,
+            state_store,
+            assumed_aircon_power="off",
+            assumed_aircon_mode=None,
+            assumed_aircon_parameter=None,
+            last_action=f"turnOff ({state_reason})",
+            last_action_at=_utc_now_iso(),
+            last_error=None,
+        )
+        flash(flash_label)
+    except SwitchBotApiError as exc:
+        _apply_manual_state(
+            automation_service, state_store, last_error=str(exc)
+        )
+        flash(str(exc), "error")
+
+
+def _execute_manual_setall(
+    *,
+    client: Any,
+    automation_service: Any,
+    state_store: Any,
+    aircon_id: str,
+    action_key: str,
+    assumed_mode: Any,
+    state_reason: str,
+    flash_label: str,
+    scene_id: str,
+) -> None:
+    """Send a direct setAll command for winter/summer/fan actions."""
+    if not aircon_id:
+        action_label = AIRCON_SCENE_LABELS.get(action_key, action_key)
+        if not scene_id:
+            flash(
+                f"Aucune scène configurée pour {action_label} en mode API Direct.",
+                "error",
+            )
+        else:
+            flash(
+                f"Impossible d'exécuter l'action {action_key} : scène échouée "
+                "et pas de commande directe supportée",
+                "error",
+            )
+        return
+
+    try:
+        settings_store = current_app.extensions["settings_store"]
+        settings = settings_store.read()
+        profile = settings.get(action_key, {})
+        if not isinstance(profile, dict):
+            profile = {}
+        target_temp = float(profile.get("target_temp", 22.0) or 22.0)
+        fan_speed = _as_int(profile.get("fan_speed"), default=3)
+
+        parameter = f"{target_temp},{assumed_mode},{fan_speed},on"
+        client.send_command(
+            aircon_id,
+            command="setAll",
+            parameter=parameter,
+            command_type="command",
+        )
+        _apply_manual_state(
+            automation_service,
+            state_store,
+            assumed_aircon_power="on",
+            assumed_aircon_mode=assumed_mode,
+            assumed_aircon_parameter=parameter,
+            last_action=f"setAll({parameter}) ({state_reason})",
+            last_action_at=_utc_now_iso(),
+            last_error=None,
+        )
+        flash(flash_label)
+    except SwitchBotApiError as exc:
+        _apply_manual_state(
+            automation_service, state_store, last_error=str(exc)
+        )
+        flash(str(exc), "error")
+
+
+def _handle_direct_action(
+    action_key: str, scene_id: str, aircon_id: str, state_reason: str, flash_label: str, assumed_power: str
+) -> Any:
+    automation_service = current_app.extensions.get("automation_service")
+
+    with _manual_action_lock(automation_service) as acquired:
+        if not acquired:
+            flash(
+                "Action impossible : un cycle d'automatisation ou une autre "
+                "commande est en cours. Veuillez réessayer.",
+                "error",
+            )
+            return redirect(url_for(ROUTE_INDEX))
+
+        try:
+            client = current_app.extensions["switchbot_client"]
+            state_store = current_app.extensions["state_store"]
+
+            assumed_mode = AIRCON_MODE_BY_ACTION.get(action_key)
+
+            if scene_id:
+                scene_response = _execute_manual_scene(
+                    client=client,
+                    automation_service=automation_service,
+                    state_store=state_store,
+                    scene_id=scene_id,
+                    aircon_id=aircon_id,
+                    action_key=action_key,
+                    assumed_power=assumed_power,
+                    assumed_mode=assumed_mode,
+                    state_reason=state_reason,
+                    flash_label=flash_label,
+                )
+                if scene_response is not None:
+                    return scene_response
+
+            if action_key == "off":
+                _execute_manual_off(
+                    client=client,
+                    automation_service=automation_service,
+                    state_store=state_store,
+                    aircon_id=aircon_id,
+                    state_reason=state_reason,
+                    flash_label=flash_label,
+                )
+            elif action_key in ("winter", "summer", "fan"):
+                _execute_manual_setall(
+                    client=client,
+                    automation_service=automation_service,
+                    state_store=state_store,
+                    aircon_id=aircon_id,
+                    action_key=action_key,
+                    assumed_mode=assumed_mode,
+                    state_reason=state_reason,
+                    flash_label=flash_label,
+                    scene_id=scene_id,
+                )
+
+            return redirect(url_for(ROUTE_INDEX))
+        except LockLostError:
+            current_app.logger.warning(
+                "[actions] Manual action aborted: automation lock was stolen"
+            )
+            flash(
+                "Action annulée : le verrou d'automatisation a été perdu. "
+                "Veuillez réessayer.",
+                "error",
+            )
+            return redirect(url_for(ROUTE_INDEX))
 
 
 def _execute_aircon_action(
@@ -1162,127 +1376,175 @@ ALLOWED_HISTORY_METRICS = {
     "last_temperature_stale",
 }
 
+DEFAULT_HISTORY_METRICS = [
+    "timestamp",
+    "temperature",
+    "humidity",
+    "assumed_aircon_power",
+]
+MOCK_HISTORY_METRICS = ["temperature", "humidity", "assumed_aircon_power"]
+
+
+def _parse_history_metrics(metrics_param: Any) -> list[str] | None:
+    """Parse and whitelist requested metrics."""
+    if not metrics_param:
+        return None
+
+    if isinstance(metrics_param, str):
+        raw_metrics = [m.strip() for m in metrics_param.split(",") if m.strip()]
+    else:
+        raw_metrics = list(metrics_param)
+
+    filtered = [m for m in raw_metrics if m in ALLOWED_HISTORY_METRICS]
+    if not filtered:
+        raise ValueError("no valid metrics requested")
+    return filtered
+
+
+def _parse_history_time_range(
+    start_str: Any, end_str: Any
+) -> tuple[dt.datetime, dt.datetime]:
+    """Parse and validate the requested history time range."""
+    if not start_str or not end_str:
+        end = dt.datetime.now(dt.timezone.utc)
+        return end - dt.timedelta(hours=6), end
+
+    parsed_start = _parse_iso_datetime(str(start_str))
+    parsed_end = _parse_iso_datetime(str(end_str))
+    if parsed_start is None or parsed_end is None:
+        raise ValueError("invalid ISO-8601 datetime format")
+
+    if parsed_start >= parsed_end:
+        raise ValueError("start time must be before end time")
+
+    if (parsed_end - parsed_start) > dt.timedelta(days=31):
+        raise ValueError("requested time range exceeds 31 days maximum")
+
+    return parsed_start, parsed_end
+
+
+def _normalize_history_granularity(granularity: Any) -> str:
+    valid_granularities = {"minute", "5min", "15min", "hour"}
+    if granularity not in valid_granularities:
+        return "minute"
+    return str(granularity)
+
 
 def _parse_history_query_params(
     request_args: Any,
 ) -> tuple[dt.datetime, dt.datetime, list[str] | None, str, int]:
-    start_str = request_args.get("start")
-    end_str = request_args.get("end")
-    metrics_param = request_args.get("metrics")
-    granularity = request_args.get("granularity", "minute")
-    limit = _as_int(request_args.get("limit"), default=1000, minimum=1, maximum=10000)
-
-    metrics: list[str] | None = None
-    if metrics_param:
-        if isinstance(metrics_param, str):
-            raw_metrics = [m.strip() for m in metrics_param.split(",") if m.strip()]
-        else:
-            raw_metrics = list(metrics_param)
-
-        filtered = [m for m in raw_metrics if m in ALLOWED_HISTORY_METRICS]
-        if not filtered:
-            raise ValueError("no valid metrics requested")
-        metrics = filtered
-
-    if not start_str or not end_str:
-        end = dt.datetime.now(dt.timezone.utc)
-        start = end - dt.timedelta(hours=6)
-    else:
-        parsed_start = _parse_iso_datetime(str(start_str))
-        parsed_end = _parse_iso_datetime(str(end_str))
-        if parsed_start is None or parsed_end is None:
-            raise ValueError("invalid ISO-8601 datetime format")
-        start, end = parsed_start, parsed_end
-
-    if start >= end:
-        raise ValueError("start time must be before end time")
-
-    if (end - start) > dt.timedelta(days=31):
-        raise ValueError("requested time range exceeds 31 days maximum")
-
-    valid_granularities = {"minute", "5min", "15min", "hour"}
-    if granularity not in valid_granularities:
-        granularity = "minute"
+    metrics = _parse_history_metrics(request_args.get("metrics"))
+    start, end = _parse_history_time_range(
+        request_args.get("start"), request_args.get("end")
+    )
+    granularity = _normalize_history_granularity(
+        request_args.get("granularity", "minute")
+    )
+    limit = _as_int(
+        request_args.get("limit"), default=1000, minimum=1, maximum=10000
+    )
 
     return start, end, metrics, granularity, limit
+
+def _history_unavailable_payload(*, mock: bool) -> dict[str, Any]:
+    """Build the fail-safe payload when HistoryService is not configured."""
+    end = dt.datetime.now(dt.timezone.utc)
+    start = end - dt.timedelta(hours=6)
+
+    if not mock:
+        # Fail-safe UX: never break the dashboard when PostgreSQL is
+        # unavailable. Return an empty, well-formed payload flagged as
+        # degraded instead of an HTTP 503 the charts cannot render.
+        return {
+            "data": [],
+            "start": _utc_iso_z(start),
+            "end": _utc_iso_z(end),
+            "granularity": "minute",
+            "metrics": DEFAULT_HISTORY_METRICS,
+            "count": 0,
+            "degraded": True,
+            "message": "Service Historique indisponible. La base de données PostgreSQL est déconnectée.",
+        }
+
+    mock_data = _generate_mock_history_data(start, end)
+    return {
+        "data": mock_data,
+        "start": _utc_iso_z(start),
+        "end": _utc_iso_z(end),
+        "granularity": "minute",
+        "metrics": MOCK_HISTORY_METRICS,
+        "count": len(mock_data),
+        "mock": True,
+    }
+
+
+def _history_data_payload(
+    start: dt.datetime,
+    end: dt.datetime,
+    metrics: list[str] | None,
+    granularity: str,
+    data: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Build a successful history response, including the empty case."""
+    if not data:
+        return {
+            "data": [],
+            "start": start.isoformat(),
+            "end": end.isoformat(),
+            "granularity": granularity,
+            "metrics": metrics or DEFAULT_HISTORY_METRICS,
+            "count": 0,
+            "message": "No historical data available yet",
+        }
+
+    return {
+        "data": data,
+        "start": start.isoformat(),
+        "end": end.isoformat(),
+        "granularity": granularity,
+        "metrics": metrics or DEFAULT_HISTORY_METRICS,
+        "count": len(data),
+    }
+
+
+def _history_error_payload(
+    start: dt.datetime | None, end: dt.datetime | None
+) -> dict[str, Any]:
+    """Build an empty payload when an unexpected history error occurs."""
+    now = dt.datetime.now(dt.timezone.utc)
+    return {
+        "data": [],
+        "start": start.isoformat() if start is not None else now.isoformat(),
+        "end": end.isoformat() if end is not None else now.isoformat(),
+        "granularity": "minute",
+        "metrics": DEFAULT_HISTORY_METRICS,
+        "count": 0,
+        "message": "Error retrieving data",
+    }
+
 
 @dashboard_bp.get("/history/api/data")
 @limiter.limit("30 per minute")
 def history_api_data() -> Any:
     history_service = current_app.extensions.get("history_service")
     if not history_service:
-        if not current_app.debug and not current_app.testing:
-            # Fail-safe UX: never break the dashboard when PostgreSQL is
-            # unavailable. Return an empty, well-formed payload flagged as
-            # degraded instead of an HTTP 503 the charts cannot render.
-            end = dt.datetime.now(dt.timezone.utc)
-            start = end - dt.timedelta(hours=6)
-            return {
-                "data": [],
-                "start": _utc_iso_z(start),
-                "end": _utc_iso_z(end),
-                "granularity": "minute",
-                "metrics": ["timestamp", "temperature", "humidity", "assumed_aircon_power"],
-                "count": 0,
-                "degraded": True,
-                "message": "Service Historique indisponible. La base de données PostgreSQL est déconnectée.",
-            }
-        
-        end = dt.datetime.now(dt.timezone.utc)
-        start = end - dt.timedelta(hours=6)
-        mock_data = _generate_mock_history_data(start, end)
-        
-        return {
-            "data": mock_data,
-            "start": _utc_iso_z(start),
-            "end": _utc_iso_z(end),
-            "granularity": "minute",
-            "metrics": ["temperature", "humidity", "assumed_aircon_power"],
-            "count": len(mock_data),
-            "mock": True
-        }
+        return _history_unavailable_payload(
+            mock=bool(current_app.debug or current_app.testing)
+        )
 
+    start: dt.datetime | None = None
+    end: dt.datetime | None = None
     try:
-        start, end, metrics, granularity, limit = _parse_history_query_params(request.args)
-
-        # Get historical data
+        start, end, metrics, granularity, limit = _parse_history_query_params(
+            request.args
+        )
         data = history_service.get_history(start, end, metrics, granularity, limit)
-        
-        # Return empty data structure if no data found
-        if not data:
-            return {
-                "data": [],
-                "start": start.isoformat(),
-                "end": end.isoformat(),
-                "granularity": granularity,
-                "metrics": metrics or ["timestamp", "temperature", "humidity", "assumed_aircon_power"],
-                "count": 0,
-                "message": "No historical data available yet"
-            }
-        
-        return {
-            "data": data,
-            "start": start.isoformat(),
-            "end": end.isoformat(),
-            "granularity": granularity,
-            "metrics": metrics or ["timestamp", "temperature", "humidity", "assumed_aircon_power"],
-            "count": len(data),
-        }
-
+        return _history_data_payload(start, end, metrics, granularity, data)
     except ValueError as exc:
         return {"error": f"Invalid parameters: {exc}"}, 400
     except Exception:
         current_app.logger.exception("[history] API error")
-        # Return empty data structure on error to avoid breaking the frontend
-        return {
-            "data": [],
-            "start": start.isoformat() if 'start' in locals() else dt.datetime.now(dt.timezone.utc).isoformat(),
-            "end": end.isoformat() if 'end' in locals() else dt.datetime.now(dt.timezone.utc).isoformat(),
-            "granularity": "minute",
-            "metrics": ["timestamp", "temperature", "humidity", "assumed_aircon_power"],
-            "count": 0,
-            "message": "Error retrieving data"
-        }
+        return _history_error_payload(start, end)
 
 
 @dashboard_bp.get("/history/api/aggregates")

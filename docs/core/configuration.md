@@ -105,13 +105,13 @@ Le système implémente deux niveaux de fallback pour garantir l'exécution :
 ```python
 # 1. Scène SwitchBot (priorité)
 if scenes.get(action):
-    response = switchbot_client.execute_scene(scene_id)
-    
+    switchbot_client.run_scene(scene_id)
+
 # 2. Commande directe (fallback)
 elif action == "off":
-    response = switchbot_client.turn_off(device_id)
+    switchbot_client.send_command(device_id, command="turnOff")
 else:
-    response = switchbot_client.set_all(device_id, params)
+    switchbot_client.send_command(device_id, command="setAll", parameter=params)
 ```
 
 ### 4. Stockage PostgreSQL avec fallback
@@ -159,10 +159,11 @@ SWITCHBOT_STATE_PATH=config/state.json
 L'API SwitchBot est limitée à 10 000 requêtes/jour. Le `ApiQuotaTracker` centralise le suivi :
 
 ```python
-# Chaque appel SwitchBot incrémente automatiquement
-with ApiQuotaTracker() as tracker:
-    response = switchbot_client.get_device_list()
-    tracker.record_call()  # Met à jour api_requests_total/remaining
+# Le SwitchBotClient incrémente le tracker à chaque réponse API
+response = switchbot_client.get_devices()  # api_requests_total/remaining mis à jour
+
+# Si les headers X-RateLimit sont présents, ils écrasent le compteur local
+# via ApiQuotaTracker.record_from_headers()
 ```
 
 **Alerte automatique** : Quand `api_requests_remaining` ≤ `api_quota_warning_threshold`, une bannière jaune s'affiche dans l'interface.
@@ -237,15 +238,18 @@ Les fenêtres horaires sont évaluées dans le fuseau configuré :
   "status": "ok",
   "scheduler_running": true,
   "automation_enabled": true,
-  "last_tick": "2024-01-10T14:30:00Z",
-  "last_read_at": "2024-01-10T14:29:00Z",
-  "temperature_stale": false,
-  "api_requests_total": 42,
-  "api_requests_remaining": 958,
-  "api_quota_day": "2024-01-10",
-  "version": "2.0.0"
+  "last_tick": "2026-11-04T14:30:00Z",
+  "last_scheduler_tick": "2026-11-04T14:30:00Z",
+  "average_tick_duration_seconds": 0.0231,
+  "postgres_connected": true,
+  "store_degraded": false,
+  "active_store_backend": "postgres",
+  "store_fallback_enabled": false,
+  "timestamp_utc": "2026-11-04T14:30:05Z"
 }
 ```
+
+Les compteurs de quota ne sont pas exposés par `/healthz` ; consultez la page `/quota` ou l'endpoint de debug protégé.
 
 ### Logs Adaptive Polling
 

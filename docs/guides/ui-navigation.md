@@ -31,11 +31,11 @@ SWITCHBOT_TOKEN=votre_token_api
 SWITCHBOT_SECRET=votre_secret_api
 
 # Base de données (PostgreSQL prioritaire)
-DATABASE_URL=postgresql://user:pass@localhost:5432/switchbot
-JSON_STORE_PATH=config/state.json
+POSTGRES_URL=postgresql://user:pass@localhost:5432/switchbot
+SWITCHBOT_STATE_PATH=config/state.json
 
-# Fuseau horaire pour les fenêtres horaires
-TZ=Europe/Paris
+# Fuseau horaire des fenêtres horaires (stocké dans settings.json)
+# TZ=Europe/Paris
 ```
 
 ### Configuration JSON (`config/settings.json`)
@@ -43,20 +43,29 @@ TZ=Europe/Paris
 ```json
 {
   "automation_enabled": true,
-  "current_mode": "winter",
-  "poll_interval_seconds": 300,
-  "command_delay_seconds": 2,
+  "mode": "winter",
+  "poll_interval_seconds": 15,
+  "command_cooldown_seconds": 60,
+  "action_on_cooldown_seconds": 420,
+  "action_off_cooldown_seconds": 60,
+  "hysteresis_celsius": 0.3,
   "timezone": "Europe/Paris",
   "aircon_device_id": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
   "meter_device_id": "YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY",
+  "winter": {
+    "min_temp": 23.0,
+    "max_temp": 25.0,
+    "target_temp": 26.0,
+    "fan_speed": 3,
+    "ac_mode": 5
+  },
   "aircon_scenes": {
     "winter": "UUID_SCENE_WINTER",
-    "summer": "UUID_SCENE_SUMMER", 
+    "summer": "UUID_SCENE_SUMMER",
     "fan": "UUID_SCENE_FAN",
     "off": "UUID_SCENE_OFF"
   },
   "api_quota_warning_threshold": 250,
-  "hysteresis_celsius": 0.5,
   "off_repeat_count": 2,
   "off_repeat_interval_seconds": 10
 }
@@ -187,38 +196,23 @@ def actions_page() -> str:
 ### Alertes quota avec monitoring temps réel
 
 ```python
-# api_quota_tracker.py - Suivi des quotas API
+# switchbot_dashboard/quota.py - Suivi des quotas API
 class ApiQuotaTracker:
-    def __init__(self, settings_store):
-        self.settings_store = settings_store
-        self.state_store = current_app.extensions['state_store']
-    
-    def update_quota(self, response_headers):
-        """Met à jour le quota depuis les headers API"""
-        remaining = int(response_headers.get('X-Rate-Limit-Remaining', 0))
-        limit = int(response_headers.get('X-Rate-Limit-Limit', 10000))
-        
-        state = self.state_store.load()
-        state['api_requests_remaining'] = remaining
-        state['api_requests_limit'] = limit
-        state['api_quota_day'] = datetime.utcnow().strftime('%Y-%m-%d')
-        
-        self.state_store.save(state)
-        
-        # Vérification du seuil d'alerte
-        settings = self.settings_store.load()
-        threshold = settings.get('api_quota_warning_threshold', 250)
-        
-        if remaining <= threshold:
-            self._trigger_quota_alert(remaining, limit)
-    
-    def _trigger_quota_alert(self, remaining, limit):
-        """Déclenche une alerte quota"""
-        percentage = (remaining / limit) * 100
-        alert_level = 'danger' if percentage < 5 else 'warning'
-        
-        flash(f'⚠️ Quota API faible : {remaining}/{limit} requêtes restantes', 
-              alert_level)
+    def __init__(self, state_store, default_daily_limit=10_000): ...
+    def record_call(self, *, increment: int = 1) -> None: ...
+    def record_from_headers(self, *, limit: int | None, remaining: int | None) -> bool: ...
+    def refresh_snapshot(self) -> dict[str, Any]: ...
+
+# routes.py - contexte du bandeau
+def _build_quota_context(settings, state):
+    remaining = state.get("api_requests_remaining")
+    threshold = settings.get("api_quota_warning_threshold", 250)
+    return {
+        "api_requests_remaining": remaining,
+        "show_quota_warning": threshold > 0
+        and isinstance(remaining, (int, float))
+        and remaining <= threshold,
+    }
 ```
 
 ### SPA Router et Cycle de vie des Pages

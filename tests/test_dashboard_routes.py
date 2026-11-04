@@ -454,6 +454,71 @@ def test_healthz_returns_503_when_store_unavailable() -> None:
     assert payload["details"] == "store_unavailable"
 
 
+def test_healthz_returns_503_when_scheduler_stopped() -> None:
+    # Given: the scheduler is enabled but its service is not running
+    app, _settings_store, _state_store, scheduler, _tracker = _build_app(
+        {"automation_enabled": True}
+    )
+    scheduler.running = False
+
+    # When: /healthz is queried
+    with app.test_client() as client:
+        response = client.get("/healthz")
+
+    # Then: the endpoint reports an unhealthy scheduler
+    assert response.status_code == 503
+    payload = response.get_json()
+    assert payload["status"] == "ok"
+    assert payload["scheduler_running"] is False
+
+
+def test_history_api_data_returns_empty_payload_when_service_has_no_rows() -> None:
+    # Given: a history service that returns no rows
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app({})
+    history_service = MagicMock()
+    history_service.get_history.return_value = []
+    app.extensions["history_service"] = history_service
+
+    # When: a valid history range is queried
+    with app.test_client() as client:
+        response = client.get(
+            "/history/api/data",
+            query_string={
+                "start": "2026-01-01T00:00:00Z",
+                "end": "2026-01-01T06:00:00Z",
+            },
+        )
+
+    # Then: the payload is well-formed and flagged as empty
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["count"] == 0
+    assert payload["data"] == []
+    assert payload["message"] == "No historical data available yet"
+
+
+def test_history_api_data_returns_400_for_invalid_range() -> None:
+    # Given: a history service and a reversed time range
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app({})
+    app.extensions["history_service"] = MagicMock()
+
+    # When: start is after end
+    with app.test_client() as client:
+        response = client.get(
+            "/history/api/data",
+            query_string={
+                "start": "2026-01-02T00:00:00Z",
+                "end": "2026-01-01T00:00:00Z",
+            },
+        )
+
+    # Then: the API rejects the request with a 400
+    assert response.status_code == 400
+    payload = response.get_json()
+    assert "Invalid parameters" in payload["error"]
+    assert "start time must be before end time" in payload["error"]
+
+
 def test_quick_off_prefers_scene_and_disables_automation() -> None:
     settings = {
         "automation_enabled": True,

@@ -19,15 +19,18 @@ from requests import Response
 logger = logging.getLogger(__name__)
 
 
-def _validate_https_base_url(raw_url: str) -> str:
-    """Validate an operator-provided SwitchBot base URL.
+_FORBIDDEN_IP_FLAGS = (
+    "is_private",
+    "is_loopback",
+    "is_link_local",
+    "is_reserved",
+    "is_unspecified",
+    "is_multicast",
+)
 
-    ``base_url`` is trusted configuration, but a typo must never leak the
-    ``Authorization``/``sign`` headers to a local or private endpoint.
-    """
-    cleaned = raw_url.strip()
-    parsed = urlsplit(cleaned)
 
+def _validate_url_parts(parsed: Any, cleaned: str) -> str:
+    """Reject non-HTTPS URLs and embedded credentials/fragments/queries."""
     if parsed.scheme.lower() != "https" or not parsed.hostname:
         raise SwitchBotApiError(
             f"[api] Invalid SwitchBot base_url (HTTPS required): {cleaned!r}"
@@ -38,8 +41,11 @@ def _validate_https_base_url(raw_url: str) -> str:
         raise SwitchBotApiError("[api] Fragment is forbidden in base_url")
     if parsed.query:
         raise SwitchBotApiError("[api] Query string is forbidden in base_url")
+    return parsed.hostname.lower()
 
-    hostname = parsed.hostname.lower()
+
+def _validate_public_hostname(hostname: str) -> None:
+    """Reject local hostnames and private/loopback/reserved IP addresses."""
     if (
         hostname in {"localhost", "localhost.localdomain"}
         or hostname.endswith(".localhost")
@@ -53,20 +59,24 @@ def _validate_https_base_url(raw_url: str) -> str:
     try:
         ip_obj = ipaddress.ip_address(hostname)
     except ValueError:
-        ip_obj = None
+        return
 
-    if ip_obj is not None and (
-        ip_obj.is_private
-        or ip_obj.is_loopback
-        or ip_obj.is_link_local
-        or ip_obj.is_reserved
-        or ip_obj.is_unspecified
-        or ip_obj.is_multicast
-    ):
+    if any(getattr(ip_obj, flag) for flag in _FORBIDDEN_IP_FLAGS):
         raise SwitchBotApiError(
             f"[api] Private or loopback IP forbidden in base_url: {hostname}"
         )
 
+
+def _validate_https_base_url(raw_url: str) -> str:
+    """Validate an operator-provided SwitchBot base URL.
+
+    ``base_url`` is trusted configuration, but a typo must never leak the
+    ``Authorization``/``sign`` headers to a local or private endpoint.
+    """
+    cleaned = raw_url.strip()
+    parsed = urlsplit(cleaned)
+    hostname = _validate_url_parts(parsed, cleaned)
+    _validate_public_hostname(hostname)
     return cleaned.rstrip("/")
 
 
@@ -151,23 +161,36 @@ class SwitchBotClient:
             "nonce": nonce,
         }
 
-    def _process_response(self, response: Response, path: str, tracker_updated: bool) -> tuple[bool, Any]:
-        """Returns (retry_needed, data)."""
-        if response.status_code >= 400:
-            try:
-                data = response.json()
-            except ValueError as exc:
-                raise SwitchBotApiError(
-                    f"SwitchBot HTTP {response.status_code}: invalid JSON error payload."
-                ) from exc
-            raise SwitchBotApiError(f"SwitchBot HTTP {response.status_code}: {data!r}")
-
+    def _decode_response_json(self, response: Response) -> Any:
+        """Decode the response body, raising on HTTP or JSON errors."""
         try:
             data = response.json()
         except ValueError as exc:
+            if response.status_code >= 400:
+                raise SwitchBotApiError(
+                    f"SwitchBot HTTP {response.status_code}: invalid JSON error payload."
+                ) from exc
             raise SwitchBotApiError(
                 f"Invalid JSON response from SwitchBot ({response.status_code})."
             ) from exc
+
+        if response.status_code >= 400:
+            raise SwitchBotApiError(
+                f"SwitchBot HTTP {response.status_code}: {data!r}"
+            )
+        return data
+
+    def _record_implicit_quota_call(self, tracker_updated: bool) -> None:
+        """Record one call when no quota headers were available."""
+        if self._quota_tracker and not tracker_updated:
+            try:
+                self._quota_tracker.record_call()
+            except Exception as exc:
+                logger.warning("[api] Failed to record quota call (%s)", exc)
+
+    def _process_response(self, response: Response, path: str, tracker_updated: bool) -> tuple[bool, Any]:
+        """Returns (retry_needed, data)."""
+        data = self._decode_response_json(response)
 
         if not isinstance(data, dict) or "statusCode" not in data:
             raise SwitchBotApiError(f"Unexpected SwitchBot response: {data!r}")
@@ -180,11 +203,7 @@ class SwitchBotClient:
             path,
         )
         if status_code == 100:
-            if self._quota_tracker and not tracker_updated:
-                try:
-                    self._quota_tracker.record_call()
-                except Exception as exc:
-                    logger.warning("[api] Failed to record quota call (%s)", exc)
+            self._record_implicit_quota_call(tracker_updated)
             return False, data
 
         if status_code == 190:
@@ -192,68 +211,102 @@ class SwitchBotClient:
 
         raise SwitchBotApiError(f"SwitchBot API error: {data!r}")
 
-    def _request(self, method: str, path: str, json_body: dict[str, Any] | None = None, *, timeout: float = 15) -> Any:
+    def _send_once(
+        self,
+        method: str,
+        url: str,
+        json_body: dict[str, Any] | None,
+        timeout: float,
+    ) -> Response:
+        """Perform a single HTTP request with fresh HMAC headers."""
+        return self._get_session().request(
+            method=method,
+            url=url,
+            headers=self._build_headers(),
+            json=json_body,
+            timeout=timeout,
+        )
+
+    def _transport_retry_delay(self, attempt_index: int) -> float:
+        """Compute exponential backoff with jitter for transport errors."""
         import random as _rand
 
+        delay = min(self._retry_delay_seconds * (2 ** attempt_index), 5)
+        return delay + _rand.uniform(0, 0.5)
+
+    def _retry_transport_error(self, attempt_index: int) -> bool:
+        """Sleep and return True when a transport error can be retried."""
+        if (
+            attempt_index >= (self._retry_attempts - 1)
+            or self._retry_delay_seconds <= 0
+        ):
+            return False
+        time.sleep(self._transport_retry_delay(attempt_index))
+        return True
+
+    def _evaluate_http_response(
+        self,
+        response: Response,
+        *,
+        method: str,
+        path: str,
+        attempt_index: int,
+        is_get: bool,
+    ) -> tuple[str, Any]:
+        """Return ("data", payload), ("retry", delay) or ("exhausted", None)."""
+        # Capture quota metadata before any retry branch: a 429 followed by
+        # a transport timeout must still persist remaining=0.
+        tracker_updated = self._capture_quota_metadata(response)
+
+        logger.debug(
+            "[api] SwitchBot %s %s -> HTTP %s",
+            method,
+            path,
+            response.status_code,
+        )
+
+        retryable_http = response.status_code == 429 or 500 <= response.status_code <= 599
+        can_retry = is_get and attempt_index < (self._retry_attempts - 1)
+
+        if retryable_http and can_retry:
+            return "retry", self._parse_retry_after(response, attempt_index)
+
+        retry_needed, data = self._process_response(
+            response, path, tracker_updated
+        )
+        if retry_needed and can_retry:
+            return "retry", self._parse_retry_after(response, attempt_index)
+        if not retry_needed:
+            return "data", data
+        return "exhausted", None
+
+    def _request(self, method: str, path: str, json_body: dict[str, Any] | None = None, *, timeout: float = 15) -> Any:
         url = f"{self._base_url}{path}"
-        last_error: Exception | None = None
         is_get = method.upper() == "GET"
 
         for attempt_index in range(self._retry_attempts):
-            headers = self._build_headers()
             try:
-                response = self._get_session().request(
-                    method=method,
-                    url=url,
-                    headers=headers,
-                    json=json_body,
-                    timeout=timeout,
-                )
+                response = self._send_once(method, url, json_body, timeout)
             except requests.RequestException as exc:
                 # REL-04: Transport errors are always retryable
-                last_error = exc
-                if attempt_index < (self._retry_attempts - 1) and self._retry_delay_seconds > 0:
-                    delay = min(self._retry_delay_seconds * (2 ** attempt_index), 5)
-                    delay += _rand.uniform(0, 0.5)  # jitter
-                    time.sleep(delay)
+                if self._retry_transport_error(attempt_index):
                     continue
+                raise SwitchBotApiError(
+                    f"[api] SwitchBot request failed: {exc}"
+                ) from exc
 
-                raise SwitchBotApiError(f"[api] SwitchBot request failed: {exc}") from exc
-
-            # Capture quota metadata before any retry branch: a 429 followed by
-            # a transport timeout must still persist remaining=0.
-            tracker_updated = self._capture_quota_metadata(response)
-
-            logger.debug(
-                "[api] SwitchBot %s %s -> HTTP %s",
-                method,
-                path,
-                response.status_code,
+            outcome, value = self._evaluate_http_response(
+                response,
+                method=method,
+                path=path,
+                attempt_index=attempt_index,
+                is_get=is_get,
             )
-
-            # REL-04: Only retry on GETs for HTTP-level errors (429, 5xx)
-            retryable_http = response.status_code == 429 or 500 <= response.status_code <= 599
-            if retryable_http:
-                last_error = SwitchBotApiError(
-                    f"[api] SwitchBot HTTP {response.status_code}"
-                )
-
-            if retryable_http and is_get and attempt_index < (self._retry_attempts - 1):
-                delay = self._parse_retry_after(response, attempt_index)
-                time.sleep(delay)
+            if outcome == "data":
+                return value
+            if outcome == "retry":
+                time.sleep(value)
                 continue
-
-            retry_needed, data = self._process_response(response, path, tracker_updated)
-            if retry_needed and is_get and attempt_index < (self._retry_attempts - 1):
-                delay = self._parse_retry_after(response, attempt_index)
-                time.sleep(delay)
-                continue
-                
-            if not retry_needed:
-                return data
-
-        if last_error is not None:
-            raise SwitchBotApiError(f"SwitchBot request failed: {last_error}") from last_error
 
         raise SwitchBotApiError("[api] SwitchBot request failed")
 
@@ -332,7 +385,10 @@ class SwitchBotClient:
 
         return self._request("POST", f"/v1.1/scenes/{scene_id}/execute", json_body={})
 
-    def _capture_quota_metadata(self, response: Response) -> bool:
+    def _extract_quota_values(
+        self, response: Response
+    ) -> tuple[int | None, int | None]:
+        """Extract quota limit/remaining from the supported header aliases."""
         header_map = {key.lower(): value for key, value in response.headers.items()}
         limit_raw = (
             header_map.get("x-ratelimit-limit")
@@ -350,18 +406,24 @@ class SwitchBotClient:
 
         if getattr(response, "status_code", None) == 429:
             remaining = 0
+        return limit, remaining
 
+    def _record_quota_without_headers(self) -> bool:
+        """Record a call when the response exposes no quota headers."""
         tracker_updated = False
-        if limit is None and remaining is None:
-            if self._quota_tracker:
-                try:
-                    self._quota_tracker.record_call()
-                    tracker_updated = True
-                except Exception as exc:
-                    logger.warning("[api] Failed to record quota call (%s)", exc)
-            logger.debug("[api] SwitchBot quota headers absent on latest response.")
-            return tracker_updated
+        if self._quota_tracker:
+            try:
+                self._quota_tracker.record_call()
+                tracker_updated = True
+            except Exception as exc:
+                logger.warning("[api] Failed to record quota call (%s)", exc)
+        logger.debug("[api] SwitchBot quota headers absent on latest response.")
+        return tracker_updated
 
+    def _record_quota_headers(
+        self, limit: int | None, remaining: int | None
+    ) -> bool:
+        """Persist a quota snapshot and forward it to the tracker."""
         self._last_quota = {}
         if limit is not None:
             self._last_quota["limit"] = limit
@@ -374,16 +436,22 @@ class SwitchBotClient:
             limit if limit is not None else "unknown",
         )
 
-        if self._quota_tracker:
-            try:
-                tracker_updated = self._quota_tracker.record_from_headers(
-                    limit=limit, remaining=remaining
-                )
-            except Exception as exc:
-                logger.warning("[api] Failed to persist quota headers (%s)", exc)
-                tracker_updated = False
+        if not self._quota_tracker:
+            return False
 
-        return tracker_updated
+        try:
+            return self._quota_tracker.record_from_headers(
+                limit=limit, remaining=remaining
+            )
+        except Exception as exc:
+            logger.warning("[api] Failed to persist quota headers (%s)", exc)
+            return False
+
+    def _capture_quota_metadata(self, response: Response) -> bool:
+        limit, remaining = self._extract_quota_values(response)
+        if limit is None and remaining is None:
+            return self._record_quota_without_headers()
+        return self._record_quota_headers(limit, remaining)
 
     @staticmethod
     def _safe_int(value: str | None) -> int | None:

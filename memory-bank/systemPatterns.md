@@ -78,6 +78,7 @@
 - AutomationService utilise `zoneinfo` pour interpréter les fenêtres horaires dans le fuseau configuré (défaut Europe/Paris), indépendamment du serveur UTC.
 - _get_timezone() valide l'identifiant IANA et retombe sur UTC si invalide, avec logs d'avertissement.
 - run_once() calcule now en astimezone pour _is_now_in_windows, assurant la cohérence avec l'heure locale.
+- Règle métier : une fenêtre qui traverse minuit (ex. 22:00→06:00) reste active le lendemain matin si le jour précédent figure dans `days`. `_is_time_in_window()` vérifie explicitement `previous_weekday` pour ce report ; l'oublier coupe l'automatisation à minuit.
 
 [2026-01-14 12:45:00] - Patterns PostgreSQL Neon et simplification architecture
 

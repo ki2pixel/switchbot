@@ -16,16 +16,12 @@ Au lieu de laisser les données s'accumuler passivement, nous enregistrons un sn
 
 ```python
 # Dans automation.py, après chaque tick
-if history_service:
-    history_service.record_state({
-        'temperature': current_temp,
-        'humidity': current_humidity,
-        'assumed_aircon_power': assumed_state,
-        'last_action': last_action,
-        'api_requests_today': api_quota_tracker.get_today_count(),
-        'error_count': error_count
-    })
+if self._history_service:
+    current_state = self._state_store.read()
+    self._history_service.record_state(current_state, timezone_name)
 ```
+
+`record_state()` extrait `last_temperature`, `last_humidity`, `assumed_aircon_power`, `last_action` et les métadonnées utiles via `_build_record_tuple()`, puis bufferise l'insertion. Le champ d'état `api_requests_total` est écrit dans la colonne historique `api_requests_today` pour rester compatible avec le schéma existant.
 
 ### La Découpe Temporelle Intelligente
 

@@ -157,12 +157,14 @@ cur.execute(sql, self._pending_records)  # Liste de tuples safe
 
 ### Tests de Performance
 ```bash
-# Commande de validation
-source /mnt/venv_ext4/venv_switchbot/bin/activate && python -m pytest tests/test_performance.py -v
+# Buffer d'écriture et flush hors verrou
+source /mnt/venv_ext4/venv_switchbot/bin/activate && python -m pytest tests/test_history_service.py -v
 
-# Résultats attendus
-test_batch_insert_performance PASSED in 0.02s
-test_timezone_cache_efficiency PASSED in 0.01s
+# Cache timezone et ticks d'automatisation
+source /mnt/venv_ext4/venv_switchbot/bin/activate && python -m pytest tests/test_automation_service.py -v
+
+# Budgets frontend (assets locaux, ordre CSS, decimation)
+source /mnt/venv_ext4/venv_switchbot/bin/activate && python -m pytest tests/test_frontend_performance.py -v
 ```
 
 ### Alertes Production
@@ -189,10 +191,10 @@ Les opérations d'écriture fréquentes doivent être batchées. Les calculs co�
 
 ## Références Techniques
 
-- **Documentation complète** : `docs/backend-audit-report.md`
+- **Documentation complète** : `docs/audits/audit_backend.md`
 - **Patterns système** : `memory-bank/systemPatterns.md`
 - **Décisions d'architecture** : `memory-bank/decisionLog.md`
-- **Tests de performance** : `tests/test_performance.py`
+- **Tests de performance** : `tests/test_history_service.py`, `tests/test_frontend_performance.py`
 
 ## Variables d'Environnement Essentielles
 
@@ -242,4 +244,4 @@ Accumulez systématiquement les opérations d'écriture et traitez-les par lots.
 
 ---
 
-*Ce guide se concentre sur les optimisations de performance implémentées dans le SwitchBot Dashboard v2. Pour l'audit complet, voir `docs/backend-audit-report.md`.*
+*Ce guide se concentre sur les optimisations de performance implémentées dans le SwitchBot Dashboard v2. Pour l'audit complet, voir `docs/audits/audit_backend.md`.*

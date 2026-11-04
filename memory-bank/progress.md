@@ -1,5 +1,47 @@
 # Progrès du Projet - SwitchBot Dashboard
 
+## Refactor automation.py + switchbot_api.py — 2026-11-04
+- [x] [2026-11-04 16:04:06] - `poll_aircon_status` découpé (statut virtuel, mapping body, sync état).
+- [x] [2026-11-04 16:04:06] - `_perform_off_action` découpé (fan mode, fallback direct, off).
+- [x] [2026-11-04 16:04:06] - `_process_off_repeat_task` découpé (lecture planification, replanification).
+- [x] [2026-11-04 16:04:06] - `_evaluate_temperature` découpé (profil, zone neutre fan).
+- [x] [2026-11-04 16:04:06] - `_run_once_impl` découpé (tick désactivé, hors fenêtre, lecture capteur).
+- [x] [2026-11-04 16:04:06] - `_validate_https_base_url`, `_process_response`, `_request`, `_capture_quota_metadata` découpés.
+- [x] [2026-11-04 16:04:06] - 13 tests de bordure ajoutés (API-01..08, AUTO-01..05), GWT.
+- [x] [2026-11-04 16:04:06] - Validation : `ruff check` OK, **314 passed, 1 skipped** ; `automation.py` et `switchbot_api.py` sans bloc ≥ C ; moyenne projet A (3,64).
+- [ ] Prochaine étape : traiter les C restants (`scheduler.py:_get_effective_interval_seconds`, `__init__.py:_configure_security`, `scripts/migrate_to_postgres.py:_read_and_validate_data`).
+
+## Refactor routes.py — 2026-11-04
+- [x] [2026-11-04 15:53:37] - `_update_time_windows` découpé (parsing jours, validation HH:MM).
+- [x] [2026-11-04 15:53:37] - `_handle_direct_action` découpé (lock contextmanager, scène, off, setAll).
+- [x] [2026-11-04 15:53:37] - `_parse_history_query_params` découpé (metrics, plage, granularité).
+- [x] [2026-11-04 15:53:37] - `healthz` découpé (snapshot, payload, connectivité, réponse JSON).
+- [x] [2026-11-04 15:53:37] - `history_api_data` découpé (payload indisponible/vide/erreur).
+- [x] [2026-11-04 15:53:37] - 3 tests de bordure ajoutés (scheduler arrêté, historique vide, plage inversée).
+- [x] [2026-11-04 15:53:37] - Validation : `ruff check` OK, **301 passed, 1 skipped** ; `routes.py` sans bloc ≥ C.
+- [ ] Prochaine étape : traiter les C restants dans `automation.py` et `switchbot_api.py`.
+
+## Refactor _build_store — 2026-11-04
+- [x] [2026-11-04 15:46:47] - `_build_store` découpé en helpers (environnement, JSON, seuil, résilience, PostgreSQL).
+- [x] [2026-11-04 15:46:47] - `_configure_security` réutilise `_resolve_environment`.
+- [x] [2026-11-04 15:46:47] - 3 tests de bordure ajoutés (seuil invalide, Redis production, filesystem production).
+- [x] [2026-11-04 15:46:47] - Validation : `ruff check` OK, **298 passed, 1 skipped** ; moyenne radon 14,35.
+- [ ] Prochaine étape : traiter `_handle_direct_action` (C) et `_update_time_windows` (C) si une nouvelle passe est souhaitée.
+
+## Refactor Complexité — 2026-11-04
+- [x] [2026-11-04 15:38:17] - `update_settings` découpé en helpers de section ; sorti des hotspots radon.
+- [x] [2026-11-04 15:38:17] - `poll_aircon_status` : cache/cooldown extraits, complexité E → C.
+- [x] [2026-11-04 15:38:17] - `create_app` : initialisation découpée en 10 helpers ; complexité F supprimée.
+- [x] [2026-11-04 15:38:17] - 4 tests TWM-01..06 (fenêtre traversant minuit) avec structure Given/When/Then.
+- [x] [2026-11-04 15:38:17] - Validation : `ruff check` OK, **295 passed, 1 skipped**.
+- [ ] Prochaine étape : réduire `_build_store` (D) si une nouvelle passe de complexité est planifiée.
+
+## Docs Updater — 2026-11-04
+- [x] [2026-11-04 15:28:12] - Audit statique (tree, cloc, radon) : 18 fichiers Python, 4 637 lignes, complexité moyenne C (17,84).
+- [x] [2026-11-04 15:28:12] - Alignement docs/code : README, ui-navigation, automation-engine, quota-management, scheduler.
+- [x] [2026-11-04 15:28:12] - Remplacement des références de tests et d'APIs inexistantes (ops, monitoring).
+- [ ] Prochaine étape : rejouer la suite pytest après tout changement de code (aucun code applicatif modifié ici).
+
 ## Phase Remédiation Audit Backend V2 (2026-11-04) — COMPLÈTE ✔
 - [x] [2026-11-04 14:13:43] - AUD-DB-01/CONC-01 : transactions réentrantes + cache thread-local.
 - [x] [2026-11-04 14:13:43] - AUD-SCHED-01 : reschedule protégé, job conservé, test périodique honnête.

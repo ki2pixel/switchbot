@@ -62,7 +62,7 @@ La magie est dans les détails : le polling adaptatif réduit la charge base de 
 | **JSON Fichiers** | Faible | Gratuit | Faible (local only) | Développement, testing |
 
 ### La Couche de Stockage
-Nous utilisons **PostgreSQL Neon** comme store principal avec un **fallback JsonStore**. Le `PostgresStore` implémente le connection pooling, les schémas JSONB et la création automatique de tables. Si Neon tombe, nous retombons proprement sur des fichiers JSON locaux sans perdre la logique d'automatisation.
+Nous utilisons **PostgreSQL Neon** comme store principal avec un **fallback JsonStore** au démarrage. Le `PostgresStore` implémente le connection pooling, les schémas JSONB et la création automatique de tables. Si Neon est indisponible au boot, l'application bascule sur des fichiers JSON locaux. En cours d'exécution, `ResilientStore` compte les échecs consécutifs : hors production il bascule sur JSON, en production il alerte (`[store] CRITICAL`) et laisse les routes répondre `503` pour éviter un split-brain entre workers.
 
 ### La Cascade d'Automatisation
 Chaque action essaie deux chemins dans l'ordre :
@@ -91,7 +91,7 @@ Le suivi du quota API utilise une architecture "Double Track". L'application com
 
 ## Le Chemin de Migration
 
-Cette structure `docs/v2/` remplace la documentation legacy. La Phase 4 du plan de migration (commandes bash manuelles) déplacera ces fichiers en place. D'ici là, considérez ceci comme l'aperçu de la nouvelle organisation.
+La documentation legacy a été remplacée par cette structure. Les anciens audits restent dans `docs/audits/` comme archive ; ils décrivent l'état du code à leur date et ne constituent pas une référence d'implémentation. Pour le comportement courant, fiez-vous à `core/`, `architecture/`, `guides/` et `ops/`.
 
 ## La Règle d'Or : Documentation Modulaire, Décisions Éclairées
 

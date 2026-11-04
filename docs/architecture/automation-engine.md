@@ -73,9 +73,10 @@ Le cycle de vie garantit qu'une seule commande OFF est envoyée par cycle :
 ```bash
 # .env
 SCHEDULER_ENABLED=true
-POLL_INTERVAL_SECONDS=120
-TIMEZONE=Europe/Paris
+SWITCHBOT_POLL_INTERVAL_SECONDS=120
 ```
+
+Le fuseau horaire n'est pas lu depuis `.env` : il vit dans `settings.json` sous `timezone` (défaut `Europe/Paris`).
 
 ### Configuration JSON Complète
 
@@ -197,37 +198,37 @@ Le système gère correctement les fuseaux horaires et les traversées de minuit
 
 ```python
 # switchbot_dashboard/automation.py
-def _is_now_in_windows(time_windows: list[dict[str, Any]], now: dt.datetime) -> bool:
-    """Évalue les fenêtres horaires dans le fuseau configuré."""
-    
-    for window in time_windows:
-        days = window.get("days")
-        if not isinstance(days, list):
-            continue
-        
-        start_raw = window.get("start")
-        end_raw = window.get("end")
-        if not isinstance(start_raw, str) or not isinstance(end_raw, str):
-            continue
-        
-        try:
-            start = _parse_hhmm(start_raw)
-            end = _parse_hhmm(end_raw)
-        except ValueError:
-            continue
-        
-        now_time = now.time().replace(tzinfo=None)
-        
-        if start <= end:
-            if now.weekday() in days and start <= now_time <= end:
-                return True
-        else:
-            # Gestion des fenêtres qui traversent minuit
-            if now.weekday() in days and now_time >= start:
-                return True
-    
-    return False
+def _is_time_in_window(window: dict[str, Any], now: dt.datetime) -> bool:
+    """Évalue une fenêtre horaire dans le fuseau configuré."""
+    days = window.get("days")
+    if not isinstance(days, list):
+        return False
+
+    start_raw = window.get("start")
+    end_raw = window.get("end")
+    if not isinstance(start_raw, str) or not isinstance(end_raw, str):
+        return False
+
+    try:
+        start = _parse_hhmm(start_raw)
+        end = _parse_hhmm(end_raw)
+    except ValueError:
+        return False
+
+    now_time = now.time().replace(tzinfo=None)
+
+    if start <= end:
+        return now.weekday() in days and start <= now_time <= end
+
+    # Fenêtre qui traverse minuit : le jour de début porte la règle.
+    if now.weekday() in days and now_time >= start:
+        return True
+
+    previous_weekday = (now - dt.timedelta(days=1)).weekday()
+    return previous_weekday in days and now_time <= end
 ```
+
+La règle importante est la dernière ligne : une fenêtre `22:00 → 06:00` déclarée pour lundi reste active mardi entre 00:00 et 06:00, car c'est le lundi qui porte la règle. Sans ce report au jour précédent, l'automatisation s'arrête à minuit.
 
 ## Les Pièges : Erreurs Communes à Éviter
 

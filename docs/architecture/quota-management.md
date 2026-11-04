@@ -38,54 +38,73 @@ Alerte UI → Bandeau si api_requests_remaining ≤ api_quota_warning_threshold
 
 ```python
 # switchbot_dashboard/quota.py
-def record_call(self, context: str = "unknown") -> None:
-    """Enregistre un appel API et met à jour les compteurs."""
-    self._ensure_quota_initialized()
-    
-    # Incrémentation du compteur local
-    self._state["api_requests_today"] += 1
-    
-    # Calcul des requêtes restantes
-    remaining = self._state["api_requests_limit"] - self._state["api_requests_today"]
-    self._state["api_requests_remaining"] = max(0, remaining)
-    
-    # Persistance atomique
-    self._state_store.write(self._state)
+def record_call(self, *, increment: int = 1) -> None:
+    """Fallback utilisé quand l'API n'expose pas les headers de quota."""
+    if increment <= 0:
+        return
+
+    with _transaction_context(self._state_store):
+        state = self._normalize_state()
+        limit = self._extract_limit(state)
+        used = self._safe_int(state.get("api_requests_total"), fallback=0)
+        used = max(used, 0) + increment
+        remaining = max(limit - used, 0)
+
+        state["api_requests_total"] = used
+        state["api_requests_remaining"] = remaining
+        self._state_store.write(state)
 ```
 
 ### Capture des Headers SwitchBot
 
 ```python
 # Dans SwitchBotClient._capture_quota_metadata()
-def _capture_quota_metadata(self, response: requests.Response) -> None:
+def _capture_quota_metadata(self, response: Response) -> bool:
     """Extrait les métadonnées de quota des headers HTTP."""
-    if "X-RateLimit-Limit" in response.headers:
-        limit = int(response.headers["X-RateLimit-Limit"])
-        if limit != self._quota_tracker.get_limit():
-            self._quota_tracker.set_limit(limit)
-    
-    if "X-RateLimit-Remaining" in response.headers:
-        remaining = int(response.headers["X-RateLimit-Remaining"])
-        # Synchronisation avec le compteur local si nécessaire
-        self._quota_tracker.sync_with_header(remaining)
+    header_map = {key.lower(): value for key, value in response.headers.items()}
+    limit = self._safe_int(
+        header_map.get("x-ratelimit-limit")
+        or header_map.get("x-rate-limit-limit")
+        or header_map.get("ratelimit-limit")
+    )
+    remaining = self._safe_int(
+        header_map.get("x-ratelimit-remaining")
+        or header_map.get("x-rate-limit-remaining")
+        or header_map.get("ratelimit-remaining")
+    )
+
+    if response.status_code == 429:
+        remaining = 0
+
+    if limit is None and remaining is None:
+        self._quota_tracker.record_call()
+        return True
+
+    return self._quota_tracker.record_from_headers(limit=limit, remaining=remaining)
 ```
 
 ### Réinitialisation Quotidienne Automatique
 
 ```python
-# Dans ApiQuotaTracker._ensure_quota_initialized()
-def _ensure_quota_initialized(self) -> None:
+# Dans ApiQuotaTracker._normalize_state()
+def _normalize_state(self) -> dict[str, Any]:
     """Initialise ou réinitialise le quota quotidien."""
-    current_day = datetime.utcnow().date().isoformat()
-    
-    if self._state.get("api_quota_day") != current_day:
+    state = self._state_store.read()
+    now = dt.datetime.now(dt.timezone.utc)
+    today = now.date().isoformat()
+
+    if state.get("api_quota_day") != today:
         # Réinitialisation à minuit UTC
-        self._state.update({
-            "api_quota_day": current_day,
-            "api_requests_today": 0,
-            "api_requests_remaining": self._state.get("api_requests_limit", 10000),
-            "api_quota_reset_at": _utc_now_iso()
-        })
+        state["api_quota_day"] = today
+        state["api_requests_total"] = 0
+        state["api_requests_limit"] = self._default_daily_limit
+        state["api_requests_remaining"] = self._default_daily_limit
+        state["api_quota_reset_at"] = now.isoformat()
+    else:
+        state["api_requests_limit"] = self._extract_limit(state)
+        state.setdefault("api_quota_reset_at", now.isoformat())
+
+    return state
 ```
 
 ### Configuration Essentielle
@@ -93,10 +112,11 @@ def _ensure_quota_initialized(self) -> None:
 #### `settings.json`
 ```json
 {
-  "api_quota_warning_threshold": 250,
-  "api_requests_limit": 10000
+  "api_quota_warning_threshold": 250
 }
 ```
+
+La limite (`api_requests_limit`) et les compteurs (`api_requests_total`, `api_requests_remaining`) vivent dans le store d'état, pas dans `settings.json`. La limite par défaut est `10 000` et peut être écrasée par les headers SwitchBot.
 
 #### `.env`
 ```bash
@@ -113,34 +133,57 @@ Le bandeau apparaît uniquement quand `api_requests_remaining` ≤ `api_quota_wa
 #### Page `/quota` de Monitoring
 ```python
 @dashboard_bp.get("/quota")
-def quota_page() -> str:
+def quota() -> str:
     """Page de monitoring des quotas API."""
-    quota_tracker = current_app.extensions["quota_tracker"]
-    quota_state = quota_tracker.get_state()
-    
-    return render_template("quota.html", quota=quota_state)
+    settings_store = current_app.extensions["settings_store"]
+    state_store = current_app.extensions["state_store"]
+
+    settings = settings_store.read()
+    state = state_store.read()
+    quota_context = _build_quota_context(settings, state)
+
+    return render_template("quota.html", **quota_context)
 ```
+
+Le bouton de rafraîchissement (`POST /quota/refresh`) appelle `get_devices()` pour récupérer des headers frais, puis `quota_tracker.refresh_snapshot()` normalise le jour courant même sans appel API.
 
 ## Les Pièges à Éviter
 
 ### ❌ Ignorer la Synchronisation Headers
 ```python
 # Mauvais : seulement compter localement
-def record_call(self):
-    self._state["api_requests_today"] += 1
+def record_call(self, *, increment: int = 1) -> None:
+    state = self._state_store.read()
+    state["api_requests_total"] = state.get("api_requests_total", 0) + increment
     # Jamais synchroniser avec les headers SwitchBot
 ```
 
 ### ✅ Double Track Complet
 ```python
 # Bon : comptage local + synchronisation headers
-def record_call(self, context: str = "unknown") -> None:
-    self._ensure_quota_initialized()
-    self._state["api_requests_today"] += 1
-    
-    # Synchronisation avec les headers si disponibles
-    if self._header_remaining:
-        self._sync_with_header(self._header_remaining)
+def record_call(self, *, increment: int = 1) -> None:
+    """Fallback quand les headers sont absents."""
+    with _transaction_context(self._state_store):
+        state = self._normalize_state()
+        used = max(self._safe_int(state.get("api_requests_total"), fallback=0), 0) + increment
+        state["api_requests_total"] = used
+        state["api_requests_remaining"] = max(self._extract_limit(state) - used, 0)
+        self._state_store.write(state)
+
+def record_from_headers(self, *, limit: int | None, remaining: int | None) -> bool:
+    """Écrase le compteur local avec la vérité SwitchBot."""
+    if remaining is None:
+        return False
+    with _transaction_context(self._state_store):
+        state = self._normalize_state()
+        limit_value = max(int(limit), 1) if limit is not None else self._extract_limit(state)
+        if limit is not None:
+            state["api_requests_limit"] = limit_value
+        remaining_value = max(min(int(remaining), limit_value), 0)
+        state["api_requests_total"] = max(limit_value - remaining_value, 0)
+        state["api_requests_remaining"] = remaining_value
+        self._state_store.write(state)
+        return True
 ```
 
 ### ❌ Réinitialisation Manuelle Oubliée
@@ -154,62 +197,64 @@ def record_call(self):
 ### ✅ Réinitialisation UTC Fiable
 ```python
 # Bon : réinitialisation automatique à minuit UTC
-def _ensure_quota_initialized(self) -> None:
-    current_day = datetime.utcnow().date().isoformat()
-    if self._state.get("api_quota_day") != current_day:
-        # Reset complet du quota
+def _normalize_state(self) -> dict[str, Any]:
+    state = self._state_store.read()
+    now = dt.datetime.now(dt.timezone.utc)
+    today = now.date().isoformat()
+    if state.get("api_quota_day") != today:
+        state["api_quota_day"] = today
+        state["api_requests_total"] = 0
+        state["api_requests_remaining"] = self._default_daily_limit
+    return state
 ```
 
 ### ❌ Pas de Persistance Atomique
 ```python
-# Mauvais : écritures multiples
-self._state["api_requests_today"] += 1
-self._state_store.write({"api_requests_today": self._state["api_requests_today"]})
+# Mauvais : compteur partiel écrit sans verrou ni transaction
+self._state_store.write({"api_requests_total": self._state["api_requests_total"] + 1})
 ```
 
 ### ✅ Persistance Atomique
 ```python
-# Bon : écriture unique de l'état complet
-self._state_store.write(self._state)
+# Bon : transaction + écriture unique de l'état complet
+with _transaction_context(self._state_store):
+    state = self._normalize_state()
+    state["api_requests_total"] += 1
+    state["api_requests_remaining"] = max(self._extract_limit(state) - state["api_requests_total"], 0)
+    self._state_store.write(state)
 ```
 
 ## Patterns d'Utilisation par Type d'Action
 
-| Type d'Appel | Context | Fréquence | Impact Quota |
-| ------------ | ------- | --------- | ----------- |
-| `poll_meter()` | "poll_meter" | Toutes les 30s | Élevé |
-| `execute_scene()` | "scene_execution" | Manuel/Automation | Moyen |
-| `set_all()` | "direct_command" | Manuel | Faible |
-| `/devices` | "inventory" | Navigation | Faible |
-| `/actions/*` | "manual_action" | Manuel | Variable |
+Le comptage est centralisé dans `SwitchBotClient` : chaque réponse API met à jour le tracker, quel que soit l'appelant.
+
+| Origine | Exemple | Fréquence | Impact Quota |
+| ------- | ------- | --------- | ------------ |
+| Poll capteur | `get_device_status()` | Toutes les 15-600 s | Élevé |
+| Scène | `run_scene()` | Automatisation/manuel | Moyen |
+| Commande directe | `set_all()` / `turn_off()` | Manuel/fallback | Faible |
+| Inventaire | `/devices` via `get_devices()` | Navigation | Faible |
+| Actions manuelles | `/actions/*` | Manuel | Variable |
 
 ## Monitoring et Dépannage
 
 ### Health Check Intégré
 ```bash
-curl http://localhost:5000/healthz | jq '.api_requests_*'
+curl http://localhost:5000/healthz | jq '{status, active_store_backend, store_degraded}'
 ```
 
-Retourne :
-```json
-{
-  "api_requests_total": 842,
-  "api_requests_remaining": 158,
-  "api_quota_day": "2026-01-26",
-  "api_quota_reset_at": "2026-01-27T00:00:00Z"
-}
-```
+`/healthz` expose l'état du store et du scheduler, pas les compteurs de quota. Pour lire les compteurs, passez par la page `/quota` ou l'endpoint de debug protégé.
 
 ### Logs Quota
 ```bash
 # Comptage standard
-[api] Quota snapshot updated | context=poll_meter, used=42, remaining=958, limit=10000
+[quota] fallback increment recorded: used=42 remaining=9958 limit=10000
 
 # Synchronisation header
-[api] Syncing with header quota | header_remaining=950, local_used=50
+[api] SwitchBot quota snapshot captured: remaining=950 limit=10000
 
-# Réinitialisation quotidienne
-[api] Daily quota reset | day=2026-01-26, new_limit=10000
+# Réinitialisation quotidienne (via refresh_snapshot)
+[quota] snapshot refreshed: day=2026-11-04 remaining=10000
 ```
 
 ### Actions Manuelles

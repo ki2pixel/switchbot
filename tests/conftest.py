@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import os
 from contextlib import ExitStack
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+# Ensure testing environment defaults unless explicitly configured by a test
+os.environ.setdefault("FLASK_ENV", "testing")
 
 
 @pytest.fixture(autouse=True)

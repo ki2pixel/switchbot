@@ -527,6 +527,64 @@ def test_time_window_evaluation_respects_timezone() -> None:
     assert _is_now_in_windows(time_windows, now_paris) is False
 
 
+def test_time_window_crossing_midnight_includes_next_morning() -> None:
+    """Une fenêtre 22:00-06:00 déclarée lundi reste active mardi matin."""
+    # Given: a Monday-only window that crosses midnight
+    time_windows = [{"days": [0], "start": "22:00", "end": "06:00"}]
+    monday_late = dt.datetime(2026, 11, 2, 23, 0, tzinfo=dt.timezone.utc)
+    tuesday_early = dt.datetime(2026, 11, 3, 5, 0, tzinfo=dt.timezone.utc)
+
+    # When: the window is evaluated on the start day and the next morning
+    start_day_result = _is_now_in_windows(time_windows, monday_late)
+    next_day_result = _is_now_in_windows(time_windows, tuesday_early)
+
+    # Then: both timestamps are inside the window
+    assert start_day_result is True
+    assert next_day_result is True
+
+
+def test_time_window_crossing_midnight_excludes_outside_bounds() -> None:
+    """Avant 22:00 et après 06:00, la fenêtre traversant minuit est fermée."""
+    # Given: the same Monday-only 22:00-06:00 window
+    time_windows = [{"days": [0], "start": "22:00", "end": "06:00"}]
+    monday_evening = dt.datetime(2026, 11, 2, 21, 0, tzinfo=dt.timezone.utc)
+    tuesday_morning = dt.datetime(2026, 11, 3, 7, 0, tzinfo=dt.timezone.utc)
+
+    # When: timestamps fall one hour before the start and one hour after the end
+    before_result = _is_now_in_windows(time_windows, monday_evening)
+    after_result = _is_now_in_windows(time_windows, tuesday_morning)
+
+    # Then: both timestamps are outside the window
+    assert before_result is False
+    assert after_result is False
+
+
+def test_time_window_crossing_midnight_requires_start_day() -> None:
+    """Le report au lendemain ne s'applique pas si seul mardi est déclaré."""
+    # Given: a Tuesday-only window evaluated on Tuesday morning
+    time_windows = [{"days": [1], "start": "22:00", "end": "06:00"}]
+    tuesday_early = dt.datetime(2026, 11, 3, 5, 0, tzinfo=dt.timezone.utc)
+
+    # When: the window is evaluated before Tuesday's 22:00 start
+    result = _is_now_in_windows(time_windows, tuesday_early)
+
+    # Then: the window is closed because Monday is not declared
+    assert result is False
+
+
+def test_time_window_without_midnight_crossing_does_not_spill() -> None:
+    """Une fenêtre 08:00-18:00 ne déborde pas sur le lendemain."""
+    # Given: a Monday-only daytime window
+    time_windows = [{"days": [0], "start": "08:00", "end": "18:00"}]
+    tuesday_noon = dt.datetime(2026, 11, 3, 12, 0, tzinfo=dt.timezone.utc)
+
+    # When: the window is evaluated on Tuesday at noon
+    result = _is_now_in_windows(time_windows, tuesday_noon)
+
+    # Then: Tuesday is outside the declared day
+    assert result is False
+
+
 def test_fan_mode_neutral_zone_auto_start() -> None:
     """Test qu'en entrant dans la fenêtre horaire avec fan_mode_during_window=True, le climatiseur s'allume en mode ventilation si la température est neutre."""
     settings = _default_settings()
@@ -1000,5 +1058,121 @@ def test_invalid_temperature_still_records_history_snapshot(monkeypatch) -> None
 
     # Then: l'état est historisé malgré l'abandon de l'automatisation
     mock_record.assert_called_once()
+
+
+def test_invalid_profile_configuration_returns_invalid_profile() -> None:
+    # Given: a profile with a non-numeric minimum temperature
+    settings = _default_settings()
+    settings["winter"]["min_temp"] = "n/a"
+    service, client, _settings_store, state_store = _build_service(
+        settings=settings,
+        temperature=20.0,
+    )
+
+    # When: the automation tick evaluates the temperature
+    service.run_once()
+
+    # Then: the tick aborts with an explicit configuration error
+    state = state_store.read()
+    assert state["last_error"] == "Invalid profile configuration for mode: winter"
+    assert client.run_scene_calls == []
+    assert client.send_command_calls == []
+
+
+def test_invalid_temperature_thresholds_returns_invalid_thresholds() -> None:
+    # Given: a profile where min_temp is greater than max_temp
+    settings = _default_settings()
+    settings["winter"]["min_temp"] = 26.0
+    settings["winter"]["max_temp"] = 20.0
+    service, client, _settings_store, state_store = _build_service(
+        settings=settings,
+        temperature=20.0,
+    )
+
+    # When: the automation tick evaluates the temperature
+    service.run_once()
+
+    # Then: the invalid thresholds are reported and no action is sent
+    state = state_store.read()
+    assert state["last_error"] == "Invalid thresholds: min_temp > max_temp (winter)"
+    assert client.run_scene_calls == []
+    assert client.send_command_calls == []
+
+
+def test_unknown_mode_with_valid_profile_returns_invalid_mode() -> None:
+    # Given: an unknown mode backed by a valid profile
+    settings = _default_settings()
+    settings["mode"] = "spring"
+    settings["spring"] = {
+        "min_temp": 18.0,
+        "max_temp": 24.0,
+        "target_temp": 21.0,
+        "ac_mode": 5,
+        "fan_speed": 3,
+    }
+    service, client, _settings_store, state_store = _build_service(
+        settings=settings,
+        temperature=20.0,
+    )
+
+    # When: the automation tick evaluates the temperature
+    service.run_once()
+
+    # Then: the unknown mode is rejected without any command
+    state = state_store.read()
+    assert state["last_error"] == "Unknown mode: spring"
+    assert client.run_scene_calls == []
+    assert client.send_command_calls == []
+
+
+def test_invalid_off_repeat_timestamp_clears_pending_task() -> None:
+    # Given: a pending off-repeat task with an unparseable timestamp
+    settings = _default_settings()
+    initial_state = {
+        "pending_off_repeat": {
+            "remaining": 1,
+            "interval_seconds": 10,
+            "next_run_at": "not-a-date",
+            "state_reason": "automation_off_outside_window",
+        }
+    }
+    service, _client, _settings_store, state_store = _build_service(
+        settings=settings,
+        temperature=20.0,
+        initial_state=initial_state,
+    )
+
+    # When: the automation tick processes the pending task
+    service.run_once()
+
+    # Then: the invalid task is cleared without raising
+    assert state_store.read().get("pending_off_repeat") is None
+
+
+def test_fan_mode_direct_fallback_when_scene_is_missing() -> None:
+    # Given: fan mode enabled, no fan scene, and an aircon device id
+    settings = _default_settings()
+    settings["fan_mode_during_window"] = True
+    settings["aircon_scenes"]["fan"] = ""
+    service, client, _settings_store, state_store = _build_service(
+        settings=settings,
+        temperature=25.0,
+        initial_state={
+            "assumed_aircon_power": "on",
+            "assumed_aircon_mode": 5,
+        },
+    )
+
+    # When: the temperature exceeds max_temp + hysteresis
+    service.run_once()
+
+    # Then: a direct setAll fan command is sent as fallback
+    assert client.run_scene_calls == []
+    assert len(client.send_command_calls) == 1
+    command = client.send_command_calls[0]
+    assert command["command"] == "setAll"
+    assert command["parameter"] == "21.0,4,3,on"
+    state = state_store.read()
+    assert state["assumed_aircon_mode"] == 4
 
 

@@ -87,36 +87,54 @@ Le fuseau horaire est mis en cache pour éviter les résolutions répétées lor
 ### Implémentation Adaptive Polling
 
 ```python
-# switchbot_dashboard/scheduler.py - Lignes 113-172
+# switchbot_dashboard/scheduler.py
 def _get_effective_interval_seconds(self, *, now_utc: dt.datetime | None = None) -> tuple[int, str]:
     """Calcule l'intervalle effectif selon le mode adaptatif."""
     settings = self._settings_store.read()
-    
-    base_interval = self._as_int(settings.get("poll_interval_seconds", 120), default=120)
-    adaptive_enabled = bool(settings.get("adaptive_polling_enabled", True))
-    
-    if not adaptive_enabled:
+
+    base_interval = self._as_int(
+        settings.get("poll_interval_seconds", 120),
+        default=120, minimum=15, maximum=3600,
+    )
+
+    if not settings.get("adaptive_polling_enabled", True):
         return base_interval, "fixed"
-    
-    # Logique des modes : in_window, warmup, idle, pending_off_repeat
-    # ...
+
+    if not settings.get("automation_enabled", False):
+        return base_interval, "automation_disabled"
+
+    time_windows = settings.get("time_windows", [])
+    if not isinstance(time_windows, list) or not time_windows:
+        return base_interval, "no_windows"
+
+    if self._has_pending_off_repeat():
+        return base_interval, "pending_off_repeat"
+
+    # Modes restants : in_window, warmup, idle.
+    # idle_poll_interval_seconds (600 par défaut) est plafonné
+    # par le temps restant avant le début du warmup.
 ```
 
 ### Auto-reschedule Intelligent
 
 ```python
-# switchbot_dashboard/scheduler.py - Lignes 178-194
+# switchbot_dashboard/scheduler.py
 def _maybe_reschedule_after_tick(self) -> None:
     """Reprogramme automatiquement si l'intervalle change."""
-    desired_interval, mode = self._get_effective_interval_seconds()
-    if self._current_interval_seconds == desired_interval:
-        return
-    
-    self._logger.info(
-        "[scheduler] Adaptive polling reschedule: %s -> %s seconds (mode=%s)",
-        previous, desired_interval, mode
-    )
-    self._schedule_or_reschedule_locked()
+    with self._lock:
+        if self._scheduler is None:
+            return
+
+        desired_interval, mode = self._get_effective_interval_seconds()
+        if self._current_interval_seconds == desired_interval:
+            return
+
+        previous = self._current_interval_seconds
+        self._logger.info(
+            "[scheduler] Adaptive polling reschedule: %s -> %s seconds (mode=%s)",
+            previous, desired_interval, mode,
+        )
+        self._schedule_or_reschedule_locked(desired_interval)
 ```
 
 Le scheduler se reprogramme automatiquement lors des changements de mode (idle→warmup→in-window).
