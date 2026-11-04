@@ -1,6 +1,6 @@
 # Architecture de la Couche de Stockage
 
-**TL;DR**: Le SwitchBot Dashboard utilise PostgreSQL (Neon) comme stockage principal avec fallback automatique vers JSON filesystem, offrant une architecture simplifiée et résiliente sans complexité Redis.
+**TL;DR**: Le SwitchBot Dashboard utilise PostgreSQL (Neon) comme stockage principal, avec fallback JSON hors production et alerte + `503` en production, offrant une architecture simplifiée et résiliente sans complexité Redis.
 
 ## Le Problème : Pourquoi changer l'architecture ?
 
@@ -19,7 +19,7 @@ Chaque ajout de fonctionnalité vous fait craindre une rupture de la chaîne de 
 ✅ **Architecture PostgreSQL unifiée**
 - Instance PostgreSQL unique (Neon free tier)
 - Schema JSONB simple et efficace
-- Fallback filesystem JSON automatique
+- Fallback filesystem JSON automatique **hors production** (alerte + `503` en production)
 - Coût prévisible : gratuit jusqu'à 100h-CU/mois
 
 C'est comme remplacer un système de fichiers distribué complexe par une base de données robuste que tout le monde comprend.
@@ -242,24 +242,24 @@ L'endpoint `/healthz` inclut automatiquement le statut PostgreSQL store pour le 
 | Approche | Performance | Coût | Maintenance | Résilience |
 |----------|-------------|------|-------------|------------|
 | **PostgreSQL Neon** | Élevée | Gratuit (100h CU) | Faible | Élevée (PITR) |
-| **Redis Cloud** | Très élevée | Payant | Moyenne | Moyenne |
+| **Redis Cloud** | Très élevée | Payant | Moyenne | Retiré (legacy, non supporté) |
 | **JSON Fichiers** | Moyenne | Gratuit | Faible | Faible |
 
-## La Règle d'Or : Stockage Unifié, Fallback Transparent
+## La Règle d'Or : Stockage Unifié, Fallback Contrôlé
 
-**Principe** : Une seule source de vérité PostgreSQL avec fallback JSON invisible pour l'application.
+**Principe** : Une seule source de vérité PostgreSQL, avec fallback JSON hors production et alerte + `503` en production.
 
 **Application** : Tous les services utilisent `current_app.extensions["settings_store"]` et `current_app.extensions["state_store"]` sans se soucier de l'implémentation sous-jacente.
 
-**Résultat** : Architecture simplifiée, maintenance réduite, résilience garantie.
+**Résultat** : Architecture simplifiée, maintenance réduite, résilience contrôlée.
 
 ---
 
 ## Références techniques
 
 ### Standards de développement
-- [`.clinerules/codingstandards.md`](../../.clinerules/codingstandards.md) – Règles de codage obligatoires
-- [`.cline/skills/postgres-store-maintenance/`](../../.cline/skills/postgres-store-maintenance/) – Guide maintenance PostgreSQL
+- [`.agents/rules/codingstandards.md`](../../.agents/rules/codingstandards.md) – Règles de codage obligatoires
+- [`.agents/skills/postgres-store-maintenance/`](../../.agents/skills/postgres-store-maintenance/) – Guide maintenance PostgreSQL
 
 ### Documentation backend
 - [DOCUMENTATION.md](../../docs/DOCUMENTATION.md) – Architecture complète et métriques

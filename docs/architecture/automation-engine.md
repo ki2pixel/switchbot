@@ -21,19 +21,30 @@ Le système utilise une approche à deux niveaux avec fallback automatique :
 
 ```python
 # switchbot_dashboard/automation.py
-def _trigger_aircon_action(self, action_key: str, state_reason: str) -> bool:
-    """Déclenche une action de climatisation avec cascade à 2 niveaux."""
-    
-    # Niveau 1: Scènes SwitchBot (priorité)
-    aircon_scenes = extract_aircon_scenes(self._settings)
-    if aircon_scenes and action_key in aircon_scenes:
-        scene_id = aircon_scenes[action_key]
-        if self._trigger_scene(scene_id, action_key, state_reason):
-            return True
-        logger.warning(f"[automation] Scene execution failed, falling back to direct command")
-    
-    # Niveau 2: Commandes directes (fallback)
-    return self._send_aircon_direct_command(action_key, state_reason)
+def _trigger_aircon_action(
+    self,
+    *,
+    action_key: str,
+    state_reason: str,
+    assumed_power: str,
+    trigger: str,
+    scenes: dict[str, str],
+    aircon_device_id: str = "",
+) -> bool:
+    """Exécute la scène configurée, ou signale qu'il faut passer en direct."""
+    return self._trigger_scene(
+        action_key,
+        scenes.get(action_key, "").strip(),
+        state_reason,
+        assumed_power,
+        trigger,
+        aircon_device_id.strip(),
+    )
+
+# Dans _handle_winter_mode / _handle_summer_mode :
+executed = self._trigger_aircon_action(...)
+if not executed:
+    self._send_aircon_setall(...)  # fallback commande directe
 ```
 
 Cette approche résout plusieurs problèmes :

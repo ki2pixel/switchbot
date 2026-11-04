@@ -58,11 +58,11 @@ La magie est dans les détails : le polling adaptatif réduit la charge base de 
 | Approche | Complexité | Coût | Résilience | Cas d'usage idéal |
 |----------|------------|------|------------|-------------------|
 | **PostgreSQL Neon** | Moyenne | Gratuit (100h CU/mois) | Élevée (PITR 6h) | Production, multi-utilisateurs |
-| **Redis Cloud** | Élevée | Payant (quota limité) | Moyenne (backup manuel) | Cache temporaire, déprécié |
+| **Redis Cloud** | Élevée | Payant (quota limité) | Moyenne (backup manuel) | Retiré (legacy, non supporté) |
 | **JSON Fichiers** | Faible | Gratuit | Faible (local only) | Développement, testing |
 
 ### La Couche de Stockage
-Nous utilisons **PostgreSQL Neon** comme store principal avec un **fallback JsonStore** au démarrage. Le `PostgresStore` implémente le connection pooling, les schémas JSONB et la création automatique de tables. Si Neon est indisponible au boot, l'application bascule sur des fichiers JSON locaux. En cours d'exécution, `ResilientStore` compte les échecs consécutifs : hors production il bascule sur JSON, en production il alerte (`[store] CRITICAL`) et laisse les routes répondre `503` pour éviter un split-brain entre workers.
+Nous utilisons **PostgreSQL Neon** comme store principal avec un **fallback JsonStore** au démarrage hors production. Le `PostgresStore` implémente le connection pooling, les schémas JSONB et la création automatique de tables. Si Neon est indisponible au boot en production, le démarrage échoue ; hors production, l'application bascule sur des fichiers JSON locaux. En cours d'exécution, `ResilientStore` compte les échecs consécutifs : hors production il bascule sur JSON, en production il alerte (`[store] CRITICAL`) et laisse les routes répondre `503` pour éviter un split-brain entre workers.
 
 ### La Cascade d'Automatisation
 Chaque action essaie deux chemins dans l'ordre :

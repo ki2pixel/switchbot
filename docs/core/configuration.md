@@ -1,6 +1,6 @@
 # Configuration du SwitchBot Dashboard v2
 
-**TL;DR** : Le Dashboard utilise PostgreSQL par défaut avec fallback automatique vers JSON, implémente une cascade Scènes→Commandes directes pour la résilience, et suit les quotas API SwitchBot avec alertes configurables. Toute la configuration persiste dans `settings.json` sauf les secrets qui restent en `.env`.
+**TL;DR** : Le Dashboard utilise PostgreSQL par défaut avec fallback JSON hors production (alerte + `503` en production), implémente une cascade Scènes→Commandes directes pour la résilience, et suit les quotas API SwitchBot avec alertes configurables. Toute la configuration persiste dans `settings.json` sauf les secrets qui restent en `.env`.
 
 ## Le problème : Pourquoi une configuration complexe ?
 
@@ -294,8 +294,8 @@ tail -f logs/app.log | grep "\[automation\]"
 
 ## La Règle d'Or : Configuration Persistante, Secrets Volatiles
 
-Les réglages métier survivent aux redeploys, les secrets restent en environnement. Le scheduler continue son travail même pendant un redémarrage, et le système bascule automatiquement vers le fallback si PostgreSQL est indisponible.
+Les réglages métier survivent aux redeploys, les secrets restent en environnement. Le scheduler continue son travail même pendant un redémarrage ; hors production, le système bascule automatiquement vers le fallback JSON, tandis qu'en production `ResilientStore` alerte et laisse répondre `503` si PostgreSQL est indisponible.
 
 ---
 
-*Voir aussi [Migration PostgreSQL](../ops/postgresql-migration.md) pour le guide de migration, et [Référence des standards](../../../.clinerules/codingstandards.md) pour les patterns de développement.*
+*Voir aussi [Architecture du stockage](../architecture/storage-layer.md) pour le guide de migration, et [Référence des standards](../../.agents/rules/codingstandards.md) pour les patterns de développement.*

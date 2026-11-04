@@ -1,6 +1,6 @@
 # Optimisations Frontend - Performance et UX
 
-> **Référence des standards** : Voir [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) pour les règles de développement obligatoires.
+> **Référence des standards** : Voir [`.agents/rules/codingstandards.md`](../.agents/rules/codingstandards.md) pour les règles de développement obligatoires.
 
 ## Vue d'ensemble
 
@@ -247,7 +247,7 @@ See `tests/test_frontend_loaders.py` for:
 ## Références croisées
 
 ### Documentation technique
-- [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) – Standards de développement obligatoires
+- [`.agents/rules/codingstandards.md`](../.agents/rules/codingstandards.md) – Standards de développement obligatoires
 - [DOCUMENTATION.md](DOCUMENTATION.md) – Architecture et métriques
 - [setup.md](setup.md) – Installation et configuration initiale
 

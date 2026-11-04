@@ -8,10 +8,10 @@ description: Guide pour maintenir PostgresStore (migrations, bascule JsonStore, 
 Utiliser ce skill pour toute opération sur le stockage Postgres (Neon) et son fallback.
 
 ## 1. Préparation
-- Lire `switchbot_dashboard/config_store.py` (classes PostgresStore, JsonStore).
+- Lire `switchbot_dashboard/postgres_store.py` (`PostgresStore`) et `switchbot_dashboard/config_store.py` (`JsonStore`, `BaseStore`).
 - Vérifier `.env` : `STORE_BACKEND=postgres`, `POSTGRES_URL`, `POSTGRES_SSL_MODE`.
-- Consulter `decisionLog.md` via `fast_read_file(path="/absolute/path/to/decisionLog.md")` pour les derniers choix architecturaux.
-- Script santé : `scripts/store_health.py` pour inspecter settings/state stores (`python scripts/store_health.py`).
+- Consulter `decisionLog.md` via `fast_read_file(path="/home/kidpixel/SwitchBot/memory-bank/decisionLog.md")` pour les derniers choix architecturaux.
+- Script santé : `.agents/skills/postgres-store-maintenance/scripts/store_health.py` (`python .agents/skills/postgres-store-maintenance/scripts/store_health.py`).
 - Référence incidents : `references/postgres_incident.md` (fallback, migration, corruption).
 
 ## 2. Migrations / Scripts
@@ -29,13 +29,13 @@ Utiliser ce skill pour toute opération sur le stockage Postgres (Neon) et son f
 - Si `psycopg_pool` KO :
   1. Observer les logs `[store]`.
   2. Régénérer le pool via `store._pool.wait()` (dans shell).
-  3. Si échec répété, basculer `STORE_BACKEND=filesystem` temporairement et documenter.
-- Sur perte Neon : activer fallback JsonStore mais planifier la resynchronisation (script dédié pour reimporter settings/state).
+  3. Hors production, basculer `STORE_BACKEND=filesystem` temporairement et documenter. En production, `ResilientStore` alerte et laisse les routes répondre `503` ; n'activer `STORE_RUNTIME_FALLBACK=true` qu'en connaissance de cause.
+- Sur perte Neon : hors production, le fallback `JsonStore` est automatique ; en production, alerter (`[store] CRITICAL`) et rétablir Neon. Si un fallback JSON a été utilisé, planifier la resynchronisation (script dédié pour réimporter settings/state).
 
 ## 4. Validation & tests
-- `tests/test_postgres_store.py`, `tests/test_config_store.py` pour s’assurer que les mocks passent.
+- `tests/test_postgres_store.py`, `tests/test_config_store_failover.py` pour s’assurer que les mocks passent.
 - Vérifier `HistoryService` si Postgres indisponible (service doit se désactiver proprement).
 
 ## 5. Documentation
 - Mettre à jour `docs/core/configuration.md` + `docs/core/deployment.md` + Memory Bank (decisionLog + progress) après toute modification structurelle.
-- Référencer les incidents dans `activeContext.md` via `edit_file(path="/absolute/path/to/activeContext.md")` si investigation en cours.
+- Référencer les incidents dans `activeContext.md` via `edit_file(path="/home/kidpixel/SwitchBot/memory-bank/activeContext.md")` si investigation en cours.

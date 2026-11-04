@@ -89,7 +89,7 @@ Exécute une étape dans une chaîne de raisonnement logique structurée.
 ## When to use this skill
 
 - **Architectures complexes** : Extensions web (Background vs Content), microservices, communication distribuée.
-- **Logiques métier critiques** : Algorithmes de transaction, cascades IFTTT, agrégations PostgreSQL.
+- **Logiques métier critiques** : Algorithmes de transaction, cascades scènes → commandes directes, agrégations PostgreSQL.
 - **Résolution de bugs complexes** : Analyse des causes profondes et diagnostic d'anomalies de concurrence ou d'état.
 
 ## Integration patterns

@@ -38,7 +38,7 @@ EXPOSE 8000
 CMD ["gunicorn", "switchbot_dashboard:create_app()", \
      "--bind", "0.0.0.0:${PORT:-8000}", \
      "--workers", "1", \
-     "--threads", "2", \
+     "--threads", "4", \
      "--timeout", "120", \
      "--log-level", "${LOG_LEVEL:-info}", \
      "--access-logfile", "-", \
@@ -116,7 +116,7 @@ Un unique service Web Gunicorn fait tout (sert l'IHM et exécute les ticks du pl
   ```
 * **Commande de démarrage Render** (Service Web) :
   ```bash
-  gunicorn 'switchbot_dashboard:create_app()' --bind 0.0.0.0:${PORT} --workers 1 --threads 2 --timeout 120
+  gunicorn 'switchbot_dashboard:create_app()' --bind 0.0.0.0:${PORT} --workers 1 --threads 4 --timeout 120
   ```
 
 #### Option B : Le Découplage Web & Worker (Recommandé pour la Scalabilité Enterprise)
@@ -132,7 +132,7 @@ Nous séparons la réception du trafic HTTP de l'exécution du planificateur à 
      ```
    * **Commande de démarrage** (Service Web) :
      ```bash
-     gunicorn 'switchbot_dashboard:create_app()' --bind 0.0.0.0:${PORT} --workers 4 --threads 2 --timeout 120
+     gunicorn 'switchbot_dashboard:create_app()' --bind 0.0.0.0:${PORT} --workers 4 --threads 4 --timeout 120
      ```
 2. **Service Background Worker** (Singleton unique pour exécuter l'automatisation de manière isolée) :
    * **Type de service Render** : *Background Worker*
@@ -232,7 +232,7 @@ WEB_CONCURRENCY=4  # 4 workers = 4 ticks dupliqués
 
 ```bash
 # Configuration correcte
-WEB_CONCURRENCY=1  # Un seul worker, 2 threads pour les requêtes
+WEB_CONCURRENCY=1  # Un seul worker, 4 threads pour les requêtes
 ```
 
 **Résultat** : Un tick par minute, état cohérent, quota prévisible.
@@ -251,8 +251,7 @@ REDIS_URL_PRIMARY=rediss://...
 
 **Logs observés** :
 ```
-[store] Redis backend deprecated, falling back to JsonStore
-[store] Consider migrating to PostgreSQL for production
+[store] Redis backend is deprecated. Consider migrating to PostgreSQL. Using filesystem fallback for state store.
 ```
 
 ### ✅ La solution PostgreSQL moderne
@@ -336,4 +335,4 @@ curl -s https://votre-app.onrender.com/healthz | jq '.status'
 
 ---
 
-*Ce guide complète `quickstart.md` (installation locale) et s'intègre aux standards de `.windsurf/rules/codingstandards.md`.*
+*Ce guide complète `quickstart.md` (installation locale) et s'intègre aux standards de `.agents/rules/codingstandards.md`.*

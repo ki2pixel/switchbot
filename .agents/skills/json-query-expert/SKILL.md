@@ -102,7 +102,7 @@ Recherche toutes les valeurs correspondant à une clé donnée dans un objet JSO
 
 ## When to use this skill
 
-- **Fichiers de configuration** : settings.json, ifttt_webhooks.json, state.json.
+- **Fichiers de configuration** : `config/settings.json`, `config/state.json`.
 - **Fichiers de traduction (i18n)** : Fichiers JSON contenant des chaînes de traduction.
 - **Diagnostics complexes** : Dumps, mock de données ou fixtures d'API au format JSON.
 

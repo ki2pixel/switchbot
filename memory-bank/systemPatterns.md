@@ -90,17 +90,18 @@
 - `BaseStore` expose une API homogène `read()/write()` pour `settings` et `state`.  
 - `PostgresStore` est le backend principal : connection pooling `psycopg_pool.ConnectionPool`, schéma JSONB, table `json_store` avec indexation, SSL/TLS obligatoire pour Neon.  
 - `JsonStore` reste le fallback local : verrou `threading.Lock`, écriture via fichier temporaire `.tmp`, UTF-8.  
-- `RedisJsonStore` est déprécié mais fonctionnel avec warning dans les logs.  
+- Il n'existe plus de store Redis : `STORE_BACKEND=redis` est refusé en production et retombe sur JSON hors production.
 
-## Stockage avec bascule automatique (FailoverStore) - Déprécié
-- `FailoverStore` implémentait une bascule transparente entre deux backends Redis (primaire/secondaire) avec cooldown de 60 secondes.
-- Remplacé par PostgreSQL unique plus fiable et plus simple.
+## Résilience du stockage (ResilientStore)
+- `ResilientStore` enveloppe le `PostgresStore` primaire et compte les `StoreError` consécutives.
+- Au 3e échec (`STORE_FAILURE_THRESHOLD`), log `[store] CRITICAL`.
+- Bascule vers `JsonStore` uniquement hors production ou si `STORE_RUNTIME_FALLBACK=true` ; sinon les routes répondent `503`.
+- `HistoryService` et `/healthz` détectent le backend primaire.
 
-## Cascade de déclenchement IFTTT → Scènes → Commandes
-- `AutomationService._trigger_aircon_action()` implémente une cascade à trois niveaux pour les actions de climatisation.
-- **Niveau 1** : Webhooks IFTTT (priorité, pas de quota SwitchBot, validation HTTPS obligatoire).
-- **Niveau 2** : Scènes SwitchBot (fallback si webhook échoue ou absent).
-- **Niveau 3** : Commandes directes `setAll`/`turnOff` (dernier recours, nécessite `aircon_device_id`).
+## Cascade de déclenchement Scènes → Commandes directes
+- `AutomationService._trigger_aircon_action()` implémente une cascade à deux niveaux pour les actions de climatisation.
+- **Niveau 1** : Scènes SwitchBot (`aircon_scenes`) via `_trigger_scene` et `SwitchBotClient.run_scene`.
+- **Niveau 2** : Commandes directes `setAll`/`turnOff` (fallback, nécessite `aircon_device_id`).
 - Logs détaillés pour tracer le chemin d'exécution choisi et les raisons des fallbacks.
 
 ## Répétition OFF avec file d'attente
@@ -109,10 +110,10 @@
 - Protection idempotence : aucune nouvelle action OFF si `assumed_aircon_power == "off"`.
 - Les actions ON annulent automatiquement les files d'attente OFF via `_clear_off_repeat_task()`.
 
-## Validation et normalisation des webhooks IFTTT
-- `extract_ifttt_webhooks()` normalise les URLs et garantit la structure des 4 clés (winter, summer, fan, off).
-- `validate_webhook_url()` impose HTTPS uniquement et vérifie la validité de l'URL.
-- `IFTTTWebhookClient` gère les timeouts (10s par défaut) et les erreurs réseau avec logs structurés.
+## Validation et normalisation des scènes aircon
+- `extract_aircon_scenes()` (`aircon.py`) normalise les 4 clés (`winter`, `summer`, `fan`, `off`) et ignore les valeurs non textuelles.
+- `routes.py:_update_scene_ids` valide les IDs (alphanumériques + tirets, max 50 caractères).
+- `SwitchBotClient.run_scene` exécute la scène ; les erreurs `SwitchBotApiError` déclenchent le fallback direct.
 
 [2026-01-15 11:47:00] - Patterns de correction du dashboard d'historique
 

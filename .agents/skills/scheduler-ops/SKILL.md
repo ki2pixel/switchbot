@@ -21,8 +21,8 @@ Déclencher ce skill pour manipuler APScheduler en toute sécurité.
  scheduler = current_app.extensions["scheduler_service"]
  scheduler.is_running()
  ```
-- Consulter `/healthz` pour confirmer `last_tick_at`.
-- Script diagnostic : `scripts/scheduler_snapshot.py` → `python scripts/scheduler_snapshot.py > debug/scheduler.json`.
+- Consulter `/healthz` pour confirmer `last_tick` et `last_scheduler_tick`.
+- Script diagnostic : `.agents/skills/scheduler-ops/scripts/scheduler_snapshot.py` → `python .agents/skills/scheduler-ops/scripts/scheduler_snapshot.py > debug/scheduler.json`.
 - Checklist détaillée : `references/scheduler_checklist.md` (reschedule, pause, restart, incidents).
 
 ## 2. Opérations courantes
@@ -34,13 +34,13 @@ Déclencher ce skill pour manipuler APScheduler en toute sécurité.
 
 ## 3. Vérifications après action
 
-- Log `[scheduler] Rescheduled to Xs` ou `[scheduler] Job scheduled with interval=X seconds` présent.
-- `state.json` mis à jour (`last_tick_at`, `last_tick_status`).
+- Log `[scheduler] Job scheduled with interval=X seconds` ou `[scheduler] Adaptive polling reschedule: A -> B seconds (mode=...)` présent.
+- `state_store` mis à jour (`last_tick` au format ISO-8601).
 - Tests ciblés : `tests/test_scheduler_service.py` (ou sections correspondantes dans `test_automation_service.py`).
 
 ## 4. Bonnes pratiques
 
-- Jamais de `BackgroundScheduler` multiple : `WEB_CONCURRENCY=1`, `gunicorn.conf.py` (1 worker, 2 threads).
-- Après une erreur Postgres, attendre 3 échecs consécutifs avant fallback JsonStore; consigner dans Memory Bank.
+- Jamais de `BackgroundScheduler` multiple : `WEB_CONCURRENCY=1`, `gunicorn.conf.py` (1 worker, 4 threads).
+- Sur incident Postgres : `ResilientStore` alerte au 3e échec (`STORE_FAILURE_THRESHOLD`) et bascule vers JSON uniquement si autorisé (hors production ou `STORE_RUNTIME_FALLBACK=true`) ; sinon les routes répondent `503`.
 - Toute modification durable doit être notée dans `docs/architecture/scheduler.md` + Memory Bank decisionLog.
 - **Polling adaptatif** : désactiver (`adaptive_polling_enabled=false`) uniquement pour debugging ou tests spécifiques.

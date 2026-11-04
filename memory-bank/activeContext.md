@@ -1,5 +1,12 @@
 # Contexte Actif
 
+## Session 2026-11-04 — Alignement docs always-on (AGENTS.md / codingstandards.md)
+- **[2026-11-04 16:24:55] - Mise en cohérence des règles avec le code** :
+  - `AGENTS.md` : clés `app.extensions`, `ResilientStore`/`STORE_RUNTIME_FALLBACK`, cascade scènes → commandes, SSRF `SwitchBotClient.base_url`, `_safe_*`, `run_worker.py`, polling adaptatif, règles `.agents/rules`.
+  - `.agents/rules/codingstandards.md` : suppression IFTTT/Redis legacy, skills globaux réels, couverture 86 %, SPA/loaders/history, `/reglages`.
+  - Nettoyage collateral : skill `ifttt-cascade` renommé `aircon-cascade`, `skills-integration.md`, `systemPatterns.md`, `automation-engine.md`, `docs/codex/integration-guide.md`, skills diagnostics/json/scheduler/postgres, et docs associés (README, scheduler, storage, configuration, deployment, UI, troubleshooting).
+  - Validation : `pytest -q` → 314 passed, 1 skipped ; `git diff --check` OK.
+
 ## Session 2026-11-04 — Refactor automation.py + switchbot_api.py (hotspots C)
 - **[2026-11-04 16:04:06] - Les 9 fonctions C restantes ramenées sous le seuil** :
   - `automation.py:poll_aircon_status` : helpers `_is_virtual_aircon_device`, `_build_aircon_status_updates`, `_sync_aircon_status`.

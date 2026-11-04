@@ -14,17 +14,17 @@ Utiliser ce skill pour comprendre pourquoi l'automatisation n'agit pas comme pr�
 
 ## 2. Checklist d'analyse
 
-1. **Fenêtres horaires** : vérifier `timezone`, `automation_enabled`, `automation_windows`.
-2. **Hysteresis/Seuils** : comparer `temperature`, `winter_min_temperature`, `summer_max_temperature`.
+1. **Fenêtres horaires** : vérifier `timezone`, `automation_enabled`, `time_windows`.
+2. **Hysteresis/Seuils** : comparer `temperature` aux profils `winter.min_temp` / `winter.max_temp` et `summer.min_temp` / `summer.max_temp`, avec `hysteresis_celsius`.
 3. **Cool-down & assumed state** : champs `assumed_aircon_power`, `assumed_aircon_mode`, `last_action_at`, `pending_off_repeat`.
 4. **Off-repeat** : champs `off_repeat_count`, `off_repeat_interval_seconds`, état `pending_off_repeat`.
-5. **Cascade actions** : logs `[automation]` indiquant webhook/scene/fallback.
+5. **Cascade actions** : logs `[automation]` indiquant scène, fallback direct, cooldown ou capteur indisponible.
 
 ## 3. Outils recommandés
 
 - `scripts/state_snapshot.py` : capture `settings` + `state` en JSON offline.
  ```bash
- python scripts/state_snapshot.py > debug/state_snapshot.json
+ python .agents/skills/automation-diagnostics/scripts/state_snapshot.py > debug/state_snapshot.json
  ```
 - `flask shell` :
  ```python
@@ -37,5 +37,5 @@ Utiliser ce skill pour comprendre pourquoi l'automatisation n'agit pas comme pr�
 
 - Le cache timezone d'`AutomationService` est basé sur la valeur du champ `timezone` (cf. `_cached_timezone_key`). Il n'existe pas de champ `timezone_version` : pour forcer une résolution, modifier temporairement la valeur `timezone` ou redémarrer l'application.
 - Ne jamais éditer directement les fichiers JSON si PostgresStore actif; passer via le store.
-- **Assumed state** : `assumed_aircon_power` et `assumed_aircon_mode` sont utilisés conjointement pour éviter les actions redondantes (cf. `_is_aircon_state` dans automation.py).
+- **Assumed state** : `assumed_aircon_power` et `assumed_aircon_mode` évitent les actions redondantes (cf. `_perform_off_action` et `_is_assumed_fan_mode` dans automation.py).
 - Documenter tout changement dans Memory Bank (decisionLog + progress).

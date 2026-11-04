@@ -376,4 +376,4 @@ curl http://localhost:5000/healthz
 
 ---
 
-*Guide appliquant les standards [`.windsurf/rules/codingstandards.md`](../.windsurf/rules/codingstandards.md) et les décisions architecturales de `memory-bank/`.*
+*Guide appliquant les standards [`.agents/rules/codingstandards.md`](../../.agents/rules/codingstandards.md) et les décisions architecturales de `memory-bank/`.*

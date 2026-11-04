@@ -103,7 +103,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 - Logs `[automation]`
 
 ### API Development Patterns
-**Déclencheurs**: `api`, `switchbot api`, ` HMAC`, `quota`, `rate limiting`, `endpoint`, `webhook`
+**Déclencheurs**: `api`, `switchbot api`, ` HMAC`, `quota`, `rate limiting`, `endpoint`
 
 **Action**: Charger `fast_read_file(".agents/skills/switchbot-api-dev/SKILL.md")`
 
@@ -162,17 +162,17 @@ Ce système implémente une détection automatique des skills basée sur les pat
 - Labels ARIA complets
 - Tests d'accessibilité
 
-### IFTTT Integration Patterns
-**Déclencheurs**: `IFTTT`, `webhook`, `cascade`, `scene`, `trigger`, `automation flow`
+### Aircon Cascade Patterns
+**Déclencheurs**: `cascade`, `scene`, `aircon`, `trigger`, `automation flow`, `setAll`, `turnOff`
 
-**Action**: Charger `fast_read_file(".agents/skills/ifttt-cascade/SKILL.md")`
+**Action**: Charger `fast_read_file(".agents/skills/aircon-cascade/SKILL.md")`
 
 **Cascade obligatoire**:
-- Extract IFTTT webhooks
-- Extract aircon scenes
-- HTTPS URLs uniquement
-- `_execute_aircon_action` tracking
-- Observabilité complète
+- `extract_aircon_scenes` (`aircon.py`)
+- Scène prioritaire via `_trigger_scene`
+- Fallback direct `_send_aircon_setall` / `_send_aircon_off`
+- Idempotence OFF et cooldowns
+- Observabilité via `[automation]` et `state_store`
 
 ### Scheduler Operations Patterns
 **Déclencheurs**: `scheduler`, `start`, `stop`, `reschedule`, `healthcheck`, `APScheduler`

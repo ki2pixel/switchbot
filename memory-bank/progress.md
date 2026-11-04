@@ -1,5 +1,10 @@
 # Progrès du Projet - SwitchBot Dashboard
 
+## Alignement docs always-on — 2026-11-04
+- [x] [2026-11-04 16:24:55] - `AGENTS.md` et `codingstandards.md` alignés sur le code (IFTTT retiré, `ResilientStore`, `run_worker.py`, polling adaptatif, `_safe_*`, skills globaux, couverture 86 %).
+- [x] [2026-11-04 16:24:55] - Nettoyage collateral : `ifttt-cascade` → `aircon-cascade`, `skills-integration.md`, `systemPatterns.md`, `automation-engine.md`, `docs/codex/integration-guide.md`, skills diagnostics/scheduler/postgres, docs associés.
+- [x] [2026-11-04 16:24:55] - Validation : `pytest -q` → 314 passed, 1 skipped ; `git diff --check` OK.
+
 ## Refactor automation.py + switchbot_api.py — 2026-11-04
 - [x] [2026-11-04 16:04:06] - `poll_aircon_status` découpé (statut virtuel, mapping body, sync état).
 - [x] [2026-11-04 16:04:06] - `_perform_off_action` découpé (fan mode, fallback direct, off).

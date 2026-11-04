@@ -75,32 +75,32 @@ SWITCHBOT_STATE_PATH=config/state.json
 
 ```html
 <!-- Bottom navigation (mobile-first) -->
-<nav class="bottom-nav" role="navigation" aria-label="Navigation principale">
-  <a href="/" class="nav-item active" aria-current="page">
-    <i class="fas fa-home"></i>
-    <span>Accueil</span>
+<div id="footer-bar" class="footer-bar-1" role="navigation" aria-label="Navigation mobile">
+  <a href="{{ url_for('dashboard.index') }}" class="active-nav" data-loader aria-current="page">
+    <i class="fas fa-home" aria-hidden="true"></i>
+    <span class="nav-text">Accueil</span>
   </a>
-  <a href="/actions" class="nav-item">
-    <i class="fas fa-bolt"></i>
-    <span>Actions</span>
+  <a href="{{ url_for('dashboard.settings_page') }}" data-loader>
+    <i class="fas fa-cog" aria-hidden="true"></i>
+    <span class="nav-text">Réglages</span>
   </a>
-  <a href="/reglages" class="nav-item">
-    <i class="fas fa-cog"></i>
-    <span>Réglages</span>
+  <a href="{{ url_for('dashboard.actions_page') }}" data-loader>
+    <i class="fas fa-bolt" aria-hidden="true"></i>
+    <span class="nav-text">Actions</span>
   </a>
-  <a href="/devices" class="nav-item">
-    <i class="fas fa-tv"></i>
-    <span>Appareils</span>
+  <a href="{{ url_for('dashboard.quota') }}" data-loader>
+    <i class="fas fa-chart-pie" aria-hidden="true"></i>
+    <span class="nav-text">Quota</span>
   </a>
-  <a href="/history" class="nav-item">
-    <i class="fas fa-chart-line"></i>
-    <span>Historique</span>
+  <a href="{{ url_for('dashboard.history_page') }}" data-loader>
+    <i class="fas fa-chart-line" aria-hidden="true"></i>
+    <span class="nav-text">Historique</span>
   </a>
-  <a href="/quota" class="nav-item">
-    <i class="fas fa-chart-pie"></i>
-    <span>Quota</span>
+  <a href="{{ url_for('dashboard.devices') }}" data-loader>
+    <i class="fas fa-microchip" aria-hidden="true"></i>
+    <span class="nav-text">Appareils</span>
   </a>
-</nav>
+</div>
 ```
 
 ### CSS Glassmorphism - Tokens de design
@@ -127,34 +127,33 @@ SWITCHBOT_STATE_PATH=config/state.json
   --sb-breakpoint-lg: 992px;
 }
 
-.bottom-nav {
+#footer-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 60px;
-  background: var(--sb-glass-bg);
+  min-height: 60px;
+  background: var(--sb-bottom-nav-bg);
   backdrop-filter: blur(20px);
-  border-top: 1px solid var(--sb-glass-border);
+  border-top: 1px solid var(--sb-bottom-nav-border);
   display: flex;
-  justify-content: space-around;
-  align-items: center;
-  z-index: 1000;
+  z-index: 102;
 }
 
-.nav-item {
+#footer-bar a {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   padding: 0.5rem;
   min-width: 44px;
   min-height: 44px;
-  color: var(--sb-text-secondary);
+  color: var(--sb-text);
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: color var(--sb-transition-fast);
 }
 
-.nav-item.active {
+#footer-bar .active-nav {
   color: var(--sb-primary);
 }
 ```
@@ -339,12 +338,12 @@ Les attributs ARIA et les contrastes WCAG sont obligatoires pour une interface p
 </nav>
 
 <!-- ✅ Préférer : navigation accessible -->
-<nav role="navigation" aria-label="Navigation principale">
-  <a href="/" class="nav-item active" aria-current="page">
+<div id="footer-bar" role="navigation" aria-label="Navigation mobile">
+  <a href="/" class="active-nav" data-loader aria-current="page">
     <i class="fas fa-home" aria-hidden="true"></i>
-    <span>Accueil</span>
+    <span class="nav-text">Accueil</span>
   </a>
-</nav>
+</div>
 ```
 
 ### ❌ Négliger les performances mobile

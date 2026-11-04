@@ -1,6 +1,6 @@
 # Guide de Dépannage SwitchBot Dashboard v2
 
-**TL;DR** : Le Dashboard utilise une architecture à 2 niveaux de fallback (Scène favorite → Commande directe) avec retry automatique, monitoring structuré et bascule PostgreSQL → fichier pour garantir la résilience en production.
+**TL;DR** : Le Dashboard utilise une architecture à 2 niveaux de fallback (Scène favorite → Commande directe) avec retry automatique, monitoring structuré et résilience PostgreSQL via `ResilientStore` (alerte + `503` en production, fallback JSON hors production).
 
 ## Le Problème : Pourquoi la Gestion d'Erreurs est Critique
 
@@ -276,6 +276,6 @@ variable doit tout de même être retirée du dashboard d'hébergement.
 - [ ] Backup `state.json`/`settings.json`
 - [ ] PostgreSQL connection pool configuré si utilisé
 
-## La Règle d'Or : Fallback Automatique, Intervention Minimale
+## La Règle d'Or : Fallback Contrôlé, Intervention Minimale
 
-**La Règle d'Or** : Chaque composant critique doit avoir un fallback automatique. Le Dashboard ne doit jamais laisser l'utilisateur dans un état non contrôlé à cause d'une défaillance technique.
+**La Règle d'Or** : Chaque composant critique doit avoir un fallback explicite ou une alerte. En production, le store privilégie l'alerte + `503` pour éviter un split-brain ; hors production, le fallback JSON est automatique.

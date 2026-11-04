@@ -4,14 +4,14 @@
 1. `POSTGRES_URL` défini, SSL `POSTGRES_SSL_MODE` (require par défaut).
 2. Lancer l'inspecteur :
    ```bash
-   python scripts/store_health.py > debug/store_health.json
+   python .agents/skills/postgres-store-maintenance/scripts/store_health.py > debug/store_health.json
    ```
 3. Vérifier logs `[store]` pour bascule éventuelle.
 
 ## Scénario : Health check KO
 - Étapes :
   1. Confirmer `health_check()` False dans `store_health.json`.
-  2. Basculer temporairement `STORE_BACKEND=filesystem` pour rétablir l'app.
+  2. Hors production, basculer temporairement `STORE_BACKEND=filesystem` pour rétablir l'app ; en production, `ResilientStore` alerte et laisse répondre `503`, rétablir Neon.
   3. Inspecter Neon Dashboard (connexions, quotas, maintenance).
   4. Relancer `scripts/migrate_to_postgres.py --dry-run` avant retour Postgres.
 

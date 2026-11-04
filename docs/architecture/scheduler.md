@@ -1,6 +1,6 @@
 # Scheduler Service - Architecture APScheduler
 
-**TL;DR**: Le SchedulerService utilise APScheduler avec 1 worker Gunicorn pour exécuter les ticks d'automatisation toutes les 15 secondes en production, avec gestion adaptative de l'intervalle et protection contre les erreurs.
+**TL;DR**: Le SchedulerService utilise APScheduler avec 1 worker Gunicorn pour exécuter les ticks d'automatisation selon un intervalle adaptatif (minimum 15 s), avec protection contre les erreurs.
 
 ## Le Problème : Multi-Worker et Fiabilité
 
@@ -15,8 +15,8 @@ L'architecture actuelle combine APScheduler intégré avec une configuration Gun
 ```python
 # gunicorn.conf.py
 workers = 1           # Un seul worker pour APScheduler
-threads = 2           # Concurrence via threads  
-worker_class = "sync"
+threads = 4           # Concurrence via threads
+worker_class = "gthread"
 ```
 
 Le scheduler s'adapte dynamiquement selon les fenêtres horaires avec `adaptive_polling_enabled` :
@@ -67,7 +67,7 @@ Logs attendus :
 ```python
 # SchedulerService._run_tick_safe()
 try:
-    automation_service.run_once(trigger='scheduler')
+    automation_service.run_once()
 except Exception as e:
     logger.error(f"[scheduler] Tick failed (will retry next interval)", exc_info=True)
 ```
@@ -266,7 +266,7 @@ export WEB_CONCURRENCY=1
 
 ❌ **Cron externe** : Dépendance externe, latence 60s minimum, logs séparés, environnement différent. Chaque appel doit recréer le contexte Python.
 
-✅ **APScheduler intégré** : Latence 15s configurable, logs centralisés, environnement partagé, état persistant. Un seul processus gère tout.
+✅ **APScheduler intégré** : Latence minimale 15s, configurable, logs centralisés, environnement partagé, état persistant. Un seul processus gère tout.
 
 Si vous utilisez actuellement cron-job.org ou Render Cron :
 
@@ -276,7 +276,7 @@ Si vous utilisez actuellement cron-job.org ou Render Cron :
 4. **Supprimer** le cron externe
 
 **Avantages** :
-- Latence 15s vs 60s
+- Latence 15s+ vs 60s
 - Logs centralisés
 - Pas de dépendance externe
 - Environnement partagé (variables, stores)
@@ -288,7 +288,7 @@ Si vous utilisez actuellement cron-job.org ou Render Cron :
 | Approche | Latence | Maintenance | Complexité | Fiabilité |
 |----------|---------|-------------|------------|------------|
 | **Cron externe** | 60s+ | Élevée | Faible | Moyenne |
-| **APScheduler intégré** | 15s | Faible | Moyenne | Élevée |
+| **APScheduler intégré** | 15s+ | Faible | Moyenne | Élevée |
 | **Scheduler cloud** | Variable | Moyenne | Élevée | Variable |
 
 ## Performance avec 1 Worker
@@ -301,7 +301,7 @@ Le worker unique avec threads gère :
 En cas de charge élevée :
 1. Monitorer CPU/mémoire
 2. Augmenter `threads` avant `workers`
-3. Considérer Redis pour stores partagés
+3. Considérer le découplage web/worker (`run_worker.py`) pour scaler les workers web
 
 ## La Règle d'Or : Un Worker Unique, Une Source de Vérité
 
@@ -310,6 +310,6 @@ Un seul worker avec `WEB_CONCURRENCY=1` garantit l'absence de ticks dupliqués, 
 ---
 
 **Références** :
-- `.windsurf/rules/codingstandards.md` – Standards de développement
+- `.agents/rules/codingstandards.md` – Standards de développement
 - `memory-bank/decisionLog.md` – Décisions architecturales
 - `memory-bank/systemPatterns.md` – Patterns de scheduler
