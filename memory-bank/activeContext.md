@@ -1,5 +1,13 @@
 # Contexte Actif
 
+## Session 2026-11-04 — Nettoyage Configurations IDE & Push GitHub
+- **[2026-11-04 12:05:00] - Nettoyage configs legacy & migration vers .agents/** :
+  - Suppression des dossiers et fichiers de configuration obsolètes (`.cline/`, `.clinerules/`, `.windsurf/`, `.codex/rules/development.rules`, `.zencoder/`, `repomix.config.json`).
+  - Validation des frontmatters dans `.agents/skills/`.
+  - Exécution complète des tests : 207 passants, 1 ignoré.
+  - Configuration du helper Git via `gh auth setup-git` (HTTPS) et bascule du remote origin.
+  - Commit et push réussis sur `origin/main` (`f16e776`).
+
 ## Session 2026-07-16 — Remédiation Audit Frontend/Backend
 ### Derniers changements accomplis
 

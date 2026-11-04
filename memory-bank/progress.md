@@ -1,5 +1,9 @@
 # Progrès du Projet - SwitchBot Dashboard
 
+## Phase Maintenance & Clean-up (2026-11-04) — COMPLÈTE ✔
+- [x] [2026-11-04 12:05:00] - Nettoyage des configs IDE legacy (.cline, .windsurf, .codex, .zencoder) et consolidation dans `.agents/`.
+- [x] [2026-11-04 12:05:00] - Configuration push Git HTTPS via `gh` CLI et push sur `origin/main` (`f16e776`).
+
 ## Phase P0 (Disponibilité / Concurrence) — COMPLÈTE ✔
 - [x] DATA-02: Align SQL Schema for last_action (2026-07-16)
 - [x] DATA-01: Transactional State Updates (lost updates) (2026-07-16)
