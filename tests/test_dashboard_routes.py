@@ -387,6 +387,57 @@ def test_healthz_returns_scheduler_state_and_tick() -> None:
     assert "timestamp_utc" in payload
 
 
+def test_healthz_serializes_scheduler_tick_as_valid_iso_z() -> None:
+    # Given: the scheduler exposes a timezone-aware UTC tick time
+    app, _settings_store, _state_store, scheduler, _tracker = _build_app(
+        {"automation_enabled": False}
+    )
+    scheduler.last_tick_time = dt.datetime(2026, 1, 10, 15, 30, tzinfo=dt.timezone.utc)
+
+    # When: /healthz is queried
+    with app.test_client() as client:
+        payload = client.get("/healthz").get_json()
+
+    # Then: the timestamp is a valid ISO-8601 Z string (no "+00:00Z")
+    assert payload["last_scheduler_tick"] == "2026-01-10T15:30:00Z"
+    assert "+00:00Z" not in payload["last_scheduler_tick"]
+
+
+def test_history_api_mock_timestamps_are_valid_iso() -> None:
+    # Given: testing mode without a history service (mock data path)
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app({})
+    app.testing = True
+
+    # When: /history/api/data is queried
+    with app.test_client() as client:
+        payload = client.get("/history/api/data").get_json()
+
+    # Then: every timestamp is parseable by `new Date()` in the browser
+    assert payload["mock"] is True
+    assert payload["start"].endswith("Z")
+    assert "+00:00Z" not in payload["start"]
+    assert payload["data"], "mock data should not be empty"
+    for record in payload["data"]:
+        assert record["timestamp"].endswith("Z")
+        assert "+00:00Z" not in record["timestamp"]
+
+
+def test_history_api_mock_latest_timestamps_are_valid_iso() -> None:
+    # Given: testing mode without a history service
+    app, _settings_store, _state_store, _scheduler, _tracker = _build_app({})
+    app.testing = True
+
+    # When: /history/api/latest is queried
+    with app.test_client() as client:
+        payload = client.get("/history/api/latest").get_json()
+
+    # Then: nested metadata timestamps are valid too
+    assert payload["mock"] is True
+    for record in payload["latest"]:
+        assert "+00:00Z" not in record["timestamp"]
+        assert "+00:00Z" not in record["metadata"]["last_read_at"]
+
+
 def test_healthz_returns_503_when_store_unavailable() -> None:
     settings = {"automation_enabled": False}
     app, _settings_store, _state_store, _scheduler, _tracker = _build_app(settings)

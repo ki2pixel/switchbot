@@ -1,7 +1,7 @@
 ---
 trigger: model_decision
 description: Skills integration system based on model decision patterns
-globs: ["**/*.md"]
+globs: 
 ---
 
 # Windsurf Skills Integration System
@@ -134,7 +134,7 @@ Ce système implémente une détection automatique des skills basée sur les pat
 **Spécifications**:
 - Décimation LTTB pour les graphiques
 - Service History (Postgres uniquement)
-- Nettoyage des entrées >6h
+- Nettoyage des entrées au-delà de `HISTORY_RETENTION_HOURS` (24 h par défaut)
 - Responsive design mobile
 - Performance des renderings
 

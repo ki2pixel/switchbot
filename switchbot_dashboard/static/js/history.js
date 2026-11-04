@@ -303,12 +303,28 @@ class HistoryDashboard {
                 this.loadLatestRecords()
             ]);
             
-            // Check if data is mocked (handle undefined safely)
+            // Check if data is mocked or degraded (handle undefined safely)
             const isMockData = (historyData && historyData.mock) || 
                               (aggregates && aggregates.mock) || 
                               (latestRecords && latestRecords.mock);
+            const isDegraded = (historyData && historyData.degraded) ||
+                               (aggregates && aggregates.degraded) ||
+                               (latestRecords && latestRecords.degraded);
+
             if (isMockData) {
-                this.showMockDataWarning();
+                this.showServiceBanner(
+                    'demo',
+                    '\u26a0\ufe0f Mode d\u00e9monstration',
+                    "Le service d'historique n'est pas disponible. Donn\u00e9es simul\u00e9es affich\u00e9es."
+                );
+            } else if (isDegraded) {
+                this.showServiceBanner(
+                    'degraded',
+                    '\u26a0\ufe0f Historique indisponible',
+                    "La base de donn\u00e9es PostgreSQL est d\u00e9connect\u00e9e. Aucune donn\u00e9e historique n'est disponible pour le moment."
+                );
+            } else {
+                this.removeServiceBanner();
             }
             
             this.updateStatus('success', 'Données chargées');
@@ -318,26 +334,61 @@ class HistoryDashboard {
         }
     }
 
-    showMockDataWarning() {
-        // Add a warning banner for mock data (DOM API instead of innerHTML)
+    /**
+     * Display (or refresh) the service status banner above the dashboard.
+     * Idempotent: re-polling every 30s does not stack duplicate banners.
+     * @param {string} kind 'demo' | 'degraded'
+     * @param {string} title Banner heading
+     * @param {string} message Banner body
+     */
+    showServiceBanner(kind, title, message) {
+        const existing = document.getElementById('history-service-banner');
+        if (existing) {
+            if (existing.dataset.kind === kind) return;
+            existing.remove();
+        }
+
         const banner = document.createElement('div');
+        banner.id = 'history-service-banner';
+        banner.dataset.kind = kind;
         banner.className = 'alert alert-warning alert-dismissible fade show mb-3';
+        banner.setAttribute('role', 'status');
 
         const strong = document.createElement('strong');
-        strong.textContent = '\u26a0\ufe0f Mode d\u00e9monstration';
+        strong.textContent = title;
         banner.appendChild(strong);
         banner.appendChild(document.createElement('br'));
-        banner.appendChild(document.createTextNode(
-            "Le service d'historique n'est pas disponible. Donn\u00e9es simul\u00e9es affich\u00e9es."
-        ));
+        banner.appendChild(document.createTextNode(message));
+
         const closeBtn = document.createElement('button');
         closeBtn.type = 'button';
         closeBtn.className = 'btn-close';
+        closeBtn.setAttribute('aria-label', 'Fermer le message');
         closeBtn.setAttribute('data-bs-dismiss', 'alert');
         banner.appendChild(closeBtn);
-        
+
         const container = document.querySelector('.container');
-        container.insertBefore(banner, container.firstChild);
+        if (container) {
+            container.insertBefore(banner, container.firstChild);
+        }
+    }
+
+    removeServiceBanner() {
+        const banner = document.getElementById('history-service-banner');
+        if (banner) banner.remove();
+    }
+
+    /**
+     * Redirect to the login page when the session expired (AUD-03).
+     * @param {Response} response Fetch response
+     * @returns {boolean} True when a redirect was triggered
+     */
+    handleUnauthorized(response) {
+        if (!response || response.status !== 401) return false;
+        if (globalThis.location.pathname !== '/login') {
+            globalThis.location.href = '/login';
+        }
+        return true;
     }
 
     async loadHistoryData() {
@@ -359,6 +410,7 @@ class HistoryDashboard {
         try {
             const response = await fetch(`/history/api/data?${params}`, { signal });
             clearTimeout(timeoutId);
+            if (this.handleUnauthorized(response)) return;
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -416,6 +468,7 @@ class HistoryDashboard {
 
     async loadAggregates() {
         const response = await fetch('/history/api/aggregates?period_hours=6');
+        if (this.handleUnauthorized(response)) return null;
         if (!response.ok) throw new Error('Failed to load aggregates');
         
         const data = await response.json();
@@ -425,6 +478,7 @@ class HistoryDashboard {
 
     async loadLatestRecords() {
         const response = await fetch('/history/api/latest?limit=10');
+        if (this.handleUnauthorized(response)) return null;
         if (!response.ok) throw new Error('Failed to load latest records');
         
         const data = await response.json();

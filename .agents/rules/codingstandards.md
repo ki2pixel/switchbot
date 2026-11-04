@@ -1,13 +1,7 @@
 ---
 trigger: always_on
-description: 
-globs: 
----
-
----
 description: Core AI rule for SwitchBot Dashboard v2 (Flask + offline-first frontend)
-globs: ["**/*.py", "**/*.html", "**/*.js", "**/*.css"]
-alwaysApply: true
+globs: 
 ---
 
 # SwitchBot Dashboard v2 – AI Coding Standards
@@ -98,7 +92,7 @@ alwaysApply: true
 
 ### History & Quota Tracking
 - `HistoryService` uniquement lorsque `settings_store` est PostgreSQL ; logguer les erreurs sans faire tomber l’app.
-- Chaque tick enregistre l’état et nettoie les entrées >6h; quotas API suivis autour de chaque requête.
+- Chaque tick enregistre l’état (y compris hors fenêtre horaire et automation désactivée) et nettoie les entrées au-delà de `HISTORY_RETENTION_HOURS` (24 h par défaut) ; quotas API suivis autour de chaque requête.
 
 ## Frontend & UX
 - Offline-first strict : Bootstrap/Chart.js/FontAwesome/Space Grotesk servis depuis `static/vendor` (aucun CDN).

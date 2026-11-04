@@ -42,6 +42,75 @@ def test_create_app_marks_temperature_stale_then_refresh(monkeypatch, tmp_path):
     assert state.get("last_temperature_stale_reason") is None
 
 
+def test_create_app_csp_nonce_replaces_unsafe_inline(monkeypatch, tmp_path):
+    """script-src must use a per-request nonce instead of 'unsafe-inline'."""
+    settings_path = tmp_path / "settings.json"
+    state_path = tmp_path / "state.json"
+    settings_path.write_text("{}", encoding="utf-8")
+    state_path.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setenv("SWITCHBOT_SETTINGS_PATH", str(settings_path))
+    monkeypatch.setenv("SWITCHBOT_STATE_PATH", str(state_path))
+    monkeypatch.setenv("STORE_BACKEND", "filesystem")
+    monkeypatch.setenv("FLASK_DEBUG", "1")
+    monkeypatch.setenv("SCHEDULER_ENABLED", "false")
+    monkeypatch.delenv("WERKZEUG_RUN_MAIN", raising=False)
+    monkeypatch.delenv("DASHBOARD_PASSWORD", raising=False)
+
+    monkeypatch.setattr(AutomationService, "poll_meter", lambda self: None)
+
+    app = create_app()
+
+    with app.test_client() as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+
+    csp = response.headers["Content-Security-Policy"]
+    script_src = csp.split("script-src", 1)[1].split(";", 1)[0]
+    assert "'unsafe-inline'" not in script_src
+    assert "'nonce-" in script_src
+
+    nonce = script_src.split("'nonce-", 1)[1].split("'", 1)[0]
+    assert nonce
+
+    # Every inline <script> of the rendered page must carry that nonce.
+    html = response.get_data(as_text=True)
+    assert f'nonce="{nonce}"' in html
+    assert 'nonce=""' not in html
+
+
+def test_create_app_csp_nonce_is_per_request(monkeypatch, tmp_path):
+    """Two consecutive responses must not reuse the same nonce."""
+    settings_path = tmp_path / "settings.json"
+    state_path = tmp_path / "state.json"
+    settings_path.write_text("{}", encoding="utf-8")
+    state_path.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setenv("SWITCHBOT_SETTINGS_PATH", str(settings_path))
+    monkeypatch.setenv("SWITCHBOT_STATE_PATH", str(state_path))
+    monkeypatch.setenv("STORE_BACKEND", "filesystem")
+    monkeypatch.setenv("FLASK_DEBUG", "1")
+    monkeypatch.setenv("SCHEDULER_ENABLED", "false")
+    monkeypatch.delenv("WERKZEUG_RUN_MAIN", raising=False)
+    monkeypatch.delenv("DASHBOARD_PASSWORD", raising=False)
+
+    monkeypatch.setattr(AutomationService, "poll_meter", lambda self: None)
+
+    app = create_app()
+
+    with app.test_client() as client:
+        first = client.get("/")
+        second = client.get("/")
+
+    def _nonce(response):
+        csp = response.headers["Content-Security-Policy"]
+        script_src = csp.split("script-src", 1)[1].split(";", 1)[0]
+        return script_src.split("'nonce-", 1)[1].split("'", 1)[0]
+
+    assert _nonce(first) != _nonce(second)
+
+
 def test_create_app_requires_secret_key_in_production(monkeypatch, tmp_path):
     import pytest
     import sys

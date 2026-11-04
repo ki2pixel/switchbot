@@ -1,5 +1,14 @@
 # Progrès du Projet - SwitchBot Dashboard
 
+## Phase Remédiation Audit Frontend V2 (2026-11-04) — COMPLÈTE ✔
+- [x] [2026-11-04 13:00:00] - AUD-02 : timestamps ISO-8601 valides (`_utc_iso_z`) sur healthz et mocks history.
+- [x] [2026-11-04 13:00:00] - AUD-03 : garde redirection session expirée + refresh CSRF dans le routeur SPA et history.js.
+- [x] [2026-11-04 13:00:00] - AUD-05 : `record_state()` exécuté aussi hors fenêtre / automation désactivée.
+- [x] [2026-11-04 13:00:00] - AUD-06 : API history fail-safe (200 + data vide + `degraded`).
+- [x] [2026-11-04 13:00:00] - AUD-08 : CSS composite-only, focus-visible, chevrons accessibles, reduced-motion.
+- [x] [2026-11-04 13:00:00] - AUD-09 : CSP nonce par requête, rétention configurable 24h, docs skills alignées.
+- [x] [2026-11-04 13:00:00] - AUD-01/04/07 : constats infirmés après vérification (aucune modification nécessaire).
+
 ## Phase Maintenance & Clean-up (2026-11-04) — COMPLÈTE ✔
 - [x] [2026-11-04 12:05:00] - Nettoyage des configs IDE legacy (.cline, .windsurf, .codex, .zencoder) et consolidation dans `.agents/`.
 - [x] [2026-11-04 12:05:00] - Configuration push Git HTTPS via `gh` CLI et push sur `origin/main` (`f16e776`).
@@ -42,9 +51,9 @@
 
 ## État global
 - **Toutes les phases de la remédiation backend et frontend sont complètes.**
-- Suite de tests : **207 tests passent**, 1 skipped.
+- Suite de tests : **226 tests passent**, 1 skipped.
 
 ## Prochaines étapes
-1. Déploiement Render : ajouter `PROXY_FIX_FOR=1` dans les variables d'environnement Render.
-2. Surveiller les métriques de production post-déploiement (rate limiting, logs `[store]`, `[api]`).
+1. Déploiement Render : ajouter `PROXY_FIX_FOR=1` et éventuellement `HISTORY_RETENTION_HOURS=24` dans les variables d'environnement Render.
+2. Surveiller les métriques de production post-déploiement (rate limiting, logs `[store]`, `[api]`, violations CSP).
 3. Envisager l'audit frontend (si besoin) ou nouvelles fonctionnalités.

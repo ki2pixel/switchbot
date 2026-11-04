@@ -88,7 +88,7 @@ execute_sql("""
 ### Optimisations métier
 
 - **Indexes composites** : (timestamp) pour queries temporelles sur state_history
-- **Nettoyage automatique** : Historique nettoyé après 6h via HistoryService.cleanup_old_records()
+- **Nettoyage automatique** : Historique nettoyé après 24h (configurable via `HISTORY_RETENTION_HOURS`) via HistoryService.cleanup_old_records()
 - **Partitionnement** : Tables history par mois/semaine (optionnel pour grosses volumétries)
 
 ## Scripts et références

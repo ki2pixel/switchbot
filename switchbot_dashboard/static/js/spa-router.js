@@ -72,6 +72,20 @@ class SPARouter {
     try {
       // 2. Fetch page HTML
       const response = await fetch(url);
+
+      // Session expiry guard (AUD-03): the browser follows the backend 302 to
+      // /login transparently, so fetch resolves with a 200 containing the login
+      // page. Detect it and perform a real navigation instead of injecting the
+      // login form into #app-content while keeping the protected URL.
+      if (response.redirected && SPARouter.normalizeHref(response.url) === '/login') {
+        globalThis.location.href = response.url;
+        return;
+      }
+      if (response.status === 401) {
+        globalThis.location.href = '/login';
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: Failed to fetch page`);
       }
@@ -167,6 +181,22 @@ class SPARouter {
       // The content is server-generated HTML from our own Flask templates.
       currentContent.innerHTML = newContent.innerHTML;
       document.title = newDoc.title;
+
+      // Keep the CSRF token in sync with the freshly rendered document (AUD-03).
+      // A re-login rotates the session server-side; without this the interceptors
+      // in loaders.js would keep sending a stale token.
+      const freshTokenMeta = newDoc.querySelector('meta[name="csrf-token"]');
+      const currentTokenMeta = document.querySelector('meta[name="csrf-token"]');
+      if (freshTokenMeta && currentTokenMeta) {
+        currentTokenMeta.setAttribute(
+          'content',
+          freshTokenMeta.getAttribute('content') || ''
+        );
+      }
+
+      // NOTE on CSP: the nonce is intentionally NOT synced from newDoc. The
+      // CSP header is bound to the current document (issued on the initial
+      // page load) and stays in force, so executePageScripts reuses it.
 
       // ── Double footer cleanup (P1.1 fix) ──
       // _footer_nav.html is {% include %}'d in every template, so the fetched
@@ -279,6 +309,10 @@ class SPARouter {
    */
   executePageScripts(newDoc) {
     const scripts = Array.from(newDoc.querySelectorAll('script'));
+    // Use the nonce of the CURRENT document: the CSP header was issued with
+    // the initial page load and stays in force for the document's lifetime.
+    const nonceMeta = document.querySelector('meta[name="csp-nonce"]');
+    const nonce = nonceMeta ? (nonceMeta.getAttribute('content') || '') : '';
     
     scripts.forEach(script => {
       const src = script.getAttribute('src');
@@ -295,7 +329,7 @@ class SPARouter {
         this.loadScriptDynamic(src);
       } else {
         // Execute inline script
-        this.executeInlineScript(script.textContent);
+        this.executeInlineScript(script.textContent, nonce);
       }
     });
   }
@@ -335,11 +369,18 @@ class SPARouter {
   }
 
   /**
-   * Dynamically runs inline script content
+   * Dynamically runs inline script content.
+   * A CSP nonce must be attached before insertion, otherwise the browser
+   * refuses to execute the script under script-src without 'unsafe-inline'.
    * @param {string} code JS code
+   * @param {string} nonce CSP nonce of the current document
    */
-  executeInlineScript(code) {
+  executeInlineScript(code, nonce = '') {
     const newScript = document.createElement('script');
+    if (nonce) {
+      newScript.nonce = nonce;
+      newScript.setAttribute('nonce', nonce);
+    }
     newScript.textContent = code;
     document.body.appendChild(newScript);
     // Remove inline scripts immediately after execution to keep DOM clean

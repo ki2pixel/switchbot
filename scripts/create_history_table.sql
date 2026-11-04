@@ -1,5 +1,5 @@
 -- Create state_history table for monitoring dashboard
--- This table stores historical data with 6-hour retention (aligned with Neon PITR)
+-- This table stores historical data with 24-hour retention (configurable via HISTORY_RETENTION_HOURS)
 
 CREATE TABLE IF NOT EXISTS state_history (
     id SERIAL PRIMARY KEY,
@@ -24,7 +24,7 @@ CREATE INDEX IF NOT EXISTS idx_state_history_metadata ON state_history USING GIN
 -- to avoid IMMUTABLE function issues with date_trunc()
 
 -- Comment for documentation
-COMMENT ON TABLE state_history IS 'Historical monitoring data for SwitchBot dashboard (6-hour retention)';
+COMMENT ON TABLE state_history IS 'Historical monitoring data for SwitchBot dashboard (24-hour retention by default)';
 COMMENT ON COLUMN state_history.temperature IS 'Temperature reading from Meter device in Celsius';
 COMMENT ON COLUMN state_history.humidity IS 'Humidity reading from Meter device in percentage';
 COMMENT ON COLUMN state_history.assumed_aircon_power IS 'Assumed aircon state (on/off/unknown)';

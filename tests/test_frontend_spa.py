@@ -107,3 +107,36 @@ class TestSPARouterSafety:
         assert 'preload' in source and 'remove()' in source, (
             "Must clean up orphaned preload links"
         )
+
+    def test_session_expiry_redirect_guard(self):
+        """The router must detect a followed 302 to /login instead of injecting
+        the login form into #app-content (AUD-03 fix)."""
+        source = _read_spa_router()
+        assert "response.redirected" in source, (
+            "Must check response.redirected before using the fetched HTML"
+        )
+        assert "'/login'" in source or '"/login"' in source, (
+            "Must compare the final URL against /login"
+        )
+        assert "response.status === 401" in source, (
+            "Must force a real navigation on HTTP 401"
+        )
+
+    def test_csrf_token_refresh_after_transition(self):
+        """The router must refresh the CSRF meta token from the fetched page
+        (AUD-03 fix — avoids sending a stale token after re-login)."""
+        source = _read_spa_router()
+        assert 'meta[name="csrf-token"]' in source, (
+            "Must read the CSRF meta token from the fetched document"
+        )
+
+    def test_csp_nonce_propagated_to_inline_scripts(self):
+        """Inline scripts re-executed by the router must carry the CSP nonce
+        (AUD-09 fix — script-src no longer allows 'unsafe-inline')."""
+        source = _read_spa_router()
+        assert 'meta[name="csp-nonce"]' in source, (
+            "Must read the CSP nonce from the current document"
+        )
+        assert "newScript.nonce" in source, (
+            "Must assign the nonce before inserting the script"
+        )

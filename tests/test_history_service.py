@@ -75,7 +75,7 @@ class TestHistoryServiceInit:
         
         assert service._pool == mock_connection_pool
         assert service._logger == mock_logger
-        assert service._retention_hours == 6
+        assert service._retention_hours == 24
 
     def test_init_with_custom_retention(self, mock_connection_pool, mock_logger):
         """Test initialization with custom retention period."""

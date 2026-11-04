@@ -14,7 +14,7 @@
   font-weight: 500;
   border-radius: 0.75rem;
   text-align: center;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
 }
@@ -23,6 +23,13 @@
 .scene-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.action-btn:focus-visible,
+.scene-btn:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 2px;
+  transform: translateY(-2px);
 }
 
 .action-btn:active,
@@ -76,7 +83,7 @@
   border-radius: 0.5rem;
   padding: 1rem;
   text-align: center;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(8px);
 }
 
 .status-label {
@@ -134,14 +141,6 @@
   color: #ff6b81;
 }
 
-.action-btn,
-.scene-btn,
-.status-item {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  perspective: 1000px;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .action-btn,
   .scene-btn {
@@ -149,7 +148,9 @@
   }
   
   .action-btn:hover,
-  .scene-btn:hover {
+  .scene-btn:hover,
+  .action-btn:focus-visible,
+  .scene-btn:focus-visible {
     transform: none;
   }
 }

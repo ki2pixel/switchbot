@@ -336,6 +336,10 @@
   .status-card {
     transition: none;
   }
+
+  .status-card:hover {
+    transform: none;
+  }
   
   .status-indicator {
     transition: none;

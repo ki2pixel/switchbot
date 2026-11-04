@@ -138,7 +138,7 @@
 ## Table d'historique PostgreSQL optimisée
 - Table `state_history` avec indexes temporels optimisés pour les requêtes de monitoring.  
 - Schéma complet : timestamp, temperature, humidity, assumed_aircon_power, last_action, api_requests_today, error_count, last_temperature_stale, timezone, metadata JSONB.  
-- Rétention 6 heures alignée sur PITR Neon avec cleanup automatique via `HistoryService`.  
+- Rétention 24 heures (configurable via `HISTORY_RETENTION_HOURS`) avec cleanup automatique via `HistoryService`.  
 - Utilisation du connection pool existant pour éviter les connexions multiples.
 
 ## Frontend monitoring avec Chart.js

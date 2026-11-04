@@ -233,6 +233,69 @@ def test_get_timezone_cache_invalidated_on_change(mock_zoneinfo: MagicMock) -> N
     assert mock_zoneinfo.call_count == 2
 
 
+def test_run_once_records_history_when_automation_disabled() -> None:
+    # Given: automation is disabled but the meter is still polled
+    settings = _default_settings()
+    settings["automation_enabled"] = False
+    settings_store = MemoryStore(settings)
+    state_store = MemoryStore({"last_temperature": 19.0, "last_humidity": 55})
+    client = DummyClient(temperature=19.0)
+    history = MagicMock()
+    service = AutomationService(
+        settings_store, state_store, client, history_service=history
+    )
+
+    # When: a tick runs
+    service.run_once()
+
+    # Then: the reading is persisted to history exactly once
+    history.record_state.assert_called_once()
+    recorded_state, timezone_name = history.record_state.call_args.args
+    assert recorded_state["last_temperature"] == 19.0
+    assert timezone_name == "Europe/Paris"
+
+
+def test_run_once_records_history_outside_time_window() -> None:
+    # Given: automation is enabled but the current time matches no window
+    settings = _default_settings()
+    settings["time_windows"] = [
+        {"days": [], "start": "00:00", "end": "23:59"}
+    ]
+    settings_store = MemoryStore(settings)
+    state_store = MemoryStore({"last_temperature": 23.0, "last_humidity": 48})
+    client = DummyClient(temperature=23.0)
+    history = MagicMock()
+    service = AutomationService(
+        settings_store, state_store, client, history_service=history
+    )
+
+    # When: a tick runs outside the configured window
+    service.run_once()
+
+    # Then: the meter reading is still recorded (no chart gap)
+    history.record_state.assert_called_once()
+    recorded_state, _timezone_name = history.record_state.call_args.args
+    assert recorded_state["last_temperature"] == 23.0
+
+
+def test_run_once_records_history_once_on_normal_tick() -> None:
+    # Given: a standard tick inside the automation window
+    settings = _default_settings()
+    settings_store = MemoryStore(settings)
+    state_store = MemoryStore({})
+    client = DummyClient(temperature=17.0)
+    history = MagicMock()
+    service = AutomationService(
+        settings_store, state_store, client, history_service=history
+    )
+
+    # When: the tick executes the normal automation path
+    service.run_once()
+
+    # Then: exactly one snapshot is recorded (no duplicate)
+    history.record_state.assert_called_once()
+
+
 def test_run_once_prefers_winter_scene_and_records_quota() -> None:
     settings = _default_settings()
     service, client, _settings_store, state_store = _build_service(

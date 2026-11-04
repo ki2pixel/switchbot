@@ -4,10 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content="{{ csrf_token() }}" />
+    <meta name="csp-nonce" content="{{ csp_nonce }}" />
     <title>SwitchBot Dashboard</title>
     
     <!-- Critical Theme Bootstrapping -->
-    <script>
+    <script nonce="{{ csp_nonce }}">
       (function() {
         const prefersDark = globalThis.matchMedia('(prefers-color-scheme: dark)').matches;
         const root = document.documentElement;
@@ -438,21 +439,33 @@
     </style>
     
     <!-- Preload Critical Resources -->
-    <link rel="preload" href="{{ url_for('static', filename='css/theme.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    <link rel="preload" href="{{ url_for('static', filename='css/index.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <link rel="preload" href="{{ url_for('static', filename='css/theme.css') }}" as="style" />
+    <link rel="preload" href="{{ url_for('static', filename='css/index.css') }}" as="style" />
     <link rel="preload" href="{{ url_for('static', filename='js/loaders.js') }}" as="script" />
-    <link rel="preload" href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    <link rel="preload" href="{{ url_for('static', filename='vendor/css/space-grotesk.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    
-    <!-- Non-Critical CSS (loaded after critical) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/sticky-cards.css') }}" media="print" onload="this.media='all'" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/sticky-footer.css') }}" media="print" onload="this.media='all'" />
+    <link rel="preload" href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" as="style" />
+    <link rel="preload" href="{{ url_for('static', filename='vendor/css/space-grotesk.css') }}" as="style" />
+    <link rel="preload" href="{{ url_for('static', filename='css/sticky-cards.css') }}" as="style" data-deferred="true" />
+    <link rel="preload" href="{{ url_for('static', filename='css/sticky-footer.css') }}" as="style" data-deferred="true" />
+
+    <!-- Promote the preloaded stylesheets once they are discovered (CSP-safe:
+         replaces the previous inline onload= handlers, blocked by script-src). -->
+    <script nonce="{{ csp_nonce }}">
+      document.querySelectorAll('link[rel="preload"][as="style"]').forEach(function (link) {
+        var deferred = link.dataset.deferred === 'true';
+        link.rel = 'stylesheet';
+        if (deferred) {
+          // Keep non-critical CSS off the render-blocking path.
+          link.media = 'print';
+          link.addEventListener('load', function () { link.media = 'all'; });
+        }
+      });
+    </script>
     
     <!-- Local Fonts & Icons -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}" />
     
     <!-- Critical JS for Performance -->
-    <script>
+    <script nonce="{{ csp_nonce }}">
       // Performance mark for critical resources start
       if ('performance' in globalThis && 'mark' in performance) {
         performance.mark('critical-css-start');
@@ -463,7 +476,7 @@
     <a href="#app-content" class="sr-only" style="position:absolute;top:-999px;left:-999px;z-index:9999">Aller au contenu principal</a>
 
 <!-- Enhanced anti-flash script for body -->
-<script>
+<script nonce="{{ csp_nonce }}">
   // Ensure dark theme is applied immediately when body loads
   document.body.style.backgroundColor = '#030712';
   document.body.style.color = '#f4f7ff';
@@ -634,7 +647,7 @@
     <script src="{{ url_for('static', filename='js/spa-router.js') }}"></script>
     
     <!-- Enhanced Performance Optimization Script -->
-    <script>
+    <script nonce="{{ csp_nonce }}">
       // Mark critical CSS loading complete
       if ('performance' in globalThis && 'mark' in performance) {
         performance.mark('critical-css-loaded');

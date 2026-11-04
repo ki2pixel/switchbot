@@ -24,7 +24,7 @@ class HistoryService:
         connection_pool: ConnectionPool,
         *,
         logger: logging.Logger,
-        retention_hours: int = 6,
+        retention_hours: int = 24,
         batch_size: int = 4,
         flush_interval_seconds: int = 60,
     ) -> None:
@@ -34,7 +34,8 @@ class HistoryService:
         Args:
             connection_pool: PostgreSQL connection pool from PostgresStore
             logger: Logger instance for error reporting
-            retention_hours: Data retention period (default: 6 hours for Neon PITR)
+            retention_hours: Data retention period (default: 24 hours so the UI
+                "last 24h" range is fully covered).
             batch_size: Number of records to buffer before flushing (default: 4)
             flush_interval_seconds: Maximum seconds to keep buffered data before flushing
         """

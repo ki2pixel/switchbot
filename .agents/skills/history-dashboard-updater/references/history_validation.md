@@ -1,18 +1,18 @@
 # Checklist Validation History Dashboard
 
 ## Backend / Postgres
-1. **Schéma** : synchroniser `scripts/create_history_table.sql` (colonnes, index, rétention 6h).
+1. **Schéma** : synchroniser `scripts/create_history_table.sql` (colonnes, index, rétention par défaut 24h, configurable via `HISTORY_RETENTION_HOURS`).
 2. **Batch** : vérifier `HistoryService.FLUSH_INTERVAL_SECONDS` ≤ 30s et `BATCH_SIZE` cohérent.
-3. **Nettoyage** : confirmer qu'un `DELETE ... WHERE observed_at < now() - interval '6 hours'` est programmé.
+3. **Nettoyage** : confirmer qu'un `DELETE ... WHERE timestamp < now() - interval '<retention> hours'` est programmé (job APScheduler `history_cleanup`, toutes les heures).
 4. **EXPLAIN ANALYZE** : viser < 30 ms pour requêtes agrégats 6h (index `observed_at`).
 
 ## API Flask
 - Endpoints attendus :
-  - `GET /history/api/records?minutes=360`
-  - `GET /history/api/aggregates?metrics=temperature,humidity`
-  - `GET /history/api/latest`
-- Paramètres : valider `minutes` (15-360), `metrics` (csv limité à `temperature`, `humidity`, `assumed_aircon_power`).
-- Réponses vides → `{ "data": [] }` sans erreur 500.
+  - `GET /history/api/data?start=<iso>&end=<iso>&metrics=temperature,humidity&granularity=minute&limit=1000`
+  - `GET /history/api/aggregates?period_hours=6`
+  - `GET /history/api/latest?limit=10`
+- Paramètres : valider `start`/`end` (ISO-8601, `start < end`), `metrics` (csv limité à `temperature`, `humidity`, `assumed_aircon_power`), `granularity` (`minute`, `5min`, `15min`, `hour`), `limit` (1-10000).
+- Réponses vides ou service indisponible → `{ "data": [], "degraded": true }` en HTTP 200, jamais de 500/503 bloquant le rendu.
 
 ## Frontend Chart.js
 - Charger `switchbot_dashboard/static/js/history.js` + `switchbot_dashboard/static/css/history.css`.

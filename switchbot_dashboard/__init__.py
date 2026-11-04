@@ -5,12 +5,13 @@ import datetime
 import logging
 import os
 from pathlib import Path
+import secrets
 import sys
 import threading
 
 from dotenv import load_dotenv
 
-from flask import Flask
+from flask import Flask, g
 
 from flask_wtf.csrf import CSRFProtect
 from psycopg_pool import ConnectionPool
@@ -268,12 +269,20 @@ def create_app() -> Flask:
     
     if isinstance(settings_store, PostgresStore):
         try:
+            retention_hours_raw = os.environ.get("HISTORY_RETENTION_HOURS", "24")
+            try:
+                retention_hours = max(1, int(retention_hours_raw))
+            except ValueError:
+                retention_hours = 24
             history_service = HistoryService(
                 connection_pool=settings_store.pool,
                 logger=app.logger,
-                retention_hours=24,
+                retention_hours=retention_hours,
             )
-            app.logger.info("[history] HistoryService initialized with PostgreSQL backend")
+            app.logger.info(
+                "[history] HistoryService initialized with PostgreSQL backend (retention=%sh)",
+                retention_hours,
+            )
             
             @atexit.register
             def flush_history_buffer() -> None:
@@ -313,13 +322,33 @@ def create_app() -> Flask:
     app.register_blueprint(dashboard_bp)
 
     # HTTP Security Headers (S-01)
+    @app.before_request
+    def _generate_csp_nonce() -> None:
+        """Issue a fresh CSP nonce for every request.
+
+        A per-request nonce lets ``script-src`` drop ``'unsafe-inline'`` while
+        still allowing the small amount of first-party inline bootstrapping
+        code in the templates.
+        """
+        g.csp_nonce = secrets.token_urlsafe(16)
+
+    @app.context_processor
+    def _inject_csp_nonce() -> dict[str, str]:
+        return {"csp_nonce": getattr(g, "csp_nonce", "")}
+
     @app.after_request
     def set_security_headers(response):
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        nonce = getattr(g, "csp_nonce", "")
+        script_src = "'self'"
+        if nonce:
+            script_src += f" 'nonce-{nonce}'"
+        # style-src keeps 'unsafe-inline': templates rely on style="" attributes
+        # and adding a nonce would make browsers ignore 'unsafe-inline'.
         response.headers['Content-Security-Policy'] = (
-            "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+            f"default-src 'self'; script-src {script_src}; "
             "style-src 'self' 'unsafe-inline'; font-src 'self'; "
             "img-src 'self' data:; connect-src 'self'; "
             "object-src 'none'; base-uri 'none'; frame-ancestors 'none'"

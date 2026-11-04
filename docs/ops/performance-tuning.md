@@ -217,9 +217,9 @@ WHERE timestamp >= NOW() - INTERVAL '24 hours'
 GROUP BY timestamp::date
 ORDER BY date DESC;
 
--- Nettoyage des anciens enregistrements (rétention 6h)
+-- Nettoyage des anciens enregistrements (rétention 24h)
 DELETE FROM history 
-WHERE timestamp < NOW() - INTERVAL '6 hours';
+WHERE timestamp < NOW() - INTERVAL '24 hours';
 ```
 
 ### ❌ Insertions Individuelles / ✅ Batch Insert

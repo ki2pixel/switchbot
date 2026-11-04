@@ -34,6 +34,7 @@ from .utils import (
     _safe_float as _as_float,
     _safe_bool as _as_bool,
     _utc_now_iso,
+    _utc_iso_z,
     _resolve_timezone,
     _parse_iso_datetime,
 )
@@ -473,7 +474,7 @@ def healthz() -> Any:
     # Get last scheduler tick
     last_scheduler_tick = None
     if getattr(scheduler_service, "last_tick_time", None) is not None:
-        last_scheduler_tick = scheduler_service.last_tick_time.isoformat() + "Z"
+        last_scheduler_tick = _utc_iso_z(scheduler_service.last_tick_time)
         
     # Get average tick duration
     automation_service = app.extensions.get("automation_service")
@@ -1074,7 +1075,7 @@ def _generate_mock_history_data(start: dt.datetime, end: dt.datetime) -> list[di
     current = start
     while current <= end:
         mock_data.append({
-            "timestamp": current.isoformat() + "Z",
+            "timestamp": _utc_iso_z(current),
             "temperature": round(20 + random.random() * 10, 1),
             "humidity": round(40 + random.random() * 20, 1),
             "assumed_aircon_power": random.choice(["on", "off", "unknown"]),
@@ -1121,9 +1122,21 @@ def history_api_data() -> Any:
     history_service = current_app.extensions.get("history_service")
     if not history_service:
         if not current_app.debug and not current_app.testing:
+            # Fail-safe UX: never break the dashboard when PostgreSQL is
+            # unavailable. Return an empty, well-formed payload flagged as
+            # degraded instead of an HTTP 503 the charts cannot render.
+            end = dt.datetime.now(dt.timezone.utc)
+            start = end - dt.timedelta(hours=6)
             return {
-                "error": "Service Historique indisponible. La base de données PostgreSQL est déconnectée."
-            }, 503
+                "data": [],
+                "start": _utc_iso_z(start),
+                "end": _utc_iso_z(end),
+                "granularity": "minute",
+                "metrics": ["timestamp", "temperature", "humidity", "assumed_aircon_power"],
+                "count": 0,
+                "degraded": True,
+                "message": "Service Historique indisponible. La base de données PostgreSQL est déconnectée.",
+            }
         
         end = dt.datetime.now(dt.timezone.utc)
         start = end - dt.timedelta(hours=6)
@@ -1131,8 +1144,8 @@ def history_api_data() -> Any:
         
         return {
             "data": mock_data,
-            "start": start.isoformat() + "Z",
-            "end": end.isoformat() + "Z",
+            "start": _utc_iso_z(start),
+            "end": _utc_iso_z(end),
             "granularity": "minute",
             "metrics": ["temperature", "humidity", "assumed_aircon_power"],
             "count": len(mock_data),
@@ -1189,9 +1202,25 @@ def history_api_aggregates() -> Any:
     history_service = current_app.extensions.get("history_service")
     if not history_service:
         if not current_app.debug and not current_app.testing:
+            # Fail-safe UX: empty aggregates instead of an HTTP 503.
             return {
-                "error": "Service Historique indisponible. La base de données PostgreSQL est déconnectée."
-            }, 503
+                "period_hours": 6,
+                "aggregates": {
+                    "total_records": 0,
+                    "avg_temperature": 0,
+                    "min_temperature": 0,
+                    "max_temperature": 0,
+                    "avg_humidity": 0,
+                    "min_humidity": 0,
+                    "max_humidity": 0,
+                    "common_aircon_state": "unknown",
+                    "distinct_actions": 0,
+                    "total_errors": 0,
+                    "max_api_requests": 0
+                },
+                "degraded": True,
+                "message": "Service Historique indisponible. La base de données PostgreSQL est déconnectée.",
+            }
         
         # Return mock aggregates when service is not available
         return {
@@ -1272,9 +1301,13 @@ def history_api_latest() -> Any:
     history_service = current_app.extensions.get("history_service")
     if not history_service:
         if not current_app.debug and not current_app.testing:
+            # Fail-safe UX: empty latest records instead of an HTTP 503.
             return {
-                "error": "Service Historique indisponible. La base de données PostgreSQL est déconnectée."
-            }, 503
+                "latest": [],
+                "count": 0,
+                "degraded": True,
+                "message": "Service Historique indisponible. La base de données PostgreSQL est déconnectée.",
+            }
         
         # Return mock latest records when service is not available
         mock_latest = []
@@ -1282,14 +1315,14 @@ def history_api_latest() -> Any:
             timestamp = dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=i * 5)
             mock_latest.append({
                 "id": i + 1,
-                "timestamp": timestamp.isoformat() + "Z",
+                "timestamp": _utc_iso_z(timestamp),
                 "temperature": round(20 + random.random() * 10, 1),
                 "humidity": round(40 + random.random() * 20, 1),
                 "assumed_aircon_power": random.choice(["on", "off", "unknown"]),
                 "last_action": random.choice(["automation_winter_on", "automation_summer_on", "automation_winter_off", None]),
                 "error_count": random.randint(0, 2),
                 "metadata": {
-                    "last_read_at": timestamp.isoformat() + "Z",
+                    "last_read_at": _utc_iso_z(timestamp),
                     "automation_active": random.choice([True, False])
                 }
             })

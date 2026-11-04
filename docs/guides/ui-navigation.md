@@ -378,9 +378,9 @@ Les animations CSS doivent être GPU-optimisées pour éviter la latence sur mob
 ### Scripts SQL pour la maintenance
 
 ```sql
--- Nettoyage des entrées historique (>6h)
+-- Nettoyage des entrées historique (>24h)
 DELETE FROM history 
-WHERE created_at < NOW() - INTERVAL '6 hours'
+WHERE created_at < NOW() - INTERVAL '24 hours'
 AND meter_temperature IS NOT NULL;
 
 -- Vérification des quotas par jour

@@ -1,6 +1,6 @@
 # Guide de Monitoring du Dashboard
 
-**TL;DR** : Le History Monitoring transforme vos données brutes SwitchBot en visualisations temps réel avec une rétention de 6 heures, le tout via PostgreSQL et Chart.js sans dépendances externes.
+**TL;DR** : Le History Monitoring transforme vos données brutes SwitchBot en visualisations temps réel avec une rétention de 24 heures (configurable via `HISTORY_RETENTION_HOURS`), le tout via PostgreSQL et Chart.js sans dépendances externes.
 
 ## Le Problème : Pourquoi du Monitoring ?
 
@@ -29,7 +29,7 @@ if history_service:
 
 ### La Découpe Temporelle Intelligente
 
-Ne stockez pas tout éternellement. 6 heures = la fenêtre PITR de Neon PostgreSQL. Au-delà, cleanup automatique. C'est suffisant pour voir les tendances journalières sans exploser vos coûts de stockage.
+Ne stockez pas tout éternellement. 24 heures = la plage maximale proposée par l'UI (« Dernières 24 h »). Au-delà, cleanup automatique. C'est suffisant pour voir les tendances journalières sans exploser vos coûts de stockage.
 
 ### L'Architecture en Couches
 
@@ -73,7 +73,7 @@ if isinstance(settings_store, PostgresStore):
     history_service = HistoryService(
         connection_pool=settings_store._pool,
         logger=app.logger,
-        retention_hours=6,
+        retention_hours=24,
     )
     app.extensions["history_service"] = history_service
     
@@ -234,7 +234,7 @@ def record_state_forever():
 ```python
 # LA BONNE PRATIQUE :
 def cleanup_old_records(self):
-    # Nettoyage après 6 heures = aligné PITR Neon
+    # Nettoyage après 24 heures (couvre la plage UI « Dernières 24 h »)
     cutoff = datetime.now() - timedelta(hours=self.retention_hours)
     self._pool.execute(
         "DELETE FROM state_history WHERE timestamp < %s",
@@ -319,14 +319,14 @@ else:
 
 ❌ **Stockage infini** : Table PostgreSQL qui grandit indéfiniment, performances dégradées, coûts explosifs, backup impossibles. Après 6 mois, votre dashboard devient inutilisable.
 
-✅ **Rétention intelligente** : Cleanup automatique après 6 heures, agrégations préservées, performances constantes, PITR Neon efficace. Vous gardez l'essentiel sans la surcharge.
+✅ **Rétention intelligente** : Cleanup automatique après 24 heures, agrégations préservées, performances constantes. Vous gardez l'essentiel sans la surcharge.
 
 ### Tableau Comparatif des Approches de Stockage
 
 | Approche | Coût | Performance | Maintenance | Utilité |
 |----------|------|-------------|-------------|---------|
 | **Stockage infini** | Élevé | Dégradée | Élevée | Faible |
-| **Rétention 6h** | Gratuit | Constante | Automatique | Élevée |
+| **Rétention 24h** | Gratuit | Constante | Automatique | Élevée |
 | **Agrégations seules** | Faible | Optimale | Moyenne | Moyenne |
 
 ## La Règle d'Or : Snapshots Légers, Visualisations Riches
@@ -343,11 +343,13 @@ Enregistrez le minimum nécessaire à chaque tick, mais offrez le maximum en vis
 // config/settings.json - Pas de variables spécifiques monitoring
 {
   "automation": {
-    "poll_interval_seconds": 60,
-    "history_retention_hours": 6
+    "poll_interval_seconds": 60
   }
 }
 ```
+
+> La rétention n'est pas un réglage JSON : elle est lue depuis la variable
+> d'environnement `HISTORY_RETENTION_HOURS` (défaut : 24).
 
 ### Scripts SQL
 

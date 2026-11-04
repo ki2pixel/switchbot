@@ -1181,6 +1181,7 @@ class AutomationService:
         if not automation_enabled:
             self._debug("Automation disabled — polling meter only", trigger=trigger)
             self.poll_meter()
+            self._record_history_snapshot(timezone_name, trigger=trigger)
             self._log_tick_completion(trigger, outcome="disabled")
             return
 
@@ -1228,6 +1229,7 @@ class AutomationService:
                         outcome = "turned_off_outside_window"
             else:
                 outcome = "outside_window"
+            self._record_history_snapshot(timezone_name, trigger=trigger)
             self._log_tick_completion(trigger, outcome=outcome)
             return
 
@@ -1252,9 +1254,19 @@ class AutomationService:
 
         self._log_tick_completion(trigger, outcome=outcome)
         
-        if self._history_service:
-            try:
-                current_state = self._state_store.read()
-                self._history_service.record_state(current_state, timezone_name)
-            except Exception as exc:
-                self._warning("Failed to record state in history", trigger=trigger, error=str(exc))
+        self._record_history_snapshot(timezone_name, trigger=trigger)
+
+    def _record_history_snapshot(self, timezone_name: str, *, trigger: str) -> None:
+        """Persist the current state to the history buffer.
+
+        Called on every tick that reached the meter polling stage, including
+        ticks where automation is disabled or outside the configured time
+        windows, so the charts do not show multi-hour gaps.
+        """
+        if not self._history_service:
+            return
+        try:
+            current_state = self._state_store.read()
+            self._history_service.record_state(current_state, timezone_name)
+        except Exception as exc:
+            self._warning("Failed to record state in history", trigger=trigger, error=str(exc))

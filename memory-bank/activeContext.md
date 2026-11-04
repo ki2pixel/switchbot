@@ -1,5 +1,17 @@
 # Contexte Actif
 
+## Session 2026-11-04 — Remédiation Audit Frontend V2
+- **[2026-11-04 13:00:00] - Correction des constats vérifiés de `docs/audits/Audit_Frontend_SwitchBot_Dashboard_V2.md`** :
+  - **AUD-02** : helper `_utc_iso_z()` dans `utils.py` ; suppression des 6 concaténations `.isoformat() + "Z"` (healthz + mocks history).
+  - **AUD-03** : garde `response.redirected → /login` + `401` dans `spa-router.js`, resynchronisation du token CSRF, redirection `401` dans `history.js`.
+  - **AUD-05** : helper `_record_history_snapshot()` appelé aussi hors fenêtre et automation désactivée (fin des trous de graphiques).
+  - **AUD-06** : `/history/api/*` renvoie 200 + payload vide `degraded: true` au lieu de 503.
+  - **AUD-08** : transitions composite-only, shimmer en `translateX`, suppression des couches GPU permanentes, `:focus-visible` contrastés, chevrons CSS sans texte.
+  - **AUD-09** : CSP `script-src` à nonce par requête (plus de `unsafe-inline`), rétention `HISTORY_RETENTION_HOURS` (défaut 24h) + docs alignées.
+  - **Non retenus (constats infirmés)** : AUD-01 (`static/vendor` présent et versionné), AUD-04 (alias de tokens déjà dans `theme.css`), AUD-07 partiel (`history.css` et `theme.css` gèrent déjà `prefers-reduced-motion`), destruction Chart.js déjà en place.
+  - Validation navigateur : SPA aller/retour OK, aucune violation CSP, redirection de session expirée OK.
+  - Tests : **226 passent**, 1 skipped.
+
 ## Session 2026-11-04 — Nettoyage Configurations IDE & Push GitHub
 - **[2026-11-04 12:05:00] - Nettoyage configs legacy & migration vers .agents/** :
   - Suppression des dossiers et fichiers de configuration obsolètes (`.cline/`, `.clinerules/`, `.windsurf/`, `.codex/rules/development.rules`, `.zencoder/`, `repomix.config.json`).

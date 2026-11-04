@@ -136,7 +136,9 @@ def test_postgres_store_transaction_rollback():
     mock_conn.rollback.assert_called()
 
 
-def test_history_api_503_fallback_in_production():
+def test_history_api_fail_safe_in_production():
+    """Without PostgreSQL in production, /history/api/* must stay fail-safe:
+    HTTP 200 with empty, well-formed data flagged as degraded."""
     from switchbot_dashboard.routes import dashboard_bp
     
     app = Flask(__name__)
@@ -167,20 +169,39 @@ def test_history_api_503_fallback_in_production():
     assert "history_service" not in app.extensions
     
     with app.test_client() as client:
-        # Check /history/api/data returns 503
+        # Given: no history service is registered
+        # When: /history/api/data is requested
         response = client.get("/history/api/data")
-        assert response.status_code == 503
+
+        # Then: HTTP 200 with an empty, degraded payload
+        assert response.status_code == 200
         json_data = response.get_json()
-        assert "error" in json_data
-        assert "La base de données PostgreSQL est déconnectée" in json_data["error"]
+        assert json_data["data"] == []
+        assert json_data["count"] == 0
+        assert json_data["degraded"] is True
+        assert "PostgreSQL est déconnectée" in json_data["message"]
+        assert "start" in json_data and "end" in json_data
         
-        # Check /history/api/aggregates returns 503
-        response = response = client.get("/history/api/aggregates")
-        assert response.status_code == 503
+        # Given: no history service is registered
+        # When: /history/api/aggregates is requested
+        response = client.get("/history/api/aggregates")
+
+        # Then: HTTP 200 with zeroed aggregates
+        assert response.status_code == 200
+        json_data = response.get_json()
+        assert json_data["degraded"] is True
+        assert json_data["aggregates"]["total_records"] == 0
         
-        # Check /history/api/latest returns 503
+        # Given: no history service is registered
+        # When: /history/api/latest is requested
         response = client.get("/history/api/latest")
-        assert response.status_code == 503
+
+        # Then: HTTP 200 with an empty latest list
+        assert response.status_code == 200
+        json_data = response.get_json()
+        assert json_data["degraded"] is True
+        assert json_data["latest"] == []
+        assert json_data["count"] == 0
 
 
 def test_switchbot_client_status_caching():

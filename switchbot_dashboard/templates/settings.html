@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content="{{ csrf_token() }}" />
+    <meta name="csp-nonce" content="{{ csp_nonce }}" />
     <title>Réglages · SwitchBot Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/space-grotesk.css') }}" />
@@ -521,7 +522,7 @@
                 <p class="small text-muted mb-2">Besoin d'un rafraîchissement ?</p>
                 <a class="btn btn-outline-light w-100 mb-2" href="{{ url_for('dashboard.index') }}">Voir l'état en temps réel</a>
                 {% if session.get('logged_in') %}
-                <form method="post" action="{{ url_for('dashboard.logout') }}">
+                <form method="post" action="{{ url_for('dashboard.logout') }}" data-loader>
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn btn-outline-danger w-100">Déconnexion</button>
                 </form>

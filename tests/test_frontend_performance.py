@@ -138,3 +138,62 @@ class TestSecurityFrontend:
         assert "--sb-footer-height" in css, (
             "theme.css must define --sb-footer-height token"
         )
+
+
+class TestCSSCompositorSafety:
+    """AUD-08 — transitions must stay on composite properties."""
+
+    def test_no_transition_all(self):
+        """`transition: all` is forbidden: it animates layout properties and
+        forces the main thread to re-style on every frame."""
+        for filename in ["actions.css", "devices.css", "history.css", "index.css", "settings.css"]:
+            css = _read_file(os.path.join(CSS_DIR, filename))
+            assert "transition: all" not in css, (
+                f"{filename} must not use 'transition: all'"
+            )
+
+    def test_no_left_animation(self):
+        """Shimmer pseudo-elements must animate transform, not `left`
+        (layout-triggering property)."""
+        css = _read_file(os.path.join(CSS_DIR, "devices.css"))
+        assert "transition: left" not in css, (
+            "devices.css must animate transform instead of left"
+        )
+        assert "left: -100%" not in css, (
+            "devices.css must not position shimmers with left: -100%"
+        )
+
+    def test_no_permanent_3d_promotion(self):
+        """Buttons/cards must not be promoted to GPU layers permanently."""
+        css = _read_file(os.path.join(CSS_DIR, "actions.css"))
+        assert "translateZ(0)" not in css, (
+            "actions.css must not force permanent translateZ(0) layers"
+        )
+        assert "perspective: 1000px" not in css, (
+            "actions.css must not set a permanent perspective"
+        )
+
+    def test_focus_visible_outline_on_action_buttons(self):
+        """Keyboard focus must be visible with a high-contrast outline."""
+        css = _read_file(os.path.join(CSS_DIR, "actions.css"))
+        assert ".action-btn:focus-visible" in css
+        assert ".scene-btn:focus-visible" in css
+        assert "outline: 2px solid var(--sb-accent)" in css
+
+    def test_focus_visible_outline_on_copy_button(self):
+        css = _read_file(os.path.join(CSS_DIR, "devices.css"))
+        assert ".btn-copy:focus-visible" in css
+        assert "outline: 2px solid var(--sb-accent)" in css
+
+    def test_no_generated_text_arrows(self):
+        """Accordion indicators must not inject readable text via CSS."""
+        css = _read_file(os.path.join(CSS_DIR, "devices.css"))
+        assert "content: '▶'" not in css, (
+            "Use a border-based chevron instead of generated text"
+        )
+        assert "content: \"▶\"" not in css
+
+    def test_reduced_motion_in_devices_css(self):
+        """devices.css must honour prefers-reduced-motion."""
+        css = _read_file(os.path.join(CSS_DIR, "devices.css"))
+        assert "@media (prefers-reduced-motion: reduce)" in css

@@ -32,7 +32,7 @@ Ce workflow assure la cohérence entre le backend Flask, le stockage PostgreSQL 
 - **Thème sombre obligatoire** : utiliser les variables CSS (`var(--sb-bg)`, etc.)
 
 ### 4. Frontend (Assets)
-- CSS : **Interdiction stricte des styles inline**. Si critique (above the fold), placer dans `switchbot_dashboard/static/css/critical.css`. Sinon dans fichier CSS dédié dans `switchbot_dashboard/static/css/`.
+- CSS : **Interdiction stricte des styles inline**. Si critique (above the fold), placer dans le `<style>` inline de `switchbot_dashboard/templates/index.html`. Sinon dans fichier CSS dédié dans `switchbot_dashboard/static/css/`.
 - JS : **Loaders.js obligatoire** pour les boutons d'action (`data-loader`)
 - Performance : `loading="lazy"` pour les images sauf LCP
 - **CDNs interdits** : Bootstrap, Chart.js, FontAwesome et polices (Space Grotesk) doivent être servis depuis `switchbot_dashboard/static/vendor/`

@@ -18,8 +18,8 @@
 
 ## 3. Contrôles front
 - Vérifier `templates/index.html` : balises `<link rel="preload">`, `<meta http-equiv="x-dns-prefetch-control">`.
-- `switchbot_dashboard/static/js/performance-optimizer.js` : garder `requestIdleCallback` et passive listeners.
-- `switchbot_dashboard/static/css/critical.css` : aucun import externe, variables limitées.
+- `switchbot_dashboard/static/css/theme.css` : variables centralisées, aucun `@import` externe.
+- `switchbot_dashboard/static/js/loaders.js` : `requestIdleCallback` / passive listeners si ajoutés, pas de blocage du main thread.
 
 ## 4. Checklist micro-interactions
 - `prefers-reduced-motion` : toggles CSS dans `theme.css`.

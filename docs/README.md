@@ -34,7 +34,7 @@ Au fond, c'est une application Flask qui :
 3. **Exécute les actions via une cascade à deux niveaux** : scènes SwitchBot → commandes directes
 4. **Stocke tout dans PostgreSQL** avec fallback automatique vers des fichiers JSON
 5. **Suit les quotas API** via une approche hybride (comptage local + synchronisation des en-têtes SwitchBot `X-RateLimit`)
-6. **Surveille l'historique** avec des dashboards Chart.js et rétention de 6 heures
+6. **Surveille l'historique** avec des dashboards Chart.js et une rétention de 24 heures (configurable via `HISTORY_RETENTION_HOURS`)
 
 La magie est dans les détails : le polling adaptatif réduit la charge base de données pendant les périodes d'inactivité, le scheduler survit aux redémarrages Gunicorn, et chaque appel API est enveloppé dans une logique de retry avec rate limiting propre.
 

@@ -14,7 +14,7 @@ Déclencher ce skill pour toute évolution du monitoring (backend/postgres → A
 - Référence : `references/history_validation.md` pour checklist complète backend/API/frontend/tests.
 
 ## 2. Plan d’attaque multi-couches
-1. **Schéma/Postgres** : ajuster `scripts/create_history_table.sql`, vérifier index + nettoyage 6h.
+1. **Schéma/Postgres** : ajuster `scripts/create_history_table.sql`, vérifier index + nettoyage (24h par défaut, `HISTORY_RETENTION_HOURS`).
 2. **Service** : mettre à jour `HistoryService` (batch, agrégations, filtres), ajouter tests unitaires.
 3. **Routes API** : respecter la validation des paramètres (plages, métriques). Retourner JSON prêt à consommer (labels + datasets).
 4. **Frontend** : utiliser Chart.js offline, décimation LTTB, loaders. Tenir compte de `prefers-reduced-motion`.

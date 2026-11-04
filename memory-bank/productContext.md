@@ -24,7 +24,7 @@
 - **Dashboard d'historique complet** : Nouveau frontend responsive avec Chart.js pour visualiser les tendances de température, humidité, état climatisation et usage API.
 - **HistoryService** : Service de collecte et récupération des données avec agrégations, intégré dans AutomationService.run_once() pour enregistrement automatique.
 - **API REST** : 3 endpoints `/history/api/*` pour données filtrées, agrégats et derniers enregistrements avec gestion d'erreurs robuste.
-- **Table PostgreSQL optimisée** : `state_history` avec indexes temporels, rétention 6 heures alignée sur PITR Neon, cleanup automatique.
+- **Table PostgreSQL optimisée** : `state_history` avec indexes temporels, rétention 24 heures (configurable via `HISTORY_RETENTION_HOURS`), cleanup automatique.
 - **Fonctionnalités avancées** : Graphiques animés, filtres interactifs (plages horaires, granularité, métriques), mise à jour temps réel, thème sombre cohérent.
 - **Tests et documentation** : 15+ cas de test couvrant CRUD, agrégations, erreurs, intégration ; documentation utilisateur complète dans `docs/history-monitoring.md`.
 - **Configuration** : Utilise PostgreSQL existant, variables POSTGRES_URL et STORE_BACKEND=postgres ; aucune dépendance additionnelle requise.

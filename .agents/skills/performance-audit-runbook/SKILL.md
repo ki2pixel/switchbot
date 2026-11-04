@@ -9,18 +9,18 @@ Utiliser ce skill pour vérifier/étendre les optimisations LCP/FID/CLS.
 
 ## 1. Préparer les outils
 - Scripts : Lighthouse (CLI), WebPageTest, ou Chrome DevTools.
-- Fichiers clés : `switchbot_dashboard/static/css/critical.css`, `switchbot_dashboard/static/js/advanced-optimizer.js`, `switchbot_dashboard/static/js/performance-optimizer.js`, `templates/index.html` (resource hints).
+- Fichiers clés : `switchbot_dashboard/templates/index.html` (CSS critique inline + resource hints), `switchbot_dashboard/static/css/theme.css`, `switchbot_dashboard/static/js/spa-router.js`.
 - Docs : `docs/guides/ui-navigation.md` (UX mobile), `docs/ops/performance-tuning.md` (optimisations back/front).
 
 ## 2. Workflow d’audit
 1. **Critical CSS** :
-   - Vérifier que le contenu above-the-fold est couvert.
-   - Confirmer que le CSS non critique est chargé async (`media="print"`).
+   - Vérifier que le contenu above-the-fold est couvert par le `<style>` inline de `index.html`.
+   - Confirmer que le CSS non critique est chargé async (`media="print"` + promotion JS).
 2. **Resource hints** :
    - Preconnect/Preload cohérents (Space Grotesk, scripts critiques).
    - Aucun CDN externe non autorisé.
 3. **JS optimisations** :
-   - `performance-optimizer.js` ne bloque pas le main thread.
+   - `loaders.js` et `spa-router.js` ne bloquent pas le main thread.
    - Prefer `requestIdleCallback`, `Passive event listeners` activés.
 4. **Micro-interactions** :
    - Tokens `--sb-scale-*` respectés, `prefers-reduced-motion` géré.

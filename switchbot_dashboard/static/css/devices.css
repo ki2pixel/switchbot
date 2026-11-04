@@ -64,7 +64,10 @@
   border-radius: 1rem;
   padding: 0.75rem 1rem;
   background: rgba(255, 255, 255, 0.03);
-  transition: all var(--sb-transition-normal) ease;
+  transition: transform var(--sb-transition-normal) ease,
+    box-shadow var(--sb-transition-normal) ease,
+    border-color var(--sb-transition-normal) ease,
+    background-color var(--sb-transition-normal) ease;
   position: relative;
   overflow: hidden;
 }
@@ -73,11 +76,13 @@
   content: '';
   position: absolute;
   top: 0;
-  left: -100%;
+  left: 0;
   width: 100%;
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(138, 180, 255, 0.1), transparent);
-  transition: left var(--sb-transition-slow) ease;
+  transform: translateX(-100%);
+  transition: transform var(--sb-transition-slow) ease;
+  pointer-events: none;
 }
 
 .device-details:hover {
@@ -88,7 +93,7 @@
 }
 
 .device-details:hover::before {
-  left: 100%;
+  transform: translateX(100%);
 }
 
 .device-details summary {
@@ -104,8 +109,12 @@
 }
 
 .device-details summary::after {
-  content: '▶';
-  font-size: 0.8rem;
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 6px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
   transition: transform var(--sb-transition-fast) ease;
   color: var(--sb-accent);
   margin-left: 0.5rem;
@@ -159,12 +168,20 @@
   color: var(--sb-text);
 }
 
+.btn-copy:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 2px;
+}
+
 .raw-block {
   border: 1px solid var(--sb-outline);
   border-radius: 1rem;
   padding: 1rem;
   background: rgba(5, 10, 24, 0.55);
-  transition: all var(--sb-transition-normal) ease;
+  transition: transform var(--sb-transition-normal) ease,
+    box-shadow var(--sb-transition-normal) ease,
+    border-color var(--sb-transition-normal) ease,
+    background-color var(--sb-transition-normal) ease;
   position: relative;
   overflow: hidden;
 }
@@ -173,11 +190,13 @@
   content: '';
   position: absolute;
   top: 0;
-  left: -100%;
+  left: 0;
   width: 100%;
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(138, 180, 255, 0.08), transparent);
-  transition: left var(--sb-transition-slow) ease;
+  transform: translateX(-100%);
+  transition: transform var(--sb-transition-slow) ease;
+  pointer-events: none;
 }
 
 .raw-block:hover {
@@ -188,7 +207,7 @@
 }
 
 .raw-block:hover::before {
-  left: 100%;
+  transform: translateX(100%);
 }
 
 .raw-block summary {
@@ -202,8 +221,12 @@
 }
 
 .raw-block summary::after {
-  content: '▶';
-  font-size: 0.8rem;
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 6px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
   transition: transform var(--sb-transition-fast) ease;
   color: var(--sb-accent);
   margin-left: 0.5rem;
@@ -246,9 +269,23 @@
     font-size: 0.95rem;
     padding: 0.3rem 0;
   }
-  
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .device-details,
+  .raw-block,
   .device-details summary::after,
   .raw-block summary::after {
-    font-size: 0.75rem;
+    transition: none;
+  }
+
+  .device-details::before,
+  .raw-block::before {
+    display: none;
+  }
+
+  .device-details:hover,
+  .raw-block:hover {
+    transform: none;
   }
 }

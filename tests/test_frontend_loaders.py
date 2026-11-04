@@ -125,6 +125,28 @@ def test_index_template_structure():
         assert form.has_attr('data-loader'), "Formulaire dans index.html doit avoir data-loader"
 
 
+def test_all_post_forms_have_data_loader():
+    """Every POST form in every page template must be wired to loaders.js."""
+    templates_dir = os.path.join(
+        os.path.dirname(__file__),
+        '..',
+        'switchbot_dashboard',
+        'templates',
+    )
+
+    for filename in sorted(os.listdir(templates_dir)):
+        if not filename.endswith('.html') or filename.startswith('_'):
+            continue
+        with open(os.path.join(templates_dir, filename), 'r', encoding='utf-8') as f:
+            soup = BeautifulSoup(f.read(), 'html.parser')
+
+        for form in soup.find_all('form', method=lambda m: m and m.lower() == 'post'):
+            assert form.has_attr('data-loader'), (
+                f"POST form in {filename} is missing data-loader: "
+                f"{form.get('action')}"
+            )
+
+
 def test_performance_documentation_exists():
     """Vérifie que la documentation des optimisations existe."""
     doc_path = os.path.join(

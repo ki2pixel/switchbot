@@ -41,6 +41,20 @@ def _safe_bool(value: Any) -> bool:
 def _utc_now_iso() -> str:
     return dt.datetime.now(dt.timezone.utc).isoformat()
 
+
+def _utc_iso_z(value: dt.datetime) -> str:
+    """Serialize a datetime as a canonical UTC ISO-8601 string ending in ``Z``.
+
+    ``datetime.isoformat()`` on a timezone-aware UTC value already yields a
+    ``+00:00`` suffix, so appending ``"Z"`` produces the invalid
+    ``2026-11-04T12:00:00+00:00Z`` that ``new Date()`` rejects in browsers.
+    Naive values are assumed to be UTC.
+    """
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=dt.timezone.utc)
+    return value.astimezone(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def _resolve_timezone(settings: dict[str, Any]) -> dt.tzinfo:
     timezone_name = str(settings.get("timezone") or "").strip() or DEFAULT_TIMEZONE
     try:
