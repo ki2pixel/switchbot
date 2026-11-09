@@ -55,6 +55,7 @@ def sample_state_data():
         "last_temperature": 23.5,
         "last_humidity": 45.0,
         "assumed_aircon_power": "on",
+        "assumed_aircon_mode": 5,
         "last_action": "automation_winter_on",
         "api_requests_today": 150,
         "error_count": 0,
@@ -121,6 +122,7 @@ class TestRecordState:
         assert params[1] == 23.5  # temperature
         assert params[2] == 45.0  # humidity
         assert params[3] == "on"
+        assert params[9].obj["assumed_aircon_mode"] == 5
         mock_conn.commit.assert_called_once()
 
     def test_record_state_with_missing_fields(self, history_service):

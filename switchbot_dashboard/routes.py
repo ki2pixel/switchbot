@@ -1678,7 +1678,8 @@ def history_api_latest() -> Any:
                 "error_count": random.randint(0, 2),
                 "metadata": {
                     "last_read_at": _utc_iso_z(timestamp),
-                    "automation_active": random.choice([True, False])
+                    "automation_active": random.choice([True, False]),
+                    "assumed_aircon_mode": random.choice([2, 4, 5]),
                 }
             })
         

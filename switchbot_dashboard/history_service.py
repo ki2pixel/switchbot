@@ -318,6 +318,7 @@ class HistoryService:
             "last_tick": state_data.get("last_tick"),
             "automation_active": state_data.get("automation_active"),
             "pending_off_repeat": state_data.get("pending_off_repeat"),
+            "assumed_aircon_mode": state_data.get("assumed_aircon_mode"),
         }
 
         return (

@@ -616,7 +616,12 @@ class HistoryDashboard {
             tdHum.textContent = humidity;
             
             const tdState = document.createElement('td');
-            tdState.appendChild(this.formatAirconState(record.assumed_aircon_power));
+            tdState.appendChild(
+                this.formatAirconState(
+                    record.assumed_aircon_power,
+                    this.getAirconModeLabel(record)
+                )
+            );
             
             const tdAction = document.createElement('td');
             tdAction.textContent = action;
@@ -626,7 +631,25 @@ class HistoryDashboard {
         });
     }
 
-    formatAirconState(state) {
+    getAirconModeLabel(record) {
+        const modeLabels = {
+            '1': 'Auto',
+            '2': 'Cool',
+            '3': 'Dry',
+            '4': 'Fan',
+            '5': 'Heat'
+        };
+        const metadataMode = record?.metadata?.assumed_aircon_mode;
+        if (metadataMode !== null && metadataMode !== undefined && metadataMode !== '') {
+            return modeLabels[String(metadataMode)] || '';
+        }
+        const match = String(record?.last_action || '').match(
+            /^setAll\([^,]+,\s*([^,]+),/
+        );
+        return match ? (modeLabels[String(match[1]).trim()] || '') : '';
+    }
+
+    formatAirconState(state, modeLabel = '') {
         const stateConfig = {
             'on':      { text: 'ON',  cls: 'bg-success' },
             'off':     { text: 'OFF', cls: 'bg-danger' },
@@ -635,7 +658,9 @@ class HistoryDashboard {
         const config = stateConfig[state] || stateConfig['unknown'];
         const badge = document.createElement('span');
         badge.className = `badge ${config.cls}`;
-        badge.textContent = config.text;
+        badge.textContent = state === 'on' && modeLabel
+            ? `${config.text} \u00b7 ${modeLabel}`
+            : config.text;
         return badge;
     }
 

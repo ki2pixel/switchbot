@@ -6,6 +6,8 @@
 - [x] [2026-11-09 23:23:08] - Diagnostic PostgreSQL : `winter.target_temp=24.0`, `ac_mode=5`, `assumed_aircon_parameter="24.0,5,4,on"`, `assumed_aircon_mode="5"` ; confirme le format float et le mode chaîne.
 - [x] [2026-11-09 23:23:08] - Tests adaptés/ajoutés (format entier, migration legacy, fallback fan, route manuelle).
 - [x] [2026-11-09 23:23:08] - Validation : `pytest` → 324 passed, 1 skipped ; `ruff check` OK ; `git diff --check` OK.
+- [x] [2026-11-10 00:13:54] - Historique : badge `ON · Fan/Heat` via `metadata.assumed_aircon_mode`, avec fallback sur `last_action` pour les anciennes lignes.
+- [x] [2026-11-10 00:13:54] - Validation : `pytest` → 326 passed, 1 skipped ; `ruff check` OK ; `node --check history.js` OK.
 
 ## Alignement docs always-on — 2026-11-04
 - [x] [2026-11-04 16:24:55] - `AGENTS.md` et `codingstandards.md` alignés sur le code (IFTTT retiré, `ResilientStore`, `run_worker.py`, polling adaptatif, `_safe_*`, skills globaux, couverture 86 %).

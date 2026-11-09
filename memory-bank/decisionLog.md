@@ -1,3 +1,10 @@
+[2026-11-10 00:13:54] - Historique : affichage du mode de climatisation
+- Décision : Ajouter `assumed_aircon_mode` aux métadonnées de `state_history` et afficher `ON · Fan` / `ON · Heat` dans le badge, avec fallback sur `last_action` pour les anciennes lignes.
+- Motivation : `assumed_aircon_power` ne décrit que l'alimentation ; le mode Fan/Heat était encodé dans `last_action` et invisible dans le tableau, ce qui laissait croire que la clim chauffait en mode Fan.
+- Implémentation : `history_service._build_record_tuple` journalise `assumed_aircon_mode` ; `static/js/history.js` ajoute `getAirconModeLabel` et enrichit `formatAirconState`.
+- Implication : L'historique distingue clairement ON · Fan et ON · Heat ; les anciennes lignes sans métadonnée restent lisibles via le parsing de `setAll(...)`.
+- Validation : 326 passed, 1 skipped ; `ruff check` OK ; `node --check history.js` OK.
+
 [2026-11-09 23:23:08] - Correctif régulation thermique : paramètre `setAll` entier
 - Décision : Formater la température `setAll` en entier via `int(round(float(...)))` et centraliser le formatage/parsing dans `aircon.py`.
 - Motivation : L'API SwitchBot attend `"24,5,4,on"` ; `"24.0,5,4,on"` provoquait une consigne de repli à 18°C et une boucle de `setAll` toutes les minutes. Le diagnostic PostgreSQL a confirmé `assumed_aircon_parameter="24.0,5,4,on"` et `assumed_aircon_mode="5"` (chaîne), ce qui rendait l'ancienne comparaison toujours fausse.
