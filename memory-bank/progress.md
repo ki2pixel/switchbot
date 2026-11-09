@@ -1,8 +1,16 @@
 # Progrès du Projet - SwitchBot Dashboard
 
+## Correctif régulation thermique setAll — 2026-11-09
+- [x] [2026-11-09 23:23:08] - Normalisation de la température `setAll` en entier (`24` au lieu de `24.0`) dans `automation.py` et `routes.py`.
+- [x] [2026-11-09 23:23:08] - Idempotence durcie : mode stocké normalisé via `_safe_int` et paramètre legacy `24.0,...` réémis une fois, puis remplacé par la forme canonique `24,...`.
+- [x] [2026-11-09 23:23:08] - Diagnostic PostgreSQL : `winter.target_temp=24.0`, `ac_mode=5`, `assumed_aircon_parameter="24.0,5,4,on"`, `assumed_aircon_mode="5"` ; confirme le format float et le mode chaîne.
+- [x] [2026-11-09 23:23:08] - Tests adaptés/ajoutés (format entier, migration legacy, fallback fan, route manuelle).
+- [x] [2026-11-09 23:23:08] - Validation : `pytest` → 324 passed, 1 skipped ; `ruff check` OK ; `git diff --check` OK.
+
 ## Alignement docs always-on — 2026-11-04
 - [x] [2026-11-04 16:24:55] - `AGENTS.md` et `codingstandards.md` alignés sur le code (IFTTT retiré, `ResilientStore`, `run_worker.py`, polling adaptatif, `_safe_*`, skills globaux, couverture 86 %).
 - [x] [2026-11-04 16:24:55] - Nettoyage collateral : `ifttt-cascade` → `aircon-cascade`, `skills-integration.md`, `systemPatterns.md`, `automation-engine.md`, `docs/codex/integration-guide.md`, skills diagnostics/scheduler/postgres, docs associés.
+- [x] [2026-11-04 16:24:55] - `codingstandards.md` compacté (13 117 → 10 856 caractères) pour respecter la limite IDE Antigravity de 12 000 caractères.
 - [x] [2026-11-04 16:24:55] - Validation : `pytest -q` → 314 passed, 1 skipped ; `git diff --check` OK.
 
 ## Refactor automation.py + switchbot_api.py — 2026-11-04

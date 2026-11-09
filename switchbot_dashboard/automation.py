@@ -11,7 +11,14 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import has_request_context, request
 
-from .aircon import AIRCON_MODE_BY_ACTION, AIRCON_SCENE_LABELS, extract_aircon_scenes
+from .aircon import (
+    AIRCON_MODE_BY_ACTION,
+    AIRCON_SCENE_LABELS,
+    build_aircon_parameter,
+    extract_aircon_scenes,
+    normalize_aircon_temperature,
+    parse_aircon_parameter,
+)
 from .config_store import BaseStore
 from .switchbot_api import SwitchBotApiError, SwitchBotClient
 from .utils import _safe_int, _utc_now_iso
@@ -104,8 +111,8 @@ def _build_aircon_status_updates(body: dict[str, Any]) -> dict[str, Any]:
         and temperature is not None
         and fan_speed is not None
     ):
-        updates["assumed_aircon_parameter"] = (
-            f"{temperature},{mode},{fan_speed},{power}"
+        updates["assumed_aircon_parameter"] = build_aircon_parameter(
+            temperature, mode, fan_speed, power
         )
     return updates
 
@@ -365,25 +372,21 @@ class AutomationService:
         """Reconstruct an aircon status payload from the persisted assumed state."""
         power = state.get("assumed_aircon_power")
         mode = state.get("assumed_aircon_mode")
-        temperature: float | int | None = None
+        temperature: int | None = None
         fan_speed: int | None = None
 
         param = state.get("assumed_aircon_parameter")
-        if param and isinstance(param, str):
-            parts = param.split(",")
-            if len(parts) >= 4:
-                try:
-                    temperature = float(parts[0]) if "." in parts[0] else int(parts[0])
-                    if mode is None:
-                        mode = int(parts[1])
-                    fan_speed = int(parts[2])
-                except (ValueError, IndexError) as exc:
-                    self._debug(
-                        "Failed to parse cached aircon parameter",
-                        trigger=trigger,
-                        parameter=param,
-                        error=str(exc),
-                    )
+        parsed_parameter = parse_aircon_parameter(param)
+        if parsed_parameter is not None:
+            temperature, parsed_mode, fan_speed, _ = parsed_parameter
+            if mode is None:
+                mode = parsed_mode
+        elif param:
+            self._debug(
+                "Failed to parse cached aircon parameter",
+                trigger=trigger,
+                parameter=param,
+            )
 
         return {
             "power": power,
@@ -602,7 +605,7 @@ class AutomationService:
     def _send_aircon_setall(
         self,
         aircon_device_id: str,
-        temperature: float,
+        temperature: float | int,
         mode: int,
         fan_speed: int,
         power_state: str,
@@ -617,11 +620,16 @@ class AutomationService:
             return
 
         state = self._state_store.read()
-        parameter = f"{temperature},{mode},{fan_speed},{power_state}"
+        parameter = build_aircon_parameter(
+            temperature, mode, fan_speed, power_state
+        )
+        assumed_parameter = state.get("assumed_aircon_parameter")
+        assumed_mode = _safe_int(state.get("assumed_aircon_mode"), default=-1)
+        normalized_mode = _safe_int(mode, default=-1)
         if (
             state.get("assumed_aircon_power") == power_state
-            and state.get("assumed_aircon_mode") == mode
-            and state.get("assumed_aircon_parameter") == parameter
+            and assumed_mode == normalized_mode
+            and assumed_parameter == parameter
         ):
             self._debug(
                 "Skipping setAll: desired state already assumed",
@@ -629,6 +637,7 @@ class AutomationService:
                 aircon_device_id=aircon_device_id,
                 reason=reason,
                 parameter=parameter,
+                assumed_parameter=assumed_parameter,
             )
             return
 
@@ -641,6 +650,7 @@ class AutomationService:
             mode=mode,
             fan_speed=fan_speed,
             power_state=power_state,
+            parameter=parameter,
         )
         self._client.send_command(
             aircon_device_id,
@@ -1151,7 +1161,7 @@ class AutomationService:
         return sum(self._tick_durations) / len(self._tick_durations)
 
     def _handle_winter_mode(
-        self, current_temp: float, min_temp: float, max_temp: float, hysteresis: float, trigger: str, scenes: dict[str, str], aircon_id: str, target_temp: float, ac_mode: int, fan_speed: int, now: dt.datetime
+        self, current_temp: float, min_temp: float, max_temp: float, hysteresis: float, trigger: str, scenes: dict[str, str], aircon_id: str, target_temp: int, ac_mode: int, fan_speed: int, now: dt.datetime
     ) -> str:
         if current_temp <= (min_temp - hysteresis):
             self._debug("Winter mode: below min threshold", trigger=trigger, threshold=min_temp - hysteresis)
@@ -1170,7 +1180,7 @@ class AutomationService:
         return "no_action"
 
     def _handle_summer_mode(
-        self, current_temp: float, min_temp: float, max_temp: float, hysteresis: float, trigger: str, scenes: dict[str, str], aircon_id: str, target_temp: float, ac_mode: int, fan_speed: int, now: dt.datetime
+        self, current_temp: float, min_temp: float, max_temp: float, hysteresis: float, trigger: str, scenes: dict[str, str], aircon_id: str, target_temp: int, ac_mode: int, fan_speed: int, now: dt.datetime
     ) -> str:
         if current_temp >= (max_temp + hysteresis):
             self._debug("Summer mode: above max threshold", trigger=trigger, threshold=max_temp + hysteresis)
@@ -1219,7 +1229,7 @@ class AutomationService:
         try:
             min_temp = float(profile.get("min_temp"))
             max_temp = float(profile.get("max_temp"))
-            target_temp = float(profile.get("target_temp"))
+            target_temp = normalize_aircon_temperature(profile.get("target_temp"))
             ac_mode = _safe_int(profile.get("ac_mode"), default=5)
             fan_speed = _safe_int(profile.get("fan_speed"), default=3)
         except (TypeError, ValueError):

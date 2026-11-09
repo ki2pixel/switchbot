@@ -336,8 +336,34 @@ def test_aircon_on_winter_falls_back_to_setall_when_missing_scene() -> None:
     call = dummy_client.command_calls[0]
     assert call["device_id"] == "aircon"
     assert call["command"] == "setAll"
+    assert call["parameter"] == "22,5,3,on"
     state = state_store.read()
-    assert state.get("last_action") == "setAll(22.0,5,3,on) (manual_winter)"
+    assert state.get("last_action") == "setAll(22,5,3,on) (manual_winter)"
+
+
+def test_aircon_on_winter_falls_back_to_setall_with_rounded_temperature() -> None:
+    # Given: a winter profile with a fractional target and no winter scene
+    settings = {
+        "mode": "winter",
+        "aircon_device_id": "aircon",
+        "winter": {"target_temp": 24.6, "fan_speed": 3, "ac_mode": 5},
+        "aircon_scenes": {"winter": "", "summer": "", "fan": "", "off": ""},
+    }
+    dummy_client = DummyClient()
+    app, _settings_store, state_store, _scheduler, _tracker = _build_app(
+        settings,
+        client=dummy_client,
+    )
+
+    # When: the manual winter action falls back to the direct command
+    with app.test_client() as client:
+        client.post("/actions/aircon_on_winter", follow_redirects=True)
+
+    # Then: the setAll parameter uses the rounded integer temperature
+    call = dummy_client.command_calls[0]
+    assert call["command"] == "setAll"
+    assert call["parameter"] == "25,5,3,on"
+    assert state_store.read()["assumed_aircon_parameter"] == "25,5,3,on"
 
 
 

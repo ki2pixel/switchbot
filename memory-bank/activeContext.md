@@ -5,6 +5,7 @@
   - `AGENTS.md` : clés `app.extensions`, `ResilientStore`/`STORE_RUNTIME_FALLBACK`, cascade scènes → commandes, SSRF `SwitchBotClient.base_url`, `_safe_*`, `run_worker.py`, polling adaptatif, règles `.agents/rules`.
   - `.agents/rules/codingstandards.md` : suppression IFTTT/Redis legacy, skills globaux réels, couverture 86 %, SPA/loaders/history, `/reglages`.
   - Nettoyage collateral : skill `ifttt-cascade` renommé `aircon-cascade`, `skills-integration.md`, `systemPatterns.md`, `automation-engine.md`, `docs/codex/integration-guide.md`, skills diagnostics/json/scheduler/postgres, et docs associés (README, scheduler, storage, configuration, deployment, UI, troubleshooting).
+  - Contrainte Antigravity : `codingstandards.md` compacté de 13 117 à 10 856 caractères (limite IDE 12 000) ; catalogue skills déplacé vers `skills-integration.md`.
   - Validation : `pytest -q` → 314 passed, 1 skipped ; `git diff --check` OK.
 
 ## Session 2026-11-04 — Refactor automation.py + switchbot_api.py (hotspots C)

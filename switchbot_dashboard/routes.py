@@ -33,6 +33,7 @@ from .aircon import (
     AIRCON_MODE_BY_ACTION,
     AIRCON_SCENE_KEYS,
     AIRCON_SCENE_LABELS,
+    build_aircon_parameter,
     extract_aircon_scenes as _extract_aircon_scenes,
 )
 from .utils import (
@@ -1090,7 +1091,9 @@ def _execute_manual_setall(
         target_temp = float(profile.get("target_temp", 22.0) or 22.0)
         fan_speed = _as_int(profile.get("fan_speed"), default=3)
 
-        parameter = f"{target_temp},{assumed_mode},{fan_speed},on"
+        parameter = build_aircon_parameter(
+            target_temp, assumed_mode, fan_speed, "on"
+        )
         client.send_command(
             aircon_id,
             command="setAll",

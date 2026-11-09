@@ -13,33 +13,9 @@ globs:
 - **Tests** : `source /mnt/venv_ext4/venv_switchbot/bin/activate && python -m pytest`, objectif 85 %+ (actuellement ~86 % sur `switchbot_dashboard/`) avec focus automation/history/quota/scheduler (`docs/ops/testing-strategy.md`).
 
 ## AI Skill Usage
-- **Skills locaux en premier** (`.agents/skills`) :
-  - `add-feature` pour toute feature mêlant services/routes/templates.
-  - `debugging-strategies` à consulter dès qu'un ticket implique bug, crash, performance ou investigation de logs.
-  - `documentation` pour toute rédaction de documentation (README, docs/, guides Markdown), méthodologie TL;DR, problème-first, ❌/✅, trade-offs, Golden Rule.
-  - `switchbot-api-dev` dès qu'on touche `switchbot_dashboard/switchbot_api.py` ou la signature HMAC/quota.
-  - `automation-diagnostics` pour diagnostiquer `AutomationService` (fenêtres, hystérésis, off-repeat, timezone).
-  - `scheduler-ops` pour gérer `SchedulerService` (start/stop/reschedule, healthchecks).
-  - `postgres-store-maintenance` pour les migrations/bascule PostgresStore ↔ JsonStore.
-  - `history-dashboard-updater` pour toute évolution HistoryService/API/frontend Chart.js.
-  - `quota-alerting` pour modifier `ApiQuotaTracker`, le bandeau quota et les tests associés.
-  - `loader-patterns` afin de garantir l'usage des loaders UI (data-loader, ARIA, failsafe).
-  - `performance-audit-runbook` pour rejouer l'audit Core Web Vitals (critical CSS, resource hints, micro-interactions).
-  - `render-service-manager` pour les opérations Render.com (déploiement, cron jobs, monitoring, variables d'environnement).
-  - `postgres-ops-manager` pour les opérations PostgreSQL avancées (analyse santé, indexes, requêtes sécurisées, exploration schémas).
-  - `render-postgres-integration` pour l'orchestration Render + PostgreSQL (migrations, backups, monitoring intégré).
-  - `shrimp-task-manager` pour les opérations Shrimp Task Manager (planification, roadmapping, complexité).
-  - `json-query-expert` pour les opérations JSON Query (manipulation, transformation, validation).
-  - `fast-filesystem-ops` pour les opérations Fast Filesystem (lecture, écriture, suppression, renommage).
-  - `sequentialthinking-logic` pour les opérations Sequential Thinking (analyse, planification, complexité).
-- **Skills globaux** (`/home/kidpixel/.agents/skills` ou `/home/kidpixel/.claude/skills`) seulement si aucun équivalent local :
-  1. Planification/recherche : `plan`, `research`.
-  2. Frontend/UI : `frontend-design`.
-  3. Navigateur/tests : `playwright`, `agent-browser`.
-  4. Revue : `cross-review`, `zen-review`, `zen-comprehensive-review` (sur demande explicite).
-  5. Méta : `init`, `skill-creator`.
-- **Exclusions** : ignorer tout skill artistique hors périmètre produit.
-- **Escalade** : toujours commencer par les skills locaux puis monter l’échelle ci-dessus pour éviter prescriptions contradictoires.
+- **Skills locaux en premier** : charger le skill pertinent depuis `.agents/skills/` (catalogue et déclencheurs : `.agents/rules/skills-integration.md`).
+- **Skills globaux** (`~/.agents/skills` ou `~/.claude/skills`) uniquement si aucun équivalent local.
+- **Escalade** : local → global ; ignorer tout skill artistique hors périmètre produit.
 
 ## Code Style
 - `from __future__ import annotations` + typage strict + retours explicites sur les APIs publiques.

@@ -11,7 +11,13 @@ import datetime as dt
 from unittest.mock import MagicMock, patch
 from zoneinfo import ZoneInfo
 
-from switchbot_dashboard.automation import AutomationService, CachedStoreWrapper, _is_now_in_windows, LockLostError
+from switchbot_dashboard.automation import (
+    AutomationService,
+    CachedStoreWrapper,
+    LockLostError,
+    _build_aircon_status_updates,
+    _is_now_in_windows,
+)
 from switchbot_dashboard.quota import ApiQuotaTracker
 
 
@@ -728,8 +734,9 @@ def test_automation_syncs_divergent_aircon_state() -> None:
     }
     settings["hysteresis_celsius"] = 0.5
 
-    # 1. State store initially assumes the AC is already set to COOL (mode=2, temp=22.5, speed=4, power=on).
-    # If the service didn't poll, it would skip sending commands due to idempotency.
+    # 1. State store initially assumes the AC is already set to COOL
+    # (mode=2, legacy temp=22.5, speed=4, power=on). If the service didn't
+    # poll, it would skip sending commands due to idempotency.
     initial_state = {
         "assumed_aircon_power": "on",
         "assumed_aircon_mode": 2,
@@ -760,13 +767,15 @@ def test_automation_syncs_divergent_aircon_state() -> None:
     call = client.send_command_calls[0]
     assert call["device_id"] == "aircon-1"
     assert call["command"] == "setAll"
-    assert call["parameter"] == "22.5,2,4,on"
+    # round(22.5) == 22 with Python's banker's rounding: the target is
+    # normalized to an integer before building the setAll parameter.
+    assert call["parameter"] == "22,2,4,on"
 
     # Finally, the state store must be updated to the new targeted state
     final_state = state_store.read()
     assert final_state["assumed_aircon_power"] == "on"
     assert final_state["assumed_aircon_mode"] == 2
-    assert final_state["assumed_aircon_parameter"] == "22.5,2,4,on"
+    assert final_state["assumed_aircon_parameter"] == "22,2,4,on"
 
 
 def test_poll_aircon_status_cooldown() -> None:
@@ -801,7 +810,7 @@ def test_poll_aircon_status_cooldown() -> None:
         assert status == {
             "power": "on",
             "mode": 2,
-            "temperature": 24.0,
+            "temperature": 24,
             "fanSpeed": 2,
         }
 
@@ -916,7 +925,7 @@ def test_poll_aircon_status_virtual_bypass() -> None:
         assert status == {
             "power": "on",
             "mode": 2,
-            "temperature": 24.0,
+            "temperature": 24,
             "fanSpeed": 2,
         }
 
@@ -1171,8 +1180,105 @@ def test_fan_mode_direct_fallback_when_scene_is_missing() -> None:
     assert len(client.send_command_calls) == 1
     command = client.send_command_calls[0]
     assert command["command"] == "setAll"
-    assert command["parameter"] == "21.0,4,3,on"
+    assert command["parameter"] == "21,4,3,on"
     state = state_store.read()
     assert state["assumed_aircon_mode"] == 4
+
+
+def test_build_aircon_status_updates_normalizes_temperature() -> None:
+    # Given: the API reports a float temperature for a heat setpoint
+    body = {"power": "on", "mode": 5, "temperature": 24.0, "fanSpeed": 3}
+
+    # When: the status body is mapped to state updates
+    updates = _build_aircon_status_updates(body)
+
+    # Then: the persisted parameter uses the integer form
+    assert updates["assumed_aircon_parameter"] == "24,5,3,on"
+
+
+def test_send_aircon_setall_reemits_legacy_float_parameter_once() -> None:
+    # Given: the stored parameter uses the legacy float format and a string mode
+    initial_state = {
+        "assumed_aircon_power": "on",
+        "assumed_aircon_mode": "5",
+        "assumed_aircon_parameter": "24.0,5,3,on",
+    }
+    service, client, _, state_store = _build_service(
+        settings=_default_settings(),
+        temperature=20.0,
+        initial_state=initial_state,
+    )
+
+    # When: the automation requests the equivalent integer setpoint
+    service._send_aircon_setall(
+        "aircon-1",
+        temperature=24.0,
+        mode=5,
+        fan_speed=3,
+        power_state="on",
+        trigger="test",
+        reason="test",
+    )
+
+    # Then: the legacy parameter is not trusted and the canonical command is sent once
+    assert client.send_command_calls[0]["parameter"] == "24,5,3,on"
+    assert state_store.read()["assumed_aircon_parameter"] == "24,5,3,on"
+
+    # When: the same setpoint is requested again
+    service._send_aircon_setall(
+        "aircon-1",
+        temperature=24.0,
+        mode=5,
+        fan_speed=3,
+        power_state="on",
+        trigger="test",
+        reason="test",
+    )
+
+    # Then: idempotency skips the duplicate now that the state is canonical
+    assert len(client.send_command_calls) == 1
+
+
+def test_send_aircon_setall_emits_integer_parameter_on_divergence() -> None:
+    # Given: the unit is assumed to be at the physical fallback setpoint
+    initial_state = {
+        "assumed_aircon_power": "on",
+        "assumed_aircon_mode": 5,
+        "assumed_aircon_parameter": "18,5,3,on",
+    }
+    service, client, _, _ = _build_service(
+        settings=_default_settings(),
+        temperature=20.0,
+        initial_state=initial_state,
+    )
+
+    # When: the automation targets 24°C
+    service._send_aircon_setall(
+        "aircon-1",
+        temperature=24.0,
+        mode=5,
+        fan_speed=3,
+        power_state="on",
+        trigger="test",
+        reason="test",
+    )
+
+    # Then: the emitted parameter is an integer string
+    assert client.send_command_calls[0]["parameter"] == "24,5,3,on"
+
+
+def test_resolve_temperature_profile_normalizes_target() -> None:
+    # Given: the winter profile has a fractional target
+    settings = _default_settings()
+    settings["winter"]["target_temp"] = 24.6
+    service, _, _, _ = _build_service(settings=settings, temperature=20.0)
+
+    # When: the profile is resolved
+    values, error = service._resolve_temperature_profile(settings, 20.0, "test")
+
+    # Then: the runtime target is a rounded integer
+    assert error is None
+    assert values is not None
+    assert values["target_temp"] == 25
 
 

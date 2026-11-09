@@ -1,3 +1,10 @@
+[2026-11-09 23:23:08] - Correctif régulation thermique : paramètre `setAll` entier
+- Décision : Formater la température `setAll` en entier via `int(round(float(...)))` et centraliser le formatage/parsing dans `aircon.py`.
+- Motivation : L'API SwitchBot attend `"24,5,4,on"` ; `"24.0,5,4,on"` provoquait une consigne de repli à 18°C et une boucle de `setAll` toutes les minutes. Le diagnostic PostgreSQL a confirmé `assumed_aircon_parameter="24.0,5,4,on"` et `assumed_aircon_mode="5"` (chaîne), ce qui rendait l'ancienne comparaison toujours fausse.
+- Implémentation : Helpers `build_aircon_parameter`, `normalize_aircon_parameter`, `parse_aircon_parameter` ; utilisation dans `_build_aircon_status_updates`, `_build_cached_aircon_status`, `_send_aircon_setall`, `_resolve_temperature_profile` et `_execute_manual_setall`. La comparaison d'idempotence exige un paramètre stocké strictement canonique et normalise le mode via `_safe_int` ; un état legacy est donc réémis une fois pour appliquer la consigne corrigée.
+- Implication : La consigne Hiver est réellement appliquée, les états legacy sont migrés en une réémission, et le quota API n'est plus gaspillé. Aucun changement à la cascade scènes → commandes ni au `ApiQuotaTracker`.
+- Validation : 324 passed, 1 skipped ; `ruff check` OK ; `git diff --check` OK.
+
 [2026-07-16 20:47:00] - Remédiation backend complète : Phases P1 (Robustesse) et P2 (Durcissement)
 - Décision :
   1. PERF-01/REL-03 — Parallélisme + Cache thread-safe : Les appels d'enrichissement des devices sont parallélisés via `ThreadPoolExecutor`. Le cache interne de `SwitchBotClient` est protégé par un `threading.Lock`. Les actions manuelles (`/actions/run_once`) retournent immédiatement 202 et s'exécutent en daemon thread. Rate-limit ajouté sur `/devices` (10/min).
